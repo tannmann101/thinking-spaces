@@ -14,9 +14,46 @@ import { db } from './index.js';
 // the isTestSpace flag added below, rather than hardcoding it elsewhere.
 export const TEST_SPACE_ID = 'test-space';
 
-function withTestSpaceFlag(space) {
+// Visual Identity's two computed dimensions besides status (see the
+// Tools & Resources doc). Both are plain per-space queries rather than
+// a batched aggregate -- this app's tables are small enough (one
+// person's Spaces) that an extra indexed query per Space in a list
+// isn't worth the complexity of pre-aggregating.
+function getRelationDensity(spaceId) {
+  const outgoing = db
+    .prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ? AND type = 'reference'`)
+    .get(spaceId).count;
+  const incoming = db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM blocks
+       WHERE type = 'reference' AND json_extract(content, '$.target_space_id') = ?`
+    )
+    .get(spaceId).count;
+  return outgoing + incoming;
+}
+
+// No "resolved" state exists yet for a Tension (that's Tension
+// Resolver territory, not built) -- so every item in the Tensions lane
+// currently counts as open.
+function getOpenTensionCount(spaceId) {
+  const row = db
+    .prepare(
+      `SELECT json_array_length(content, '$.items') AS count
+       FROM blocks
+       WHERE space_id = ? AND type = 'list' AND json_extract(properties, '$.skeletonLane') = 'tensions'`
+    )
+    .get(spaceId);
+  return row ? row.count : 0;
+}
+
+function withComputedSpaceFields(space) {
   if (!space) return space;
-  return { ...space, isTestSpace: space.id === TEST_SPACE_ID };
+  return {
+    ...space,
+    isTestSpace: space.id === TEST_SPACE_ID,
+    relationDensity: getRelationDensity(space.id),
+    openTensionCount: getOpenTensionCount(space.id),
+  };
 }
 
 export function listSpaces() {
@@ -27,7 +64,7 @@ export function listSpaces() {
        ORDER BY updated_at DESC`
     )
     .all();
-  return rows.map(withTestSpaceFlag);
+  return rows.map(withComputedSpaceFields);
 }
 
 export function getSpaceById(id) {
@@ -38,7 +75,7 @@ export function getSpaceById(id) {
        WHERE id = ?`
     )
     .get(id);
-  return withTestSpaceFlag(row);
+  return withComputedSpaceFields(row);
 }
 
 // id is optional: pass one for a fixed, well-known Space (the Test

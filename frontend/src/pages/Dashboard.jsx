@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getSpaces } from '../api.js';
+import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 
 function formatDate(isoLikeString) {
   // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
@@ -34,15 +35,18 @@ function Dashboard() {
       {spaces && spaces.length > 0 && (
         <ul>
           {spaces.map((space) => (
-            <li key={space.id}>
-              <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-              {space.isTestSpace && (
-                <strong> [TEST SPACE — scratch area, not real content]</strong>
-              )}
-              {' — '}
-              status: {space.status}
-              {' — '}
-              updated: {formatDate(space.updated_at)}
+            <li key={space.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <SpaceGlyph space={space} size={24} />
+              <span>
+                <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                {space.isTestSpace && (
+                  <strong> [TEST SPACE — scratch area, not real content]</strong>
+                )}
+                {' — '}
+                status: {space.status}
+                {' — '}
+                updated: {formatDate(space.updated_at)}
+              </span>
             </li>
           ))}
         </ul>

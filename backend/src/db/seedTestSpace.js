@@ -8,7 +8,14 @@
 // function below checks its own position before inserting -- so adding
 // one new demo block never blocks or duplicates another.
 
-import { TEST_SPACE_ID, countBlocksForSpace, createBlock, blockExistsAtPosition } from './queries.js';
+import {
+  TEST_SPACE_ID,
+  countBlocksForSpace,
+  createBlock,
+  blockExistsAtPosition,
+  createSpace,
+  getSpaceById,
+} from './queries.js';
 
 const SAMPLE_TEXT_BLOCKS = [
   { tag: 'quote', text: 'The map is not the territory.' },
@@ -141,6 +148,131 @@ function seedLedgerDemo() {
   });
 }
 
+// Reference demo: a second, throwaway Space that exists only to be
+// pointed at, so the Reference block and the "what references this
+// Space" backlink lookup both have something real to show.
+const THROWAWAY_REFERENCE_TARGET_ID = 'throwaway-reference-target';
+
+function ensureThrowawayReferenceTarget() {
+  const existing = getSpaceById(THROWAWAY_REFERENCE_TARGET_ID);
+  if (existing) return existing;
+  return createSpace({
+    id: THROWAWAY_REFERENCE_TARGET_ID,
+    title: 'Throwaway Reference Target (Pass 2 demo -- safe to delete)',
+  });
+}
+
+function seedReferenceDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 9)) return;
+  ensureThrowawayReferenceTarget();
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'reference',
+    content: {
+      target_space_id: THROWAWAY_REFERENCE_TARGET_ID,
+      note: 'Just here to prove Reference blocks and the backlink lookup work.',
+    },
+    position: 9,
+  });
+}
+
+// Media demo: a self-contained SVG data URI, so the image renders with
+// no dependency on external network access.
+const DEMO_IMAGE_SVG =
+  "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'>" +
+  "<rect width='100%' height='100%' fill='#ddd'/>" +
+  "<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='16'>Demo image (placeholder)</text>" +
+  '</svg>';
+const DEMO_IMAGE_URL = `data:image/svg+xml,${encodeURIComponent(DEMO_IMAGE_SVG)}`;
+
+function seedMediaDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 10)) return;
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'media',
+    content: {
+      mediaType: 'image',
+      url: DEMO_IMAGE_URL,
+      caption: 'A placeholder image demonstrating the Media block.',
+    },
+    position: 10,
+  });
+}
+
+// Comparison demo: two of the Text blocks from seedTextBlocks, embedded
+// directly (Comparison holds its own copies, not links to those rows),
+// marked as a contrast to demo that mechanism too.
+function seedComparisonDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 11)) return;
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'comparison',
+    content: {
+      left: { kind: 'text', tag: 'quote', text: 'The map is not the territory.' },
+      right: {
+        kind: 'text',
+        tag: 'reflection',
+        text: 'This makes me wonder how often my own notes quietly treat a model as the real thing.',
+      },
+      contrast: true,
+      contrastNote: 'Demo pairing only, to prove the Comparison block and its contrast marker work.',
+    },
+    position: 11,
+  });
+}
+
+// Resource demo: proves a "Resource" needs no new code -- it's just an
+// ordinary Space (with Text/List blocks like any other), referenced
+// from the Test Space via an ordinary Reference block.
+const RESOURCE_DEMO_SPACE_ID = 'resource-demo-book';
+
+function ensureResourceDemoSpace() {
+  const existing = getSpaceById(RESOURCE_DEMO_SPACE_ID);
+  if (existing) return existing;
+
+  const space = createSpace({
+    id: RESOURCE_DEMO_SPACE_ID,
+    title: 'Book: Thinking in Systems (a Resource, Pass 2 demo)',
+    status: 'mature',
+  });
+  createBlock({
+    spaceId: RESOURCE_DEMO_SPACE_ID,
+    type: 'text',
+    content: {
+      tag: 'paraphrase',
+      text: 'A systems-thinking primer by Donella Meadows, covering stocks, flows, feedback loops, and leverage points.',
+    },
+    position: 0,
+  });
+  createBlock({
+    spaceId: RESOURCE_DEMO_SPACE_ID,
+    type: 'list',
+    content: {
+      items: [
+        { id: 'book-item-author', text: 'Author: Donella Meadows' },
+        { id: 'book-item-read', text: 'Finished reading', checkbox: true },
+        { id: 'book-item-concept', text: 'Key concept: leverage points', confidence: 'solid' },
+      ],
+    },
+    position: 1,
+  });
+  return space;
+}
+
+function seedResourceReferenceDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 12)) return;
+  ensureResourceDemoSpace();
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'reference',
+    content: {
+      target_space_id: RESOURCE_DEMO_SPACE_ID,
+      note: 'A Resource, referenced here just like any other Space -- no special Resource machinery exists or is needed.',
+    },
+    position: 12,
+  });
+}
+
 export function seedTestSpaceBlocks() {
   seedTextBlocks();
   seedGeneralListBlock();
@@ -148,4 +280,8 @@ export function seedTestSpaceBlocks() {
   seedProgressDemo();
   seedStreakDemo();
   seedLedgerDemo();
+  seedReferenceDemo();
+  seedMediaDemo();
+  seedComparisonDemo();
+  seedResourceReferenceDemo();
 }

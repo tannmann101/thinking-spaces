@@ -115,6 +115,17 @@ export function countBlocksForSpace(spaceId, type = null) {
   return row.count;
 }
 
+// Used by seedTestSpace.js so each seeded block can check "does the
+// block I'm responsible for already exist" independently of every
+// other seeded block, rather than one shared "has any list been seeded"
+// flag blocking the rest.
+export function blockExistsAtPosition(spaceId, position) {
+  const row = db
+    .prepare(`SELECT id FROM blocks WHERE space_id = ? AND position = ?`)
+    .get(spaceId, position);
+  return !!row;
+}
+
 export function createBlock({ spaceId, type, content = {}, properties = {}, position = 0 }) {
   const id = randomUUID();
   db.prepare(

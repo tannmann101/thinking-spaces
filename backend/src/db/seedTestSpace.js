@@ -15,6 +15,7 @@ import {
   blockExistsAtPosition,
   createSpace,
   getSpaceById,
+  SKELETON_LANES,
 } from './queries.js';
 
 const SAMPLE_TEXT_BLOCKS = [
@@ -291,6 +292,52 @@ function seedInlineLinkDemo() {
   });
 }
 
+// Skeleton demo: the four lanes plus Current Best Articulation, seeded
+// empty at fixed positions (same properties markers ensureSkeletonLanes
+// uses elsewhere, so it recognizes these as already existing rather
+// than creating duplicates when the shorthand demo below is promoted).
+function seedSkeletonLanes() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 14)) return;
+  SKELETON_LANES.forEach((lane, index) => {
+    createBlock({
+      spaceId: TEST_SPACE_ID,
+      type: 'list',
+      content: { items: [], laneLabel: lane.label },
+      properties: { skeletonLane: lane.key },
+      position: 14 + index,
+    });
+  });
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'text',
+    content: { tag: null, text: '' },
+    properties: { skeletonRole: 'current-best-articulation' },
+    position: 18,
+  });
+}
+
+// Shorthand demo: seeded as raw, un-promoted text on purpose -- click
+// into it, save it (even unchanged), and the =/?/! lines should
+// disappear from here and show up in the lanes above.
+function seedShorthandDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 19)) return;
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'text',
+    content: {
+      tag: null,
+      text: [
+        'Some scratch thinking on this substrate, not yet sorted into the Skeleton:',
+        '= Blocks are the only content primitive.',
+        '? Does the properties column end up duplicating block-specific fields over time?',
+        '! Views risk duplicating rendering logic between similar view types.',
+        'Click into this block and save it (even with no changes) to promote the three lines above into the lanes.',
+      ].join('\n'),
+    },
+    position: 19,
+  });
+}
+
 export function seedTestSpaceBlocks() {
   seedTextBlocks();
   seedGeneralListBlock();
@@ -303,4 +350,6 @@ export function seedTestSpaceBlocks() {
   seedComparisonDemo();
   seedResourceReferenceDemo();
   seedInlineLinkDemo();
+  seedSkeletonLanes();
+  seedShorthandDemo();
 }

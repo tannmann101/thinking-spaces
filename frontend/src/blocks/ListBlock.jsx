@@ -83,9 +83,14 @@ function ListBlock({ block }) {
     );
   }
 
+  const laneLabel = block.content.laneLabel;
+
   return (
-    <ol>
-      {items.map((item) => (
+    <div>
+      {laneLabel && <h4>{laneLabel}</h4>}
+      {laneLabel && items.length === 0 && <p>(empty)</p>}
+      <ol>
+        {items.map((item) => (
         <li key={item.id}>
           {typeof item.checkbox === 'boolean' && (
             <input
@@ -111,8 +116,9 @@ function ListBlock({ block }) {
             </>
           )}
         </li>
-      ))}
-    </ol>
+        ))}
+      </ol>
+    </div>
   );
 }
 

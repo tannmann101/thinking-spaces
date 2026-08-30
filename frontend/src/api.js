@@ -30,3 +30,11 @@ export const updateBlockContent = (blockId, content) =>
     method: 'PATCH',
     body: JSON.stringify({ content }),
   });
+// Text blocks save through this instead of updateBlockContent, so the
+// backend can check for =/?/! shorthand and promote it into the
+// Skeleton before the trimmed text comes back.
+export const saveTextBlock = (blockId, text) =>
+  request(`/blocks/${blockId}/text`, {
+    method: 'PATCH',
+    body: JSON.stringify({ text }),
+  });

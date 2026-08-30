@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getSpace, getBlocksForSpace } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
+import { viewRegistry } from '../registry/views.js';
 
 function SpacePage() {
   const { id } = useParams();
@@ -35,11 +36,21 @@ function SpacePage() {
           {blocks &&
             blocks.map((block) => {
               const entry = blockRegistry[block.type];
-              if (!entry) {
-                return <p key={block.id}>Unknown block type: {block.type}</p>;
-              }
-              const BlockComponent = entry.component;
-              return <BlockComponent key={block.id} block={block} />;
+              const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
+                view.appliesTo(block)
+              );
+              return (
+                <div key={block.id}>
+                  {entry ? (
+                    <entry.component block={block} />
+                  ) : (
+                    <p>Unknown block type: {block.type}</p>
+                  )}
+                  {applicableViews.map(([key, view]) => (
+                    <view.component key={key} block={block} />
+                  ))}
+                </div>
+              );
             })}
         </>
       )}

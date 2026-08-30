@@ -273,6 +273,24 @@ function seedResourceReferenceDemo() {
   });
 }
 
+// Inline-link demo: a Text block containing a [[spaceId|Title]] link,
+// so the live [[ ]] linking feature has something to show even before
+// anyone types one by hand. Depends on the Resource demo Space
+// existing first.
+function seedInlineLinkDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 13)) return;
+  ensureResourceDemoSpace();
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'text',
+    content: {
+      tag: null,
+      text: `See also [[${RESOURCE_DEMO_SPACE_ID}|Book: Thinking in Systems (a Resource, Pass 2 demo)]] -- click it, then use the breadcrumb to come straight back here.`,
+    },
+    position: 13,
+  });
+}
+
 export function seedTestSpaceBlocks() {
   seedTextBlocks();
   seedGeneralListBlock();
@@ -284,4 +302,5 @@ export function seedTestSpaceBlocks() {
   seedMediaDemo();
   seedComparisonDemo();
   seedResourceReferenceDemo();
+  seedInlineLinkDemo();
 }

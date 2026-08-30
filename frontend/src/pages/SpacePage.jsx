@@ -1,8 +1,31 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { getSpace, getBlocksForSpace, getBacklinksForSpace } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
+
+function BackLink() {
+  const [searchParams] = useSearchParams();
+  const fromId = searchParams.get('from');
+  const [fromSpace, setFromSpace] = useState(null);
+
+  useEffect(() => {
+    if (fromId) getSpace(fromId).then(setFromSpace).catch(() => setFromSpace(null));
+  }, [fromId]);
+
+  if (fromId) {
+    return (
+      <p>
+        <Link to={`/spaces/${fromId}`}>&larr; Back to {fromSpace ? fromSpace.title : '...'}</Link>
+      </p>
+    );
+  }
+  return (
+    <p>
+      <Link to="/">&larr; Back to Dashboard</Link>
+    </p>
+  );
+}
 
 function SpacePage() {
   const { id } = useParams();
@@ -19,9 +42,7 @@ function SpacePage() {
 
   return (
     <main>
-      <p>
-        <Link to="/">&larr; Back to Dashboard</Link>
-      </p>
+      <BackLink />
 
       {error && <p>Could not load Space: {error}</p>}
       {!error && !space && <p>Loading...</p>}

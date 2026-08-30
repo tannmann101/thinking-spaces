@@ -25,3 +25,8 @@ export const createSpace = ({ title, templateId }) =>
 export const getTemplates = () => request('/templates');
 export const getBlocksForSpace = (spaceId) => request(`/spaces/${spaceId}/blocks`);
 export const getBacklinksForSpace = (spaceId) => request(`/spaces/${spaceId}/backlinks`);
+export const updateBlockContent = (blockId, content) =>
+  request(`/blocks/${blockId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
+  });

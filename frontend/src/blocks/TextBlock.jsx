@@ -13,10 +13,18 @@
 // type -- there's still no general block-editing UI. Editing shows the
 // raw text (including [[id|Title]] source), matching how Obsidian
 // itself shows raw link syntax while editing and renders it read-only.
+//
+// A line starting with =, ?, or ! is Skeleton shorthand (a Premise,
+// Open Question, or Tension) and gets promoted out of this block's
+// text into the matching lane when saved -- see saveTextBlockWithPromotion
+// on the backend. That only applies to a standalone Text block saving
+// itself (the default path below); a block using `onSave` (a
+// Comparison side) is just embedded content, not a real Writing
+// Surface, so it saves as plain text with no promotion.
 
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getSpaces, updateBlockContent } from '../api.js';
+import { getSpaces, saveTextBlock } from '../api.js';
 
 const LINK_PATTERN = /\[\[([a-zA-Z0-9-]+)\|([^\]]+)\]\]/g;
 
@@ -45,7 +53,10 @@ function renderTextWithLinks(text, fromSpaceId) {
 // onSave lets a parent block (Comparison) override where an edit goes,
 // for a Text-shaped side that isn't a standalone row in the blocks
 // table. Without it, edits PATCH this block directly by its own id.
-function TextBlock({ block, onSave }) {
+// onBlocksChanged is called after a standalone save, since promotion
+// may have just changed a *different* block (a Skeleton lane) that
+// this component has no other way to know about.
+function TextBlock({ block, onSave, onBlocksChanged }) {
   const editable = Boolean(block.id) || Boolean(onSave);
   const { tag } = block.content;
 
@@ -94,11 +105,20 @@ function TextBlock({ block, onSave }) {
   async function finishEditing() {
     setEditing(false);
     setSuggestion(null);
-    if (draft === savedText) return;
-    setSavedText(draft);
-    const newContent = { ...block.content, text: draft };
-    if (onSave) await onSave(newContent);
-    else await updateBlockContent(block.id, newContent);
+    // No "skip if unchanged" shortcut: even unchanged text can still
+    // contain un-promoted =/?/! shorthand that needs processing on the
+    // standalone (non-onSave) path.
+    if (draft === savedText && onSave) return;
+    if (onSave) {
+      setSavedText(draft);
+      await onSave({ ...block.content, text: draft });
+    } else {
+      // The backend may have stripped promoted shorthand lines, so the
+      // saved text it returns -- not our local draft -- is what's real.
+      const updated = await saveTextBlock(block.id, draft);
+      setSavedText(updated.content.text);
+      onBlocksChanged?.();
+    }
   }
 
   const matches =

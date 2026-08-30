@@ -196,3 +196,107 @@ export function updateBlockContent(id, content) {
   ).run(JSON.stringify(content), id);
   return getBlockById(id);
 }
+
+// --- Skeleton ---------------------------------------------------------
+// "The Skeleton" isn't a new schema concept: it's four List blocks (the
+// lanes) plus one Text block (Current Best Articulation), distinguished
+// from any other block only by a marker in `properties`. This is the
+// one place that marker convention is defined.
+//
+// Evidence has no shorthand trigger in the Tools & Resources doc (only
+// Premises/Open Questions/Tensions do), and there's no "add an item"
+// UI yet for List blocks -- so the Evidence lane exists but currently
+// has no way to ever gain its first item. That's a known gap, not an
+// oversight.
+export const SKELETON_LANES = [
+  { key: 'premises', label: 'Premises', trigger: '=' },
+  { key: 'evidence', label: 'Evidence', trigger: null },
+  { key: 'open-questions', label: 'Open Questions', trigger: '?' },
+  { key: 'tensions', label: 'Tensions', trigger: '!' },
+];
+
+function nextPosition(spaceId) {
+  const row = db.prepare(`SELECT MAX(position) AS maxPosition FROM blocks WHERE space_id = ?`).get(spaceId);
+  return row.maxPosition === null ? 0 : row.maxPosition + 1;
+}
+
+function findSkeletonLaneBlock(spaceId, laneKey) {
+  return listBlocksForSpace(spaceId).find(
+    (block) => block.type === 'list' && block.properties.skeletonLane === laneKey
+  );
+}
+
+// Idempotent per Space: creates whichever of the four lanes and the
+// Current Best Articulation block don't already exist yet. Safe to
+// call every time something is about to be promoted into a Skeleton.
+export function ensureSkeletonLanes(spaceId) {
+  SKELETON_LANES.forEach((lane) => {
+    if (findSkeletonLaneBlock(spaceId, lane.key)) return;
+    createBlock({
+      spaceId,
+      type: 'list',
+      content: { items: [], laneLabel: lane.label },
+      properties: { skeletonLane: lane.key },
+      position: nextPosition(spaceId),
+    });
+  });
+
+  const hasArticulation = listBlocksForSpace(spaceId).some(
+    (block) => block.type === 'text' && block.properties.skeletonRole === 'current-best-articulation'
+  );
+  if (!hasArticulation) {
+    createBlock({
+      spaceId,
+      type: 'text',
+      content: { tag: null, text: '' },
+      properties: { skeletonRole: 'current-best-articulation' },
+      position: nextPosition(spaceId),
+    });
+  }
+}
+
+const PROMOTION_TRIGGERS = new Map(
+  SKELETON_LANES.filter((lane) => lane.trigger).map((lane) => [lane.trigger, lane.key])
+);
+
+// Splits raw Text block content into (a) the lines that stay as prose
+// and (b) any lines recognized as Skeleton shorthand, each tagged with
+// which lane it promotes to.
+function extractPromotions(text) {
+  const keptLines = [];
+  const promotions = [];
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    const trigger = trimmed.charAt(0);
+    const laneKey = PROMOTION_TRIGGERS.get(trigger);
+    if (laneKey && trimmed.slice(1).trim()) {
+      promotions.push({ laneKey, text: trimmed.slice(1).trim() });
+    } else {
+      keptLines.push(line);
+    }
+  }
+  return { keptText: keptLines.join('\n').trim(), promotions };
+}
+
+// Saves a Text block's new content, but first pulls out any
+// `=`/`?`/`!` shorthand lines and appends them as new items (default
+// confidence: tentative) in the matching Skeleton lane -- "parsed ...
+// promoted into the Skeleton without leaving the surface." Promotion
+// happens on save, not per keystroke; the end state is the same, this
+// is just simpler and doesn't risk editing text out from under someone
+// mid-keystroke.
+export function saveTextBlockWithPromotion(blockId, newText) {
+  const block = getBlockById(blockId);
+  const { keptText, promotions } = extractPromotions(newText);
+
+  if (promotions.length > 0) {
+    ensureSkeletonLanes(block.space_id);
+    promotions.forEach(({ laneKey, text }) => {
+      const lane = findSkeletonLaneBlock(block.space_id, laneKey);
+      const newItem = { id: randomUUID(), text, confidence: 'tentative' };
+      updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+    });
+  }
+
+  return updateBlockContent(blockId, { ...block.content, text: keptText });
+}

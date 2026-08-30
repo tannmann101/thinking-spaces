@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getSpace } from '../api.js';
+import { getSpace, getBlocksForSpace } from '../api.js';
+import { blockRegistry } from '../registry/blocks.js';
 
-// Placeholder for Pass 1: shows only title and status. Blocks, Views,
-// and everything else land here in Pass 2 and beyond.
 function SpacePage() {
   const { id } = useParams();
   const [space, setSpace] = useState(null);
+  const [blocks, setBlocks] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     getSpace(id).then(setSpace).catch((err) => setError(err.message));
+    getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
   }, [id]);
 
   return (
@@ -29,6 +30,17 @@ function SpacePage() {
             {space.isTestSpace && ' [TEST SPACE]'}
           </h1>
           <p>Status: {space.status}</p>
+
+          {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
+          {blocks &&
+            blocks.map((block) => {
+              const entry = blockRegistry[block.type];
+              if (!entry) {
+                return <p key={block.id}>Unknown block type: {block.type}</p>;
+              }
+              const BlockComponent = entry.component;
+              return <BlockComponent key={block.id} block={block} />;
+            })}
         </>
       )}
     </main>

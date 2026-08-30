@@ -186,3 +186,13 @@ export function createBlock({ spaceId, type, content = {}, properties = {}, posi
   ).run(id, spaceId, type, JSON.stringify(content), JSON.stringify(properties), position);
   return getBlockById(id);
 }
+
+// First editable block content: replaces a block's whole content blob.
+// Whichever block-editing UI calls this is responsible for merging in
+// unchanged fields (e.g. keeping an existing tag when only text changes).
+export function updateBlockContent(id, content) {
+  db.prepare(
+    `UPDATE blocks SET content = ?, updated_at = datetime('now') WHERE id = ?`
+  ).run(JSON.stringify(content), id);
+  return getBlockById(id);
+}

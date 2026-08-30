@@ -4,6 +4,7 @@ import { getSpace, getBlocksForSpace, getBacklinksForSpace } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
+import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 
 function BackLink() {
   const [searchParams] = useSearchParams();
@@ -59,15 +60,19 @@ function SpacePage() {
   const [backlinks, setBacklinks] = useState(null);
   const [error, setError] = useState(null);
 
-  const refetchBlocks = useCallback(() => {
+  // Refetches both blocks and the Space itself: a block change can
+  // also change a computed field on the Space (e.g. promoting a line
+  // into the Tensions lane changes openTensionCount, which the corner
+  // glyph below reads), so both need to stay in sync together.
+  const refetchAll = useCallback(() => {
+    getSpace(id).then(setSpace).catch((err) => setError(err.message));
     getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
   }, [id]);
 
   useEffect(() => {
-    getSpace(id).then(setSpace).catch((err) => setError(err.message));
-    refetchBlocks();
+    refetchAll();
     getBacklinksForSpace(id).then(setBacklinks).catch((err) => setError(err.message));
-  }, [id, refetchBlocks]);
+  }, [id, refetchAll]);
 
   return (
     <main>
@@ -78,7 +83,8 @@ function SpacePage() {
 
       {space && (
         <>
-          <h1>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <SpaceGlyph space={space} size={36} />
             {space.title}
             {space.isTestSpace && ' [TEST SPACE]'}
           </h1>
@@ -114,7 +120,7 @@ function SpacePage() {
                 // edit state, set once at mount, would never notice.
                 <div key={`${block.id}-${block.updated_at}`}>
                   {entry ? (
-                    <entry.component block={block} onBlocksChanged={refetchBlocks} />
+                    <entry.component block={block} onBlocksChanged={refetchAll} />
                   ) : (
                     <p>Unknown block type: {block.type}</p>
                   )}

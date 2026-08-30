@@ -1,0 +1,17 @@
+{
+  "name": "thinking-spaces-backend",
+  "version": "1.0.0",
+  "description": "Node/Express + SQLite backend for Thinking Spaces",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}

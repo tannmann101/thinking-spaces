@@ -1,0 +1,12 @@
+/* Deliberately minimal. CLAUDE.md says: plain, legible, system-font UI
+   until the functional build passes are done -- no visual polish yet. */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+#root {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+}

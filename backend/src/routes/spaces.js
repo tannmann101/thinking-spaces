@@ -2,7 +2,7 @@
 // send the result. No SQL lives here -- see db/queries.js.
 
 import { Router } from 'express';
-import { listSpaces, getSpaceById, createSpace } from '../db/queries.js';
+import { listSpaces, getSpaceById, createSpace, listBacklinksForSpace } from '../db/queries.js';
 
 export const spacesRouter = Router();
 
@@ -25,4 +25,8 @@ spacesRouter.get('/spaces/:id', (req, res) => {
     return res.status(404).json({ error: 'Space not found' });
   }
   res.json(space);
+});
+
+spacesRouter.get('/spaces/:id/backlinks', (req, res) => {
+  res.json(listBacklinksForSpace(req.params.id));
 });

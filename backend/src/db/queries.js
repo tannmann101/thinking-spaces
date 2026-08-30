@@ -41,8 +41,9 @@ export function getSpaceById(id) {
   return withTestSpaceFlag(row);
 }
 
-export function createSpace({ title, templateId = null, status = 'nascent' }) {
-  const id = randomUUID();
+// id is optional: pass one for a fixed, well-known Space (the Test
+// Space, and the other seeded demo Spaces in seedTestSpace.js).
+export function createSpace({ id = randomUUID(), title, templateId = null, status = 'nascent' }) {
   db.prepare(
     `INSERT INTO spaces (id, title, template_id, status)
      VALUES (?, ?, ?, ?)`
@@ -65,12 +66,7 @@ export function listTemplates() {
 export function ensureTestSpaceExists() {
   const existing = getSpaceById(TEST_SPACE_ID);
   if (existing) return existing;
-
-  db.prepare(
-    `INSERT INTO spaces (id, title, status)
-     VALUES (?, ?, ?)`
-  ).run(TEST_SPACE_ID, 'Test Space', 'developing');
-  return getSpaceById(TEST_SPACE_ID);
+  return createSpace({ id: TEST_SPACE_ID, title: 'Test Space', status: 'developing' });
 }
 
 function parseBlockRow(row) {
@@ -82,6 +78,38 @@ function parseBlockRow(row) {
   };
 }
 
+// Reference blocks only store target_space_id in their content -- this
+// looks up the target's current title in one batched query and attaches
+// it as content.targetSpaceTitle, so the frontend never has to fetch
+// each referenced Space separately just to show its name.
+function hydrateReferenceBlocks(blocks) {
+  const targetIds = [
+    ...new Set(
+      blocks
+        .filter((block) => block.type === 'reference' && block.content.target_space_id)
+        .map((block) => block.content.target_space_id)
+    ),
+  ];
+  if (targetIds.length === 0) return blocks;
+
+  const placeholders = targetIds.map(() => '?').join(', ');
+  const rows = db
+    .prepare(`SELECT id, title FROM spaces WHERE id IN (${placeholders})`)
+    .all(...targetIds);
+  const titleById = new Map(rows.map((row) => [row.id, row.title]));
+
+  return blocks.map((block) => {
+    if (block.type !== 'reference') return block;
+    return {
+      ...block,
+      content: {
+        ...block.content,
+        targetSpaceTitle: titleById.get(block.content.target_space_id) ?? null,
+      },
+    };
+  });
+}
+
 export function listBlocksForSpace(spaceId) {
   const rows = db
     .prepare(
@@ -91,7 +119,31 @@ export function listBlocksForSpace(spaceId) {
        ORDER BY position ASC, created_at ASC`
     )
     .all(spaceId);
-  return rows.map(parseBlockRow);
+  return hydrateReferenceBlocks(rows.map(parseBlockRow));
+}
+
+// "What references this Space" -- the basic backlink lookup CLAUDE.md
+// asks for. No graph structure is stored; this just queries Reference
+// blocks by their target_space_id, using the index built for exactly
+// this purpose.
+export function listBacklinksForSpace(spaceId) {
+  const rows = db
+    .prepare(
+      `SELECT blocks.id AS block_id, blocks.content AS content,
+              spaces.id AS source_space_id, spaces.title AS source_space_title
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type = 'reference'
+         AND json_extract(blocks.content, '$.target_space_id') = ?`
+    )
+    .all(spaceId);
+
+  return rows.map((row) => ({
+    blockId: row.block_id,
+    sourceSpaceId: row.source_space_id,
+    sourceSpaceTitle: row.source_space_title,
+    note: JSON.parse(row.content).note ?? null,
+  }));
 }
 
 export function getBlockById(id) {

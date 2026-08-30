@@ -1,7 +1,7 @@
 {
   "name": "Thinking Spaces",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
-  "postCreateCommand": "cd backend && npm install && cd ../frontend && npm install",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
   "postStartCommand": "bash .devcontainer/start-dev.sh",
   "forwardPorts": [5173, 3001],
   "portsAttributes": {

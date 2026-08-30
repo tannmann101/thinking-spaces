@@ -30,7 +30,9 @@ function renderTextWithLinks(text, fromSpaceId) {
     const [full, spaceId, title] = match;
     const to = fromSpaceId ? `/spaces/${spaceId}?from=${fromSpaceId}` : `/spaces/${spaceId}`;
     parts.push(
-      <Link key={match.index} to={to}>
+      // stopPropagation so clicking the link navigates instead of also
+      // triggering the paragraph's click-to-edit handler.
+      <Link key={match.index} to={to} onClick={(event) => event.stopPropagation()}>
         {title}
       </Link>
     );
@@ -40,8 +42,11 @@ function renderTextWithLinks(text, fromSpaceId) {
   return parts;
 }
 
-function TextBlock({ block }) {
-  const editable = Boolean(block.id);
+// onSave lets a parent block (Comparison) override where an edit goes,
+// for a Text-shaped side that isn't a standalone row in the blocks
+// table. Without it, edits PATCH this block directly by its own id.
+function TextBlock({ block, onSave }) {
+  const editable = Boolean(block.id) || Boolean(onSave);
   const { tag } = block.content;
 
   const [editing, setEditing] = useState(false);
@@ -91,7 +96,9 @@ function TextBlock({ block }) {
     setSuggestion(null);
     if (draft === savedText) return;
     setSavedText(draft);
-    await updateBlockContent(block.id, { ...block.content, text: draft });
+    const newContent = { ...block.content, text: draft };
+    if (onSave) await onSave(newContent);
+    else await updateBlockContent(block.id, newContent);
   }
 
   const matches =
@@ -142,7 +149,7 @@ function TextBlock({ block }) {
   }
 
   return (
-    <p onClick={startEditing} style={editable ? { cursor: 'text' } : undefined}>
+    <p onClick={startEditing} className={editable ? 'editable' : undefined}>
       {tag && <strong>[{tag}] </strong>}
       {renderTextWithLinks(savedText, block.space_id)}
     </p>

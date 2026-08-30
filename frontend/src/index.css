@@ -10,3 +10,26 @@ body {
   margin: 0 auto;
   padding: 24px;
 }
+
+/* Functional affordance, not decoration: anything with this class is
+   click-to-edit. A dashed underline is the signal; the darker hover
+   state confirms it before you click. */
+.editable {
+  cursor: text;
+  border-bottom: 1px dashed #999;
+}
+.editable:hover {
+  border-bottom-color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Same dashed signal, but for a click-triggers-an-immediate-action
+   control (confidence cycling) rather than a text field. */
+.editable-toggle {
+  cursor: pointer;
+  border-bottom: 1px dashed #999;
+}
+.editable-toggle:hover {
+  border-bottom-color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}

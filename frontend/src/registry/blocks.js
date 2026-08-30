@@ -7,11 +7,15 @@
 // new Block type means adding one entry to `blockRegistry` below.
 
 import TextBlock from '../blocks/TextBlock.jsx';
+import ListBlock from '../blocks/ListBlock.jsx';
 
 // The only inline attribution tags a Text block's content.tag can hold.
 // Exported so any future UI for creating/editing Text blocks (Pass 2
 // still, or Dev Mode later) reads this list instead of redefining it.
 export const TEXT_ATTRIBUTION_TAGS = ['quote', 'paraphrase', 'reflection', 'inference'];
+
+// The only values a List item's confidence property can hold.
+export const CONFIDENCE_LEVELS = ['solid', 'tentative', 'questioned'];
 
 export const blockRegistry = {
   text: {
@@ -19,5 +23,11 @@ export const blockRegistry = {
     description:
       'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.',
     component: TextBlock,
+  },
+  list: {
+    label: 'List',
+    description:
+      'An ordered set of items. Each item can optionally carry a checkbox, a number, a date, or a confidence marker.',
+    component: ListBlock,
   },
 };

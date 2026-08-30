@@ -72,3 +72,54 @@ export function ensureTestSpaceExists() {
   ).run(TEST_SPACE_ID, 'Test Space', 'developing');
   return getSpaceById(TEST_SPACE_ID);
 }
+
+function parseBlockRow(row) {
+  if (!row) return row;
+  return {
+    ...row,
+    content: JSON.parse(row.content),
+    properties: JSON.parse(row.properties),
+  };
+}
+
+export function listBlocksForSpace(spaceId) {
+  const rows = db
+    .prepare(
+      `SELECT id, space_id, type, content, properties, position, created_at, updated_at
+       FROM blocks
+       WHERE space_id = ?
+       ORDER BY position ASC, created_at ASC`
+    )
+    .all(spaceId);
+  return rows.map(parseBlockRow);
+}
+
+export function getBlockById(id) {
+  const row = db
+    .prepare(
+      `SELECT id, space_id, type, content, properties, position, created_at, updated_at
+       FROM blocks
+       WHERE id = ?`
+    )
+    .get(id);
+  return parseBlockRow(row);
+}
+
+// type is optional: pass it to count only blocks of that type, which is
+// what lets the Test Space seed each Block type independently as it's
+// built, without re-seeding types that already have demo content.
+export function countBlocksForSpace(spaceId, type = null) {
+  const row = type
+    ? db.prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ? AND type = ?`).get(spaceId, type)
+    : db.prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ?`).get(spaceId);
+  return row.count;
+}
+
+export function createBlock({ spaceId, type, content = {}, properties = {}, position = 0 }) {
+  const id = randomUUID();
+  db.prepare(
+    `INSERT INTO blocks (id, space_id, type, content, properties, position)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, spaceId, type, JSON.stringify(content), JSON.stringify(properties), position);
+  return getBlockById(id);
+}

@@ -23,3 +23,4 @@ export const createSpace = ({ title, templateId }) =>
     body: JSON.stringify({ title, templateId }),
   });
 export const getTemplates = () => request('/templates');
+export const getBlocksForSpace = (spaceId) => request(`/spaces/${spaceId}/blocks`);

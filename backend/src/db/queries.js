@@ -46,10 +46,13 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
+const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, created_at, updated_at';
+
 function withComputedSpaceFields(space) {
   if (!space) return space;
   return {
     ...space,
+    tags: JSON.parse(space.tags ?? '[]'),
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: getRelationDensity(space.id),
     openTensionCount: getOpenTensionCount(space.id),
@@ -58,33 +61,66 @@ function withComputedSpaceFields(space) {
 
 export function listSpaces() {
   const rows = db
-    .prepare(
-      `SELECT id, title, status, template_id, created_at, updated_at
-       FROM spaces
-       ORDER BY updated_at DESC`
-    )
+    .prepare(`SELECT ${SPACE_COLUMNS} FROM spaces ORDER BY updated_at DESC`)
     .all();
   return rows.map(withComputedSpaceFields);
 }
 
-export function getSpaceById(id) {
-  const row = db
+// Reusable for "Resources" (tag: 'resource') and any future category --
+// tags are a plain JSON array on the Space, queried by membership here
+// rather than filtered ad hoc wherever a tag happens to be needed. The
+// Test Space is excluded, same reasoning as every other cross-Space
+// listing: it's scratch content, not a real Resource/category member.
+export function listSpacesByTag(tag) {
+  const rows = db
     .prepare(
-      `SELECT id, title, status, template_id, created_at, updated_at
-       FROM spaces
-       WHERE id = ?`
+      `SELECT ${SPACE_COLUMNS} FROM spaces
+       WHERE id != ? AND EXISTS (
+         SELECT 1 FROM json_each(spaces.tags) WHERE json_each.value = ?
+       )
+       ORDER BY updated_at DESC`
     )
-    .get(id);
+    .all(TEST_SPACE_ID, tag);
+  return rows.map(withComputedSpaceFields);
+}
+
+export function getSpaceById(id) {
+  const row = db.prepare(`SELECT ${SPACE_COLUMNS} FROM spaces WHERE id = ?`).get(id);
   return withComputedSpaceFields(row);
 }
 
 // id is optional: pass one for a fixed, well-known Space (the Test
-// Space, and the other seeded demo Spaces in seedTestSpace.js).
-export function createSpace({ id = randomUUID(), title, templateId = null, status = 'nascent' }) {
+// Space, and the other seeded demo Spaces in seedTestSpace.js). tags is
+// only really used by seed data (e.g. tagging the Resource demo Space
+// at creation) -- an ordinary new Space starts untagged and gets tagged
+// later through the same PATCH /spaces/:id every other edit uses.
+export function createSpace({ id = randomUUID(), title, templateId = null, status = 'nascent', tags = [] }) {
   db.prepare(
-    `INSERT INTO spaces (id, title, template_id, status)
-     VALUES (?, ?, ?, ?)`
-  ).run(id, title, templateId, status);
+    `INSERT INTO spaces (id, title, template_id, status, tags)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run(id, title, templateId, status, JSON.stringify(tags));
+  return getSpaceById(id);
+}
+
+// A Space's title, status, tags, and goal ("what this Space is working
+// towards" -- a property of the Space itself, separate from any block
+// it contains) are all edited through this one function. Any subset of
+// fields can be given; the rest keep their current value, same pattern
+// as updateTemplate.
+export function updateSpace(id, { title, status, tags, goal } = {}) {
+  const existing = db.prepare(`SELECT * FROM spaces WHERE id = ?`).get(id);
+  if (!existing) return null;
+
+  const next = {
+    title: title !== undefined ? title : existing.title,
+    status: status !== undefined ? status : existing.status,
+    tags: tags !== undefined ? JSON.stringify(tags) : existing.tags,
+    goal: goal !== undefined ? goal : existing.goal,
+  };
+  db.prepare(
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(next.title, next.status, next.tags, next.goal, id);
   return getSpaceById(id);
 }
 

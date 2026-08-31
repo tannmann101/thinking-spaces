@@ -8,11 +8,12 @@ import {
   addBlockToSpace,
   deleteBlockApi,
   moveBlockInSpace,
+  updateSpace,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
-import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
+import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
 import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 
@@ -36,6 +37,156 @@ function BackLink() {
     <Link to="/" className="back-link">
       &larr; Back to Dashboard
     </Link>
+  );
+}
+
+// A Space's title, status, tags, and "working toward" goal are all
+// ordinary click-to-edit surfaces on this page -- the same principle
+// Pass 4 applied to blocks (add/remove/reorder feels like any other
+// edit) extended to the Space's own properties, which previously
+// couldn't be changed at all once the Space was created.
+
+function EditableTitle({ space, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(space.title);
+
+  async function finish() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === space.title) return;
+    await updateSpace(space.id, { title: trimmed });
+    onChanged();
+  }
+
+  if (editing) {
+    return (
+      <input
+        type="text"
+        value={draft}
+        autoFocus
+        style={{ fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', flex: 1 }}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={finish}
+        onKeyDown={(event) => event.key === 'Enter' && finish()}
+      />
+    );
+  }
+  return (
+    <span
+      className="editable"
+      onClick={() => {
+        setDraft(space.title);
+        setEditing(true);
+      }}
+    >
+      {space.title}
+    </span>
+  );
+}
+
+function StatusPill({ space, onChanged }) {
+  async function cycle() {
+    const next = SPACE_STATUSES[(SPACE_STATUSES.indexOf(space.status) + 1) % SPACE_STATUSES.length];
+    await updateSpace(space.id, { status: next });
+    onChanged();
+  }
+
+  return (
+    <span
+      className="status-pill status-pill-clickable"
+      data-status={space.status}
+      onClick={cycle}
+      title="Click to cycle: nascent -> developing -> mature -> dormant"
+    >
+      {space.status}
+    </span>
+  );
+}
+
+function TagEditor({ space, onChanged }) {
+  const [newTag, setNewTag] = useState('');
+
+  async function addTag(event) {
+    event.preventDefault();
+    const tag = newTag.trim().toLowerCase();
+    setNewTag('');
+    if (!tag || space.tags.includes(tag)) return;
+    await updateSpace(space.id, { tags: [...space.tags, tag] });
+    onChanged();
+  }
+
+  async function removeTag(tag) {
+    await updateSpace(space.id, { tags: space.tags.filter((t) => t !== tag) });
+    onChanged();
+  }
+
+  return (
+    <p className="tag-row">
+      {space.tags.map((tag) => (
+        <span key={tag} className="tag-chip">
+          {tag}{' '}
+          <span className="editable-toggle" onClick={() => removeTag(tag)} title="Remove tag">
+            ✕
+          </span>
+        </span>
+      ))}
+      <form onSubmit={addTag} className="tag-add-form">
+        <input
+          type="text"
+          value={newTag}
+          placeholder="+ tag"
+          onChange={(event) => setNewTag(event.target.value)}
+        />
+      </form>
+    </p>
+  );
+}
+
+// "What this Space is working towards" -- a property of the Space
+// itself (like status), not a block. It sits above the content rather
+// than inside it, which is exactly what makes it different from
+// anything a Space can contain.
+function WorkingToward({ space, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(space.goal || '');
+
+  async function finish() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed === (space.goal || '')) return;
+    await updateSpace(space.id, { goal: trimmed || null });
+    onChanged();
+  }
+
+  if (editing) {
+    return (
+      <p className="working-toward">
+        Working toward:{' '}
+        <input
+          type="text"
+          value={draft}
+          autoFocus
+          style={{ width: '60%' }}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={finish}
+          onKeyDown={(event) => event.key === 'Enter' && finish()}
+        />
+      </p>
+    );
+  }
+  return (
+    <p className="working-toward">
+      Working toward:{' '}
+      <span
+        className="editable"
+        onClick={() => {
+          setDraft(space.goal || '');
+          setEditing(true);
+        }}
+      >
+        {space.goal || '(not set -- click to add)'}
+      </span>
+    </p>
   );
 }
 
@@ -135,14 +286,15 @@ function SpacePage() {
           <div className="space-header">
             <h1>
               <SpaceGlyph space={space} size={36} />
-              {space.title}
+              <EditableTitle space={space} onChanged={refetchAll} />
               {space.isTestSpace && <span className="test-flag">TEST SPACE</span>}
             </h1>
             <p className="space-meta">
-              <span className="status-pill" data-status={space.status}>
-                {space.status}
-              </span>
+              <StatusPill space={space} onChanged={refetchAll} />
             </p>
+
+            <WorkingToward space={space} onChanged={refetchAll} />
+            <TagEditor space={space} onChanged={refetchAll} />
 
             {backlinks && backlinks.length > 0 && (
               <p className="space-meta">

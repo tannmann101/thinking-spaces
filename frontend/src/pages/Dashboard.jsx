@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getSpaces, getOverdueReviews, getRecentTrail, getResurfaceSuggestion } from '../api.js';
+import {
+  getSpaces,
+  getSpacesByTag,
+  getOverdueReviews,
+  getRecentTrail,
+  getResurfaceSuggestion,
+} from '../api.js';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 
 function formatDate(isoLikeString) {
@@ -54,11 +60,31 @@ function ResurfaceSuggestion({ space }) {
   );
 }
 
+// "A Resource is just a Space tagged accordingly" (CLAUDE.md) -- this
+// reads the same tags-on-a-Space query any other category could use,
+// filtered to the one tag "resource" happens to use.
+function ResourcesDigest({ spaces }) {
+  if (spaces.length === 0) return null;
+  return (
+    <section className="digest">
+      <h3>Resources</h3>
+      <ul>
+        {spaces.map((space) => (
+          <li key={space.id}>
+            <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Dashboard() {
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
   const [recentTrail, setRecentTrail] = useState([]);
   const [resurface, setResurface] = useState(null);
+  const [resources, setResources] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -66,6 +92,7 @@ function Dashboard() {
     getOverdueReviews().then(setOverdue).catch(() => {});
     getRecentTrail().then(setRecentTrail).catch(() => {});
     getResurfaceSuggestion().then(setResurface).catch(() => {});
+    getSpacesByTag('resource').then(setResources).catch(() => {});
   }, []);
 
   return (
@@ -89,6 +116,7 @@ function Dashboard() {
       <OverdueReviews items={overdue} />
       <RecentTrailDigest entries={recentTrail} />
       <ResurfaceSuggestion space={resurface} />
+      <ResourcesDigest spaces={resources} />
 
       {error && <p>Could not load spaces: {error}</p>}
 
@@ -118,6 +146,16 @@ function Dashboard() {
                   </span>
                   <span className="sep">·</span>
                   <span>updated {formatDate(space.updated_at)}</span>
+                  {space.tags.length > 0 && (
+                    <>
+                      <span className="sep">·</span>
+                      {space.tags.map((tag) => (
+                        <span key={tag} className="tag-chip">
+                          {tag}
+                        </span>
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
             </li>

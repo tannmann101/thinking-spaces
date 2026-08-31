@@ -235,6 +235,7 @@ function ensureResourceDemoSpace() {
     id: RESOURCE_DEMO_SPACE_ID,
     title: 'Book: Thinking in Systems (a Resource, Pass 2 demo)',
     status: 'mature',
+    tags: ['resource'],
   });
   createBlock({
     spaceId: RESOURCE_DEMO_SPACE_ID,

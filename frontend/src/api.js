@@ -18,11 +18,19 @@ async function request(path, options) {
 
 export const getHealth = () => request('/health');
 export const getSpaces = () => request('/spaces');
+export const getSpacesByTag = (tag) => request(`/spaces?tag=${encodeURIComponent(tag)}`);
 export const getSpace = (id) => request(`/spaces/${id}`);
 export const createSpace = ({ title, templateId }) =>
   request('/spaces', {
     method: 'POST',
     body: JSON.stringify({ title, templateId }),
+  });
+// Title, status, tags, and goal ("working toward") all go through this
+// one PATCH -- pass only the fields that changed.
+export const updateSpace = (id, patch) =>
+  request(`/spaces/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
   });
 export const getTemplates = () => request('/templates');
 export const getBlocksForSpace = (spaceId) => request(`/spaces/${spaceId}/blocks`);

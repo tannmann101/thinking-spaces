@@ -824,3 +824,56 @@ label {
   padding: 14px 16px;
   margin-top: 10px;
 }
+
+/* ---------- Space-level properties: status, tags, working-toward ---------- */
+
+.status-pill-clickable {
+  cursor: pointer;
+}
+.status-pill-clickable:hover {
+  border-color: var(--maroon-bright);
+  color: var(--ink);
+}
+
+.working-toward {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 6px 0;
+}
+.working-toward .editable {
+  color: var(--ink);
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+.tag-chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2px 6px;
+}
+.tag-chip .editable-toggle {
+  border-bottom: none;
+  color: var(--ink-faint);
+}
+.tag-chip .editable-toggle:hover {
+  color: var(--maroon-bright);
+  background: none;
+}
+.tag-add-form {
+  display: inline-block;
+}
+.tag-add-form input {
+  width: 80px;
+  padding: 2px 6px;
+  font-size: 11px;
+}

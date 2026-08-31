@@ -23,6 +23,12 @@ const STATUS_STYLE = {
   dormant: { opacity: 0.35, strokeWidth: 1, tipFilled: false, grey: true },
 };
 
+// The canonical status list and order, for anything that needs to
+// cycle or offer all of them (the click-to-cycle status pill on
+// SpacePage) -- one place, so it can't drift from what the glyph
+// actually renders.
+export const SPACE_STATUSES = Object.keys(STATUS_STYLE);
+
 const MAX_BRANCHES = 6;
 const MAX_CRACK_SEGMENTS = 4;
 

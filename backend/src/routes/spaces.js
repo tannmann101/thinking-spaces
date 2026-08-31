@@ -4,8 +4,10 @@
 import { Router } from 'express';
 import {
   listSpaces,
+  listSpacesByTag,
   getSpaceById,
   createSpace,
+  updateSpace,
   listBacklinksForSpace,
   listTrailEntries,
   addManualTrailEntry,
@@ -15,8 +17,12 @@ import {
 
 export const spacesRouter = Router();
 
+// ?tag=resource (or any tag) filters to Spaces carrying that tag --
+// one endpoint, not a separate route per category, since a tag is just
+// a tag whether it means "Resource" or something invented later.
 spacesRouter.get('/spaces', (req, res) => {
-  res.json(listSpaces());
+  const { tag } = req.query;
+  res.json(tag ? listSpacesByTag(tag) : listSpaces());
 });
 
 spacesRouter.post('/spaces', (req, res) => {
@@ -53,6 +59,27 @@ spacesRouter.get('/spaces/:id', (req, res) => {
     return res.status(404).json({ error: 'Space not found' });
   }
   res.json(space);
+});
+
+// Title, status, tags, and goal are all edited through this one route --
+// the same "ordinary edit, not a special mode" principle Pass 4 applied
+// to blocks now applies to the Space's own properties too. Any subset
+// of fields can be sent.
+spacesRouter.patch('/spaces/:id', (req, res) => {
+  const { title, status, tags, goal } = req.body;
+  if (title !== undefined && !title.trim()) {
+    return res.status(400).json({ error: 'title cannot be empty' });
+  }
+  const updated = updateSpace(req.params.id, {
+    title: title !== undefined ? title.trim() : undefined,
+    status,
+    tags,
+    goal,
+  });
+  if (!updated) {
+    return res.status(404).json({ error: 'Space not found' });
+  }
+  res.json(updated);
 });
 
 spacesRouter.get('/spaces/:id/backlinks', (req, res) => {

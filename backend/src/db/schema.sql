@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS spaces (
                                     -- ('star'/'underline'/'triangle'/'dot'), hand-picked on the Space
                                     -- page and drawn on top of SpaceGlyph's computed base -- never
                                     -- replacing it. Null means no accent picked; that's the default.
+  origin TEXT,                     -- 'external' | 'internal' | null. Distinguishes a Space brought in
+                                    -- from outside the app (a Resource) from one the app itself
+                                    -- produced (a Synthesis, or anything later promoted to Resource
+                                    -- status) -- see the Resources/Synthesis vocabulary entries.
+                                    -- Null is an ordinary train-of-thought Space: neither.
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -62,7 +62,7 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
-const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, accent, created_at, updated_at';
+const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, accent, origin, created_at, updated_at';
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
@@ -114,7 +114,10 @@ export function getSpaceById(id) {
 // categories can be set at creation too -- unlike tags, a guided
 // creation flow (Resource creation is the first to do this) may already
 // know exactly which facets this Space's content should be filed under
-// before any block exists yet.
+// before any block exists yet. origin is the same idea for provenance:
+// CreateResource.jsx passes 'external', CreateSynthesis.jsx passes
+// 'internal', and an ordinary Space leaves it null (see the Resources/
+// Synthesis vocabulary entries in CLAUDE.md).
 export function createSpace({
   id = randomUUID(),
   title,
@@ -122,11 +125,12 @@ export function createSpace({
   status = 'nascent',
   tags = [],
   categories = [],
+  origin = null,
 }) {
   db.prepare(
-    `INSERT INTO spaces (id, title, template_id, status, tags, categories)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories));
+    `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin);
   logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
   return getSpaceById(id);
 }
@@ -291,8 +295,9 @@ export function createSpaceWithSetup({
   categories = [],
   workspaces = [],
   goal = null,
+  origin = null,
 }) {
-  const space = createSpace({ title, templateId, tags, categories });
+  const space = createSpace({ title, templateId, tags, categories, origin });
   if (templateId) {
     applyTemplate(space.id, templateId);
   }

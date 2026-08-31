@@ -36,7 +36,7 @@ spacesRouter.get('/spaces', (req, res) => {
 // creation flows (Resource creation) that already know which facets a
 // Space's content should be organized under before any block exists.
 spacesRouter.post('/spaces', (req, res) => {
-  const { title, templateId, extraBlocks, resourceSpaceIds, tags, categories, workspaces, goal } = req.body;
+  const { title, templateId, extraBlocks, resourceSpaceIds, tags, categories, workspaces, goal, origin } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
@@ -49,6 +49,7 @@ spacesRouter.post('/spaces', (req, res) => {
     categories: categories || [],
     workspaces: workspaces || [],
     goal: goal || null,
+    origin: origin || null,
   });
   res.status(201).json(space);
 });

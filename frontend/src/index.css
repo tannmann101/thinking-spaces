@@ -256,6 +256,43 @@ button {
   opacity: 0.55;
 }
 
+/* Provenance: distinguishes a Space brought in from outside the app
+   (external -- a Resource) from one the app itself produced (internal
+   -- a Synthesis, or anything promoted to Resource status). Internal
+   uses --accent, the same "added/produced" color Visual Identity's
+   manual layer already uses, so the association reads consistently. */
+.origin-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  color: var(--ink-faint);
+  margin-left: 6px;
+}
+.origin-badge[data-origin='internal'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.origin-badge-small {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-left: 8px;
+}
+.promote-row {
+  margin: 6px 0;
+}
+.promote-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-left: 6px;
+}
+
 .new-space-btn {
   font-family: var(--mono);
   font-size: 11px;

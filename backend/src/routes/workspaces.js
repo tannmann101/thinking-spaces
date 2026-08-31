@@ -11,7 +11,9 @@ import {
   createWorkspace,
   updateWorkspace,
   deleteWorkspace,
+  getWorkspaceReport,
 } from '../db/queries.js';
+import { renderReportText } from '../reportFormat.js';
 
 export const workspacesRouter = Router();
 
@@ -45,6 +47,16 @@ workspacesRouter.patch('/workspaces/:id', (req, res) => {
     return res.status(400).json({ error: 'name is required' });
   }
   res.json(updateWorkspace(req.params.id, { name: name.trim() }));
+});
+
+// A structured + prose snapshot of this Workspace's current state --
+// see getWorkspaceReport in queries.js.
+workspacesRouter.get('/workspaces/:id/report', (req, res) => {
+  const report = getWorkspaceReport(req.params.id);
+  if (!report) {
+    return res.status(404).json({ error: 'Workspace not found' });
+  }
+  res.json({ report, narrative: renderReportText(report) });
 });
 
 workspacesRouter.delete('/workspaces/:id', (req, res) => {

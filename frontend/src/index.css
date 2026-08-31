@@ -2204,3 +2204,44 @@ label {
   color: var(--ink);
   margin-right: 6px;
 }
+
+/* ---------- Reports ---------- */
+
+/* A Report button appears at every level (Space, Workspace, and each
+   block in a feed) via the same shared ReportButton.jsx -- these rows
+   just give it consistent spacing wherever it lands. */
+.report-row {
+  margin: 8px 0;
+}
+.block-report-row {
+  margin: 8px 0 0;
+}
+
+.report-button-wrap {
+  display: inline-block;
+}
+
+.report-panel {
+  margin-top: 8px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  max-width: 680px;
+}
+.report-panel-controls {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.report-panel-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  margin: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}

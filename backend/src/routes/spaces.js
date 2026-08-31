@@ -14,7 +14,9 @@ import {
   updateTrailEntry,
   createSpaceWithSetup,
   createRelationalSpace,
+  getSpaceReport,
 } from '../db/queries.js';
+import { renderReportText } from '../reportFormat.js';
 
 export const spacesRouter = Router();
 
@@ -118,6 +120,17 @@ spacesRouter.delete('/spaces/:id', (req, res) => {
 
 spacesRouter.get('/spaces/:id/backlinks', (req, res) => {
   res.json(listBacklinksForSpace(req.params.id));
+});
+
+// A structured + prose snapshot of this Space's current state -- see
+// getSpaceReport in queries.js. Meant to be copied out of the app
+// wholesale (the narrative especially), not just viewed in place.
+spacesRouter.get('/spaces/:id/report', (req, res) => {
+  const report = getSpaceReport(req.params.id);
+  if (!report) {
+    return res.status(404).json({ error: 'Space not found' });
+  }
+  res.json({ report, narrative: renderReportText(report) });
 });
 
 spacesRouter.get('/spaces/:id/trail', (req, res) => {

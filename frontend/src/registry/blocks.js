@@ -20,6 +20,16 @@
 // that specific Tool, per the Workspaces feature. Most Tools don't have
 // one yet (each gets its own redesign pass, one at a time, per
 // CLAUDE.md's Open section) and just fall back to `component`.
+//
+// `family` is either 'general' (Text, List, Reference, Media,
+// Comparison -- the original five, no external input needed to add
+// most of them) or 'work' (Assessment and everything built on the
+// same shared skeleton). It exists so any UI that lists Tools --
+// ToolsPage.jsx's catalog, NewBlockForm.jsx's "+ Add Block" dropdown --
+// can group by family instead of rendering one flat, registry-order
+// list. Added once the app had grown to 15 Block types and both of
+// those screens had become hard to scan; adding a new Work Type only
+// ever needs `family: 'work'` here, nothing else touches those UIs.
 
 import TextBlock from '../blocks/TextBlock.jsx';
 import TextWorkshop from '../blocks/TextWorkshop.jsx';
@@ -80,6 +90,7 @@ export const blockRegistry = {
     label: 'Text',
     description:
       'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.',
+    family: 'general',
     component: TextBlock,
     workshopComponent: TextWorkshop,
     worksWith: ['comparison'],
@@ -93,6 +104,7 @@ export const blockRegistry = {
     label: 'List',
     description:
       'An ordered set of items. Each item can optionally carry a checkbox, a number, a date, or a confidence marker.',
+    family: 'general',
     component: ListBlock,
     workshopComponent: ListWorkshop,
     worksWith: ['timeline', 'progress', 'streak', 'ledger'],
@@ -111,6 +123,7 @@ export const blockRegistry = {
   reference: {
     label: 'Reference',
     description: 'A link to another Space, with an optional note.',
+    family: 'general',
     component: ReferenceBlock,
     workshopComponent: ReferenceWorkshop,
     worksWith: ['comparison', 'graph'],
@@ -129,6 +142,7 @@ export const blockRegistry = {
   media: {
     label: 'Media',
     description: 'An image, audio clip, or embedded sketch. Only images render for now.',
+    family: 'general',
     component: MediaBlock,
     workshopComponent: MediaWorkshop,
     worksWith: [],
@@ -142,6 +156,7 @@ export const blockRegistry = {
     label: 'Comparison',
     description:
       'Two Text or Reference blocks shown side by side, optionally marked as a contrast.',
+    family: 'general',
     component: ComparisonBlock,
     workshopComponent: ComparisonWorkshop,
     worksWith: ['text', 'reference'],
@@ -173,6 +188,7 @@ export const blockRegistry = {
   assessment: {
     label: 'Assessment',
     description: 'A judgment on something, with supporting points and a confidence marker.',
+    family: 'work',
     component: AssessmentBlock,
     worksWith: ['question', 'analysis', 'deduction', 'objection'],
     demoBlock: {
@@ -189,6 +205,7 @@ export const blockRegistry = {
     label: 'Question',
     description:
       'An open question worth holding onto, with why it matters and a confidence marker for how central it feels.',
+    family: 'work',
     component: QuestionBlock,
     worksWith: ['assessment', 'definition'],
     demoBlock: {
@@ -204,6 +221,7 @@ export const blockRegistry = {
   analysis: {
     label: 'Analysis',
     description: 'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
+    family: 'work',
     component: AnalysisBlock,
     worksWith: ['assessment', 'deduction', 'insight'],
     demoBlock: {
@@ -225,6 +243,7 @@ export const blockRegistry = {
     label: 'Deduction',
     description:
       'A conclusion reached by explicit reasoning from other claims, with that reasoning and a confidence marker.',
+    family: 'work',
     component: DeductionBlock,
     worksWith: ['analysis', 'demonstration', 'implication', 'objection'],
     demoBlock: {
@@ -245,6 +264,7 @@ export const blockRegistry = {
   definition: {
     label: 'Definition',
     description: "A term and its meaning, with a confidence marker for how settled the definition feels.",
+    family: 'work',
     component: DefinitionBlock,
     worksWith: ['question'],
     demoBlock: {
@@ -265,6 +285,7 @@ export const blockRegistry = {
   demonstration: {
     label: 'Demonstration',
     description: 'A concrete worked example showing a claim to be true, with the walkthrough and a confidence marker.',
+    family: 'work',
     component: DemonstrationBlock,
     worksWith: ['deduction', 'implication', 'hypothesis'],
     demoBlock: {
@@ -289,6 +310,7 @@ export const blockRegistry = {
   insight: {
     label: 'Insight',
     description: 'An unplanned realization, with what led to it and a confidence marker.',
+    family: 'work',
     component: InsightBlock,
     worksWith: ['analysis', 'implication'],
     demoBlock: {
@@ -307,6 +329,7 @@ export const blockRegistry = {
     label: 'Implication',
     description:
       'What seems to follow from something, short of proof -- a softer sibling to Deduction -- with what suggests it and a confidence marker.',
+    family: 'work',
     component: ImplicationBlock,
     worksWith: ['deduction', 'insight'],
     demoBlock: {
@@ -330,6 +353,7 @@ export const blockRegistry = {
   hypothesis: {
     label: 'Hypothesis',
     description: 'A claim proposed to test, not yet believed, with what would test it and a confidence marker.',
+    family: 'work',
     component: HypothesisBlock,
     worksWith: ['assessment', 'demonstration'],
     demoBlock: {
@@ -346,6 +370,7 @@ export const blockRegistry = {
     label: 'Objection',
     description:
       'A specific challenge to another existing claim, with what it challenges (typically a linked claim) and a confidence marker.',
+    family: 'work',
     component: ObjectionBlock,
     worksWith: ['assessment', 'deduction'],
     demoBlock: {

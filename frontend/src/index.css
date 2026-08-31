@@ -1784,6 +1784,12 @@ label {
 
 /* ---------- Tools catalog ---------- */
 
+.tool-family-intro {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0 0 16px;
+}
+
 .tool-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1812,7 +1818,7 @@ label {
   justify-content: space-between;
   gap: 8px;
 }
-.tool-card-head h3 {
+.tool-card-head h4 {
   font-size: 17px;
   margin: 0;
 }

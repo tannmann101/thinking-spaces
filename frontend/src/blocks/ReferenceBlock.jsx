@@ -11,8 +11,10 @@ import { Link } from 'react-router-dom';
 import { updateBlockContent } from '../api.js';
 
 // onSave lets a parent block (Comparison) override where an edit goes,
-// same reasoning as TextBlock.
-function ReferenceBlock({ block, onSave }) {
+// same reasoning as TextBlock. onBlocksChanged tells SpacePage to
+// refetch after a standalone save, so anything else on the page
+// depending on this Space's data doesn't stay stale.
+function ReferenceBlock({ block, onSave, onBlocksChanged }) {
   const editable = Boolean(block.id) || Boolean(onSave);
   const { target_space_id, targetSpaceTitle } = block.content;
 
@@ -25,8 +27,12 @@ function ReferenceBlock({ block, onSave }) {
     if (draft === savedNote) return;
     setSavedNote(draft);
     const newContent = { target_space_id, note: draft || null };
-    if (onSave) await onSave(newContent);
-    else await updateBlockContent(block.id, newContent);
+    if (onSave) {
+      await onSave(newContent);
+    } else {
+      await updateBlockContent(block.id, newContent);
+      onBlocksChanged?.();
+    }
   }
 
   const to = block.space_id

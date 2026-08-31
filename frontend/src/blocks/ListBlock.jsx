@@ -5,24 +5,56 @@
 // on the marker cycles through the three states in place, no dialog."
 //
 // Only properties an item already carries are editable here. Adding a
-// property to an item that doesn't have one yet is a different, bigger
-// feature (choosing which property to add) and isn't in scope.
+// *new* property to an existing item is still out of scope -- but "+
+// Add item" below lets the list grow, which the Timeline/Ledger/
+// Milestone-style Templates need to actually be usable over time.
 
 import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
 
 const CONFIDENCE_CYCLE = ['solid', 'tentative', 'questioned'];
 
-function ListBlock({ block }) {
+// A new item matches whatever shape this list's items already use: a
+// Ledger's items all carry `number`, so a new line should too. A
+// Skeleton lane (Premises/Evidence/Open Questions/Tensions) always
+// gets `confidence`, matching what shorthand promotion already gives
+// promoted items, even before this list has any items yet. Otherwise
+// (a plain, empty list) a new item is just text.
+function buildNewItem(text, items, isSkeletonLane) {
+  const item = { id: crypto.randomUUID(), text };
+  const sample = items[0];
+  if (isSkeletonLane || sample?.confidence) item.confidence = 'tentative';
+  if (sample && typeof sample.checkbox === 'boolean') item.checkbox = false;
+  if (sample && typeof sample.number === 'number') item.number = 0;
+  if (sample?.date) item.date = new Date().toISOString().slice(0, 10);
+  return item;
+}
+
+function ListBlock({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);
+  const isSkeletonLane = Boolean(block.properties?.skeletonLane);
   const [items, setItems] = useState(block.content.items || []);
   const [editingField, setEditingField] = useState(null); // { itemId, field }
   const [draft, setDraft] = useState('');
+  const [newItemText, setNewItemText] = useState('');
 
+  // Any Views rendered alongside this block (Progress, Ledger, ...)
+  // read the `block` prop SpacePage already fetched, not this
+  // component's own `items` state -- so without telling SpacePage to
+  // refetch, a View sitting right next to this list would keep
+  // showing stale counts after an edit here.
   async function saveItems(newItems) {
     setItems(newItems);
     if (!editable) return;
     await updateBlockContent(block.id, { ...block.content, items: newItems });
+    onBlocksChanged?.();
+  }
+
+  function addItem(event) {
+    event.preventDefault();
+    if (!newItemText.trim()) return;
+    saveItems([...items, buildNewItem(newItemText.trim(), items, isSkeletonLane)]);
+    setNewItemText('');
   }
 
   function startEditingField(item, field, initialValue) {
@@ -91,33 +123,49 @@ function ListBlock({ block }) {
       {laneLabel && items.length === 0 && <p>(empty)</p>}
       <ol>
         {items.map((item) => (
-        <li key={item.id}>
-          {typeof item.checkbox === 'boolean' && (
-            <input
-              type="checkbox"
-              checked={item.checkbox}
-              disabled={!editable}
-              onChange={() => toggleCheckbox(item)}
-            />
-          )}{' '}
-          {editableField(item, 'text', item.text)}
-          {typeof item.number === 'number' && <> — number: {editableField(item, 'number', item.number, 'number')}</>}
-          {item.date && <> — date: {editableField(item, 'date', item.date, 'date')}</>}
-          {item.confidence && (
-            <>
-              {' — confidence: '}
-              <span
-                className={editable ? 'editable-toggle' : undefined}
-                onClick={() => cycleConfidence(item)}
-                title={editable ? 'Click to cycle: solid -> tentative -> questioned' : undefined}
-              >
-                {item.confidence}
-              </span>
-            </>
-          )}
-        </li>
+          <li key={item.id}>
+            {typeof item.checkbox === 'boolean' && (
+              <input
+                type="checkbox"
+                checked={item.checkbox}
+                disabled={!editable}
+                onChange={() => toggleCheckbox(item)}
+              />
+            )}{' '}
+            {editableField(item, 'text', item.text)}
+            {typeof item.number === 'number' && (
+              <> — number: {editableField(item, 'number', item.number, 'number')}</>
+            )}
+            {item.date && <> — date: {editableField(item, 'date', item.date, 'date')}</>}
+            {item.confidence && (
+              <>
+                {' — confidence: '}
+                <span
+                  className={editable ? 'editable-toggle' : undefined}
+                  onClick={() => cycleConfidence(item)}
+                  title={editable ? 'Click to cycle: solid -> tentative -> questioned' : undefined}
+                >
+                  {item.confidence}
+                </span>
+              </>
+            )}
+          </li>
         ))}
       </ol>
+      {editable && (
+        <form onSubmit={addItem} style={{ display: 'flex', gap: '6px' }}>
+          <input
+            type="text"
+            value={newItemText}
+            placeholder="+ Add item"
+            style={{ flex: 1 }}
+            onChange={(event) => setNewItemText(event.target.value)}
+          />
+          <button type="submit" disabled={!newItemText.trim()}>
+            Add
+          </button>
+        </form>
+      )}
     </div>
   );
 }

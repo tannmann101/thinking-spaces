@@ -7,7 +7,6 @@
 
 import { useState } from 'react';
 import { addTrailNote } from '../api.js';
-import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
 
 function formatDate(isoLikeString) {
   return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
@@ -15,17 +14,22 @@ function formatDate(isoLikeString) {
 
 function RewindSnapshot({ entry }) {
   const { lanes, articulation } = entry.skeleton_snapshot;
+  // Object key order is insertion order here (the backend always
+  // builds it premises/evidence/open-questions/tensions), and each
+  // lane carries its own label -- so a relabeled Space Type (e.g.
+  // Person-Reflection) shows the label it actually used, not a generic
+  // default.
   return (
     <div style={{ border: '1px solid #999', padding: '10px', marginTop: '6px' }}>
       <p>
         <em>Read-only Skeleton snapshot from {formatDate(entry.created_at)}</em>
       </p>
-      {SKELETON_LANE_LABELS.map(({ key, label }) => (
-        <div key={key}>
-          <strong>{label}</strong>
+      {Object.values(lanes).map((lane) => (
+        <div key={lane.label}>
+          <strong>{lane.label}</strong>
           <ul>
-            {(lanes[key] || []).length === 0 && <li>(empty)</li>}
-            {(lanes[key] || []).map((item) => (
+            {lane.items.length === 0 && <li>(empty)</li>}
+            {lane.items.map((item) => (
               <li key={item.id}>{item.text}</li>
             ))}
           </ul>

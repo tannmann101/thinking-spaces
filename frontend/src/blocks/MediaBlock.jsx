@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
 
-function MediaBlock({ block }) {
+function MediaBlock({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);
   const { mediaType, url } = block.content;
 
@@ -20,6 +20,7 @@ function MediaBlock({ block }) {
     if (draft === savedCaption) return;
     setSavedCaption(draft);
     await updateBlockContent(block.id, { ...block.content, caption: draft });
+    onBlocksChanged?.();
   }
 
   const captionNode = editing ? (

@@ -62,7 +62,12 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
-const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, accent, origin, created_at, updated_at';
+const SPACE_COLUMNS =
+  'id, title, status, template_id, tags, goal, categories, accent, origin, due_date, created_at, updated_at';
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
@@ -73,6 +78,11 @@ function withComputedSpaceFields(space) {
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: getRelationDensity(space.id),
     openTensionCount: getOpenTensionCount(space.id),
+    // A Space is overdue purely by its own due_date having passed --
+    // independent of status, same reasoning staleness (Insights) is
+    // independent of status: a Space can sit at "developing" forever
+    // without anyone touching it, and a due date can pass the same way.
+    isOverdue: Boolean(space.due_date && space.due_date < todayString()),
   };
 }
 
@@ -126,25 +136,28 @@ export function createSpace({
   tags = [],
   categories = [],
   origin = null,
+  dueDate = null,
 }) {
   db.prepare(
-    `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin);
+    `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin, due_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin, dueDate);
   logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
   return getSpaceById(id);
 }
 
-// A Space's title, status, tags, goal, categories, and accent are all
-// edited through this one function. Any subset of fields can be given;
-// the rest keep their current value, same pattern as updateTemplate.
-// categories are freely-named facets specific to this Space's own
-// topic (e.g. "Financial Impact") that its own blocks get filed
-// under -- not to be confused with tags, which categorize the Space
-// itself (e.g. "resource") among every other Space. accent is Visual
-// Identity's manual layer -- a hand-picked mark drawn on top of the
-// glyph's computed base, independent of every other field here.
-export function updateSpace(id, { title, status, tags, goal, categories, accent } = {}) {
+// A Space's title, status, tags, goal, categories, accent, and due
+// date are all edited through this one function. Any subset of fields
+// can be given; the rest keep their current value, same pattern as
+// updateTemplate. categories are freely-named facets specific to this
+// Space's own topic (e.g. "Financial Impact") that its own blocks get
+// filed under -- not to be confused with tags, which categorize the
+// Space itself (e.g. "resource") among every other Space. accent is
+// Visual Identity's manual layer -- a hand-picked mark drawn on top of
+// the glyph's computed base, independent of every other field here.
+// dueDate is a real target date for the Space as a whole, distinct
+// from a List item's own `reviewBy`.
+export function updateSpace(id, { title, status, tags, goal, categories, accent, dueDate } = {}) {
   const existing = db.prepare(`SELECT * FROM spaces WHERE id = ?`).get(id);
   if (!existing) return null;
 
@@ -155,11 +168,12 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent 
     goal: goal !== undefined ? goal : existing.goal,
     categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
     accent: accent !== undefined ? accent : existing.accent,
+    due_date: dueDate !== undefined ? dueDate : existing.due_date,
   };
   db.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
-  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.accent, id);
+  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.accent, next.due_date, id);
   // Only a status change gets logged, not every title/tag/goal edit --
   // status progression (nascent -> developing -> mature) is genuinely
   // trend-worthy; a renamed tag isn't.
@@ -1310,6 +1324,7 @@ function labelForBlock(block) {
   if (block.type === 'reference') return `Reference to ${block.content.targetSpaceTitle || block.content.target_space_id}`;
   if (block.type === 'media') return block.content.caption || '(untitled Media)';
   if (block.type === 'comparison') return `${block.content.left?.text || '?'} vs. ${block.content.right?.text || '?'}`;
+  if (block.type === 'milestone') return block.content.label || '(untitled Milestone)';
   return `${block.type} block`;
 }
 
@@ -1366,6 +1381,13 @@ function summarizeBlockContent(block) {
       `Statement: ${content.statement || '(no statement yet)'}`,
       `Confidence: ${content.confidence || 'tentative'}`,
       ...(content.support || []).map((point) => `Support: ${point.text || '(linked claim)'}`),
+    ];
+  }
+  if (type === 'milestone') {
+    return [
+      `Target date: ${content.targetDate || '(not set)'}`,
+      `Status: ${content.reached ? `Reached${content.reachedAt ? ` on ${content.reachedAt}` : ''}` : 'Not yet reached'}`,
+      ...(content.note ? [`Note: ${content.note}`] : []),
     ];
   }
   return [`(no summary available for block type "${type}")`];
@@ -1475,6 +1497,7 @@ export function getSpaceReport(spaceId) {
       heading: 'Identity',
       lines: [
         `Status: ${space.status}`,
+        `Due date: ${space.due_date || '(not set)'}${space.isOverdue ? ' (overdue)' : ''}`,
         `Goal: ${space.goal || '(not set)'}`,
         `Tags: ${space.tags.length > 0 ? space.tags.join(', ') : '(none)'}`,
         `Categories: ${space.categories.length > 0 ? space.categories.join(', ') : '(none)'}`,
@@ -1501,6 +1524,19 @@ export function getSpaceReport(spaceId) {
           (block) => `${block.type}: ${block.content.statement || '(no statement yet)'} [${block.content.confidence || 'tentative'}]`
         ),
       ],
+    });
+  }
+
+  const milestoneBlocks = blocks.filter((block) => block.type === 'milestone');
+  if (milestoneBlocks.length > 0) {
+    const reachedCount = milestoneBlocks.filter((block) => block.content.reached).length;
+    sections.push({
+      heading: `Milestones (${reachedCount}/${milestoneBlocks.length} reached)`,
+      lines: milestoneBlocks.map((block) => {
+        const { label, targetDate, reached, reachedAt } = block.content;
+        const status = reached ? `reached${reachedAt ? ` ${reachedAt}` : ''}` : `target ${targetDate || '(not set)'}`;
+        return `${label || '(untitled)'} -- ${status}`;
+      }),
     });
   }
 

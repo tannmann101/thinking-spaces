@@ -1,7 +1,7 @@
 // A minimal "add a block" form, shared between the Template editor
 // (where it appends to a draft block_arrangement) and a live Space
-// (where it POSTs immediately) -- what a new Text, List, or Work block
-// needs at creation is the same question in both places.
+// (where it POSTs immediately) -- what a new Text, List, Work, or Time
+// block needs at creation is the same question in both places.
 //
 // Limited to the self-contained Tools: Reference and Media need real
 // external input (a target Space, an image URL) that doesn't fit a
@@ -9,10 +9,14 @@
 // of those belong here. Every Work Type fits the same mold Text and
 // List already do (nothing but its own starting text), so they all
 // join this form rather than getting a separate creation flow -- and
-// the dropdown's Work options are read straight from blockRegistry's
-// `family: 'work'` entries (grouped under their own <optgroup>, not
-// mixed flat with Text/List) rather than hardcoded here, so a new Work
-// Type needs no edit to this file at all, just its registry entry.
+// the dropdown's Work/Time options are read straight from
+// blockRegistry's `family` entries (each grouped under its own
+// <optgroup>, not mixed flat with Text/List) rather than hardcoded
+// here, so a new Work or Time Type needs no edit to this file at all,
+// just its registry entry (though a Time Type whose shape isn't
+// {statement, support, confidence} -- Milestone included -- still
+// needs its own branch in handleSubmit below, same as Text and List
+// already have, since "Time" isn't one shared shape the way Work is).
 // List items created here are plain text only -- no checkbox/number/
 // date/confidence at creation -- matching the same scope line the
 // "+ Add item" control already draws; a Work block likewise starts
@@ -53,6 +57,7 @@ const WORK_TYPE_STARTER_PROMPTS = {
 };
 
 const WORK_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'work');
+const TIME_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'time');
 
 function workTypeStarterPrompt(type) {
   return WORK_TYPE_STARTER_PROMPTS[type] || `The ${blockRegistry[type].label.toLowerCase()}`;
@@ -97,6 +102,14 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         .filter(Boolean)
         .map((line) => ({ id: crypto.randomUUID(), text: line }));
       onAdd({ type: 'list', content: { laneLabel: laneLabel.trim(), items }, properties });
+    } else if (type === 'milestone') {
+      // Starts with just a label; target date, reached state, and note
+      // are all set/toggled afterward on the block itself.
+      onAdd({
+        type: 'milestone',
+        content: { label: text.trim(), targetDate: null, reached: false, reachedAt: null, note: '' },
+        properties,
+      });
     } else {
       // Any Work Type -- all of them start with just a statement and
       // an empty support list; both are added to/set afterward on the
@@ -126,6 +139,13 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
               </option>
             ))}
           </optgroup>
+          <optgroup label="Time">
+            {TIME_TYPES.map(([key, entry]) => (
+              <option key={key} value={key}>
+                {entry.label}
+              </option>
+            ))}
+          </optgroup>
         </select>
       </label>
       <br />
@@ -133,7 +153,11 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         <textarea
           value={text}
           placeholder={
-            type === 'text' ? 'Starting text (can be left blank)' : `${workTypeStarterPrompt(type)} (can be left blank)`
+            type === 'text'
+              ? 'Starting text (can be left blank)'
+              : type === 'milestone'
+              ? 'Milestone label (can be left blank)'
+              : `${workTypeStarterPrompt(type)} (can be left blank)`
           }
           rows={2}
           style={{ width: '100%', marginTop: '6px' }}

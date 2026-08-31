@@ -1,19 +1,26 @@
 // Pass 5's "Map": every Reference block across every Space, drawn as
 // nodes and edges by GraphView (registered in registry/views.js), plus
 // the ability to select two or more Spaces and promote them into a new
-// "Relational Space" -- an ordinary Space pre-seeded with a Reference
-// block to each selection and one blank Text block for the synthesis.
-// See createRelationalSpace in backend/src/db/queries.js: no new schema,
+// "Relational Space" -- an ordinary Space, tagged 'relational', pre-
+// seeded with a Reference block to each selection and one blank Text
+// block for your own writing about the connection. See
+// createRelationalSpace in backend/src/db/queries.js: no new schema,
 // just the same createSpace/addBlockToSpace every other Space uses.
+// Deliberately doesn't call that blank Text block "for the synthesis"
+// -- "Synthesis" is also a separate, formal top-level feature elsewhere
+// in the app (CreateSynthesis.jsx), and the two shouldn't share wording.
 
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getGraph, createRelationalSpace } from '../api.js';
 import { viewRegistry } from '../registry/views.js';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const GraphView = viewRegistry.graph.component;
 
 function GraphPage() {
+  usePageTitle('The Map');
   const [graph, setGraph] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(new Set());
@@ -52,9 +59,7 @@ function GraphPage() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav current="graph" />
       <h1>The Map</h1>
 
       {error && <p>Error: {error}</p>}
@@ -65,7 +70,7 @@ function GraphPage() {
           <GraphView spaces={graph.spaces} workspaces={graph.workspaces} edges={graph.edges} />
 
           <h2>Combine Spaces into a Relational Space</h2>
-          <p>Select two or more Spaces below, name the new Space, and it will start with a Reference to each one plus a blank space for your synthesis.</p>
+          <p>Select two or more Spaces below, name the new Space, and it will start with a Reference to each one plus a blank space to write about the connection.</p>
 
           {graph.spaces.length === 0 && <p>No Spaces yet.</p>}
           <ul className="checkbox-list">

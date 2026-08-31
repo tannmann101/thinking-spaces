@@ -23,13 +23,16 @@
 // settled enough to be cited the way an external Resource is.
 
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createSpace, getWorkItems } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const SYNTHESIS_KIND_SUGGESTIONS = ['essay', 'story', 'definition', 'writing-entry'];
 
 function CreateSynthesis() {
+  usePageTitle('New Synthesis');
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState(null);
   const [workItems, setWorkItems] = useState(null);
@@ -106,13 +109,12 @@ function CreateSynthesis() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav />
       <h1>New Synthesis</h1>
       <p>
-        Compile a few existing Assessments and Questions -- from any Space -- into a new, more
-        polished piece: an essay, a definition, a story, a plain writing entry.
+        Compile a few existing Work items -- Assessments, Questions, and the rest of the Work
+        catalog, from any Space -- into a new, more polished piece: an essay, a definition, a
+        story, a plain writing entry.
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -148,7 +150,7 @@ function CreateSynthesis() {
         <p>Which existing Work items should this draw from? Their text is copied in to start from.</p>
         {workItems === null && <p>Loading...</p>}
         {workItems && workItems.length === 0 && (
-          <p>No Assessments or Questions exist yet -- create some in a Space first.</p>
+          <p>No Work items exist yet -- create an Assessment, Question, or another Work Type in a Space first.</p>
         )}
         {workItems && workItems.length > 0 && (
           <p className="synthesis-picker-toolbar">

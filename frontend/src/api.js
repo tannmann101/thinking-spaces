@@ -114,7 +114,7 @@ export const getResurfaceSuggestion = () => request('/dashboard/resurface');
 // computed across every Space at once.
 export const getInsights = () => request('/insights');
 
-// Template management (Pass 4 / "Dev Mode").
+// Template management.
 export const getTemplate = (id) => request(`/templates/${id}`);
 export const createTemplate = ({ name, blockArrangement }) =>
   request('/templates', {

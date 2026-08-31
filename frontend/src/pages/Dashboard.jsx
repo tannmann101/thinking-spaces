@@ -10,6 +10,8 @@ import {
 } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function formatDate(isoLikeString) {
   // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
@@ -131,6 +133,7 @@ function SynthesesDigest({ spaces }) {
 }
 
 function Dashboard() {
+  usePageTitle('Dashboard');
   const { promptToMatch } = useConfirmDialog();
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
@@ -174,18 +177,7 @@ function Dashboard() {
 
   return (
     <main>
-      <header className="topbar">
-        <span className="wordmark">
-          Thinking Spaces<span className="dot">.</span>
-        </span>
-        <nav className="nav-links">
-          <Link to="/insights">Insights</Link>
-          <Link to="/tools">Tools</Link>
-          <Link to="/templates">Manage Templates</Link>
-          <Link to="/graph">View the Map</Link>
-          <Link to="/log">Log</Link>
-        </nav>
-      </header>
+      <TopNav current="dashboard" />
 
       <p className="dashboard-create-row">
         <Link to="/spaces/new" className="new-space-btn">

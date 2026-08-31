@@ -8,12 +8,15 @@
 // after creation, the same ordinary way blocks are always removed.
 
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createSpace, getTemplates, getSpacesByTag } from '../api.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function CreateSpace() {
+  usePageTitle('New Space');
   const [title, setTitle] = useState('');
   const [templates, setTemplates] = useState(null);
   const [templateId, setTemplateId] = useState(null); // null = start blank
@@ -116,9 +119,7 @@ function CreateSpace() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav />
       <h1>New Space</h1>
 
       <form onSubmit={handleSubmit}>

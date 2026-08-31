@@ -13,6 +13,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getActivity } from '../api.js';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const KIND_LABELS = {
   space_created: 'Space',
@@ -35,6 +37,7 @@ function formatDate(isoLikeString) {
 }
 
 function LogPage() {
+  usePageTitle('Log');
   const [activity, setActivity] = useState(null);
   const [error, setError] = useState(null);
 
@@ -44,9 +47,7 @@ function LogPage() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav current="log" />
       <h1>Log</h1>
       <p>Everything that's happened, across every Space, oldest and newest in one place.</p>
 

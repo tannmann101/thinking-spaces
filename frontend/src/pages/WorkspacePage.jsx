@@ -31,6 +31,8 @@ import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import ReportButton from '../components/ReportButton.jsx';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function EditableWorkspaceName({ workspace, onChanged }) {
   const [editing, setEditing] = useState(false);
@@ -78,6 +80,7 @@ function WorkspacePage() {
   const [workspace, setWorkspace] = useState(null);
   const [blocks, setBlocks] = useState(null);
   const [error, setError] = useState(null);
+  usePageTitle(workspace?.name);
   // Focus mode: set to a block's id to hide every other block (and the
   // add/pull-in/delete sections below) and show just that one, larger --
   // "nothing but prose to look at." Only Text currently reads the
@@ -152,6 +155,7 @@ function WorkspacePage() {
 
   return (
     <main>
+      <TopNav />
       {space && (
         <Link to={`/spaces/${spaceId}`} className="back-link">
           &larr; Back to {space.title}

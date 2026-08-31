@@ -70,6 +70,15 @@ function ListBlock({ block, onBlocksChanged }) {
     saveItems(newItems);
   }
 
+  // Items could be added and reordered but never removed -- a real gap
+  // for a workshop, where getting something wrong or obsolete should be
+  // as easy to undo as it was to add. Lower-stakes than removing a
+  // whole block (no confirm dialog), same reasoning "+ Add item" itself
+  // has no confirm.
+  function removeItem(index) {
+    saveItems(items.filter((_, i) => i !== index));
+  }
+
   function startEditingField(item, field, initialValue) {
     if (!editable) return;
     setDraft(initialValue);
@@ -159,6 +168,9 @@ function ListBlock({ block, onBlocksChanged }) {
                   title="Move down (lower priority)"
                 >
                   ▼
+                </button>
+                <button type="button" onClick={() => removeItem(index)} title="Remove item">
+                  ✕
                 </button>
               </span>
             )}{' '}

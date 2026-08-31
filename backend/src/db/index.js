@@ -19,3 +19,17 @@ db.pragma('foreign_keys = ON');
 
 const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
 db.exec(schema);
+
+// CREATE TABLE IF NOT EXISTS (above) only builds spaces as schema.sql
+// describes it on a brand-new database -- it's a no-op against a
+// spaces table that already exists, so columns added to schema.sql
+// after Pass 1 (tags, goal) need this one-time, idempotent ALTER TABLE
+// for any database file that predates them.
+function ensureColumn(table, column, definition) {
+  const existing = db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name);
+  if (!existing.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+ensureColumn('spaces', 'tags', `TEXT NOT NULL DEFAULT '[]'`);
+ensureColumn('spaces', 'goal', 'TEXT');

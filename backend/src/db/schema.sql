@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS spaces (
   title TEXT NOT NULL,
   template_id TEXT REFERENCES templates(id),
   status TEXT NOT NULL DEFAULT 'nascent',
+  tags TEXT NOT NULL DEFAULT '[]', -- JSON array of strings, e.g. ["resource"]
+  goal TEXT,                       -- what this Space is working towards; separate from its content
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

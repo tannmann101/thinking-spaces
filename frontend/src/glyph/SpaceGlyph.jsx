@@ -61,7 +61,10 @@ function SpaceGlyph({ space, size = 28 }) {
   const baseY = size - 2;
   const forkY = size * 0.55;
   const branchCount = Math.min(relationDensity, MAX_BRANCHES);
-  const strokeColor = config.grey ? '#999' : '#222';
+  // Colors are the same CSS variables index.css defines for everything
+  // else -- dormant Spaces fall back to a neutral ink rather than the
+  // maroon accent, same "filled in" logic as before, just re-themed.
+  const strokeColor = config.grey ? 'var(--ink-faint)' : 'var(--maroon-bright)';
 
   const branches = [];
   for (let i = 0; i < branchCount; i++) {
@@ -125,7 +128,7 @@ function SpaceGlyph({ space, size = 28 }) {
         <polyline
           points={buildCrackPoints(cx, baseY, forkY, crackSegments, rand)}
           fill="none"
-          stroke="#c0392b"
+          stroke="var(--maroon)"
           strokeWidth={1}
         />
       )}

@@ -46,6 +46,22 @@ CREATE INDEX IF NOT EXISTS idx_blocks_reference_target
   ON blocks(json_extract(content, '$.target_space_id'))
   WHERE type = 'reference';
 
+-- Workspaces: a deliberately assembled, named environment inside one
+-- Space that bundles several Tools together for focused engagement --
+-- distinct from a Category (a facet of the topic; free-standing string,
+-- no page of its own) and distinct from a plain block (a single Tool).
+-- A block joins a Workspace via `workspaces` (a JSON array of workspace
+-- ids) in its own `properties`, the same many-to-many shape Categories
+-- already use -- see updateBlockWorkspaces in queries.js.
+CREATE TABLE IF NOT EXISTS workspaces (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_workspaces_space_id ON workspaces(space_id);
+
 -- Trail: the history layer (see Tools & Resources doc). "auto" entries
 -- are written automatically on a Skeleton structural change (an item
 -- promoted into a lane, the Current Best Articulation edited); "manual"

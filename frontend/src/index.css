@@ -633,6 +633,120 @@ label {
   color: var(--ink);
 }
 
+/* ---------- Text Workshop: the bespoke, spacious writing environment
+   a Text Tool gets inside a Workspace, in place of the small inline
+   .text-block above. Generous serif type and breathing room, closer to
+   a real writing surface than a form field. ---------- */
+
+.text-workshop {
+  padding: 4px 2px;
+}
+
+.text-workshop-tags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.text-workshop-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.text-workshop-tag:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+.text-workshop-tag-active {
+  color: var(--maroon-bright);
+  border-color: var(--maroon);
+  background: var(--maroon-wash);
+}
+
+.text-workshop-surface {
+  display: block;
+  width: 100%;
+  min-height: 140px;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0 0 16px;
+  font-family: var(--body);
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.text-workshop-surface:focus {
+  outline: none;
+  border-bottom-color: var(--maroon);
+}
+.text-workshop-surface::placeholder {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.text-workshop-suggestions {
+  list-style: none;
+  margin: -8px 0 12px;
+  padding: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  max-width: 320px;
+}
+.text-workshop-suggestions li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--ink);
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.text-workshop-suggestions li button:hover {
+  background: var(--surface-3);
+}
+
+.text-workshop-footer {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin: 10px 0;
+}
+
+.text-workshop-preview {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-soft);
+}
+.text-workshop-preview-label {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink-faint);
+}
+.text-workshop-preview p {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
 /* ---------- List block ---------- */
 
 .list-block {
@@ -1005,6 +1119,105 @@ label {
   color: var(--maroon-bright);
   border-color: var(--maroon);
   background: var(--maroon-wash);
+}
+
+/* ---------- Workspaces: assembled, named Tool environments ---------- */
+/* Deliberately a different shape from a Category chip (solid ink fill,
+   square corners) rather than a new hue -- the palette stays the single
+   oxblood accent CLAUDE.md calls for, but Tags/Categories/Workspaces
+   still need to read apart from each other at a glance. */
+
+.workspace-section {
+  margin: 20px 0;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+}
+.workspace-section h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.workspace-section > p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.workspace-card {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 12px;
+}
+.workspace-card:hover {
+  border-color: var(--maroon);
+}
+.workspace-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.workspace-add-form {
+  display: flex;
+  gap: 6px;
+}
+.workspace-add-form input {
+  flex: 1;
+  max-width: 240px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.workspace-chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--ink-faint);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 0; /* square, vs. a Category chip's rounded corners */
+  padding: 2px 6px;
+}
+.block-workspace-row {
+  margin: 6px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.workspace-chip-toggle {
+  cursor: pointer;
+  opacity: 0.45;
+}
+.workspace-chip-toggle:hover {
+  opacity: 0.75;
+}
+.workspace-chip-toggle.workspace-chip-active {
+  opacity: 1;
+  color: var(--ink);
+  border-color: var(--maroon);
+}
+
+.workspace-title {
+  margin-bottom: 2px;
+}
+.workspace-subtitle {
+  margin-top: 0;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+.workspace-block-feed {
+  margin-bottom: 24px;
 }
 
 /* ---------- Tools catalog ---------- */

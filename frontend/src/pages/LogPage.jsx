@@ -20,6 +20,8 @@ const KIND_LABELS = {
   space_status_changed: 'Status',
   block_added: 'Tool',
   block_removed: 'Tool',
+  workspace_created: 'Workspace',
+  workspace_deleted: 'Workspace',
   template_created: 'Template',
   template_updated: 'Template',
   template_deleted: 'Template',

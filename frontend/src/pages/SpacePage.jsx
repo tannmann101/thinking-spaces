@@ -10,6 +10,9 @@ import {
   moveBlockInSpace,
   updateSpace,
   updateBlockCategories,
+  updateBlockWorkspaces,
+  getWorkspacesForSpace,
+  createWorkspace,
   deleteSpace,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
@@ -312,11 +315,103 @@ function BlockCategoryPicker({ block, spaceCategories, onChanged }) {
   );
 }
 
+// A Workspace is a deliberately assembled, named environment inside
+// this Space -- distinct from a Category (a free-standing facet name,
+// no page of its own): a Workspace is a real thing with a dedicated
+// page you navigate into, where its assigned Tools get room to work
+// together. This lists the Space's existing Workspaces as cards to open
+// and lets you start a new one -- creating one is exactly as ordinary
+// an action as adding a block or a Category, no separate mode for it.
+function WorkspaceList({ space, workspaces, onChanged }) {
+  const [newName, setNewName] = useState('');
+
+  async function addWorkspace(event) {
+    event.preventDefault();
+    const name = newName.trim();
+    setNewName('');
+    if (!name) return;
+    await createWorkspace(space.id, name);
+    onChanged();
+  }
+
+  return (
+    <div className="workspace-section">
+      <h2>Workspaces</h2>
+      <p>Assemble Tools together into a dedicated environment for focused work.</p>
+      {workspaces.length > 0 && (
+        <div className="workspace-grid">
+          {workspaces.map((workspace) => (
+            <Link
+              key={workspace.id}
+              to={`/spaces/${space.id}/workspaces/${workspace.id}`}
+              className="workspace-card"
+            >
+              <h3>{workspace.name}</h3>
+            </Link>
+          ))}
+        </div>
+      )}
+      <form onSubmit={addWorkspace} className="workspace-add-form">
+        <input
+          type="text"
+          value={newName}
+          placeholder="+ New Workspace"
+          onChange={(event) => setNewName(event.target.value)}
+        />
+        <button type="submit" className="btn-ghost-small" disabled={!newName.trim()}>
+          Create
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// Which Workspaces this one block has been assembled into. Only shows
+// once the Space has at least one Workspace, same zero-state reasoning
+// as BlockCategoryPicker. Membership is stored as Workspace ids (see
+// updateBlockWorkspaces), so this resolves each id against the Space's
+// current Workspace list -- a since-deleted Workspace's id just quietly
+// stops resolving to a chip, same as a removed Category would.
+function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
+  if (spaceWorkspaces.length === 0) return null;
+  const current = block.properties?.workspaces || [];
+
+  async function toggle(workspaceId) {
+    const next = current.includes(workspaceId)
+      ? current.filter((w) => w !== workspaceId)
+      : [...current, workspaceId];
+    await updateBlockWorkspaces(block.id, next);
+    onChanged();
+  }
+
+  return (
+    <p className="block-workspace-row">
+      {spaceWorkspaces.map((workspace) => (
+        <span
+          key={workspace.id}
+          className={`workspace-chip workspace-chip-toggle${
+            current.includes(workspace.id) ? ' workspace-chip-active' : ''
+          }`}
+          onClick={() => toggle(workspace.id)}
+          title={
+            current.includes(workspace.id)
+              ? `Remove from ${workspace.name}`
+              : `Add to ${workspace.name}`
+          }
+        >
+          {workspace.name}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function SpacePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [space, setSpace] = useState(null);
   const [blocks, setBlocks] = useState(null);
+  const [workspaces, setWorkspaces] = useState(null);
   const [backlinks, setBacklinks] = useState(null);
   const [trail, setTrail] = useState(null);
   const [error, setError] = useState(null);
@@ -338,6 +433,7 @@ function SpacePage() {
   const refetchAll = useCallback(() => {
     getSpace(id).then(setSpace).catch((err) => setError(err.message));
     getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
+    getWorkspacesForSpace(id).then(setWorkspaces).catch((err) => setError(err.message));
     refetchTrail();
   }, [id, refetchTrail]);
 
@@ -421,6 +517,8 @@ function SpacePage() {
             {blocks && <SkeletonCompletenessStrip blocks={blocks} />}
           </div>
 
+          {workspaces && <WorkspaceList space={space} workspaces={workspaces} onChanged={refetchAll} />}
+
           {/* Filtering by Category is the "zoom in on one aspect of the
               topic" the flat feed couldn't offer -- but it only narrows
               which blocks are shown, never which categories a block
@@ -488,6 +586,11 @@ function SpacePage() {
                       <BlockCategoryPicker
                         block={block}
                         spaceCategories={space.categories}
+                        onChanged={refetchAll}
+                      />
+                      <BlockWorkspacePicker
+                        block={block}
+                        spaceWorkspaces={workspaces || []}
                         onChanged={refetchAll}
                       />
                       <div className="block-controls">

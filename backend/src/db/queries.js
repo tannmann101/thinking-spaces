@@ -946,6 +946,40 @@ export function updateTrailEntry(id, note) {
   return parseTrailRow(db.prepare(`SELECT * FROM trail_entries WHERE id = ?`).get(id));
 }
 
+// --- Work -----------------------------------------------------------
+// "Work" is the umbrella for a new kind of Tool: not a generic Text/
+// List block with a label, but a real, distinct Tool per kind of
+// thinking-act (Assessment, Question, and whatever gets added later).
+// Every kind shares one underlying shape ({statement, rationale,
+// confidence} -- see WorkBlock.jsx on the frontend) so Synthesis (below)
+// can treat them uniformly, but each is still its own registered Block
+// type with its own component and catalog entry -- see
+// frontend/src/registry/blocks.js.
+//
+// Adding a new kind of Work later means adding its block type here and
+// registering it on the frontend; nothing else needs to change --
+// listWorkItems and the Synthesis picker both pick it up automatically.
+export const WORK_TYPES = ['assessment', 'question'];
+
+// Synthesis's picker needs to browse Work items across every Space,
+// not just the one you're in -- the same reason Resources are queried
+// by tag membership rather than per-Space. The Test Space is excluded,
+// same reasoning as every other cross-Space listing.
+export function listWorkItems() {
+  const placeholders = WORK_TYPES.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `SELECT blocks.id, blocks.type, blocks.content, blocks.space_id,
+              spaces.title AS space_title
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type IN (${placeholders}) AND blocks.space_id != ?
+       ORDER BY blocks.created_at DESC`
+    )
+    .all(...WORK_TYPES, TEST_SPACE_ID);
+  return rows.map((row) => ({ ...row, content: JSON.parse(row.content) }));
+}
+
 // --- The Log (global activity) -------------------------------------
 // A cross-Space feed combining every structural lifecycle event
 // (activity_log) with the finer-grained Skeleton history (trail_entries)

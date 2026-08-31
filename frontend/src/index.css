@@ -796,6 +796,38 @@ label {
   opacity: 0.5;
 }
 
+/* ---------- Work blocks (Assessment, Question, ...) ---------- */
+
+.work-block {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 12px 18px;
+}
+.work-block-statement {
+  font-family: var(--display);
+  font-size: 18px;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.work-block-rationale {
+  font-size: 14px;
+  color: var(--ink-dim);
+  margin: 0 0 8px;
+}
+.work-block-field-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink-faint);
+}
+.work-block-confidence {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
 /* ---------- List block ---------- */
 
 .list-block {

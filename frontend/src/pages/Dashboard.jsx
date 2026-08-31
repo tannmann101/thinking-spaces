@@ -8,7 +8,7 @@ import {
   getResurfaceSuggestion,
   deleteSpace,
 } from '../api.js';
-import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
+import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
 
 function formatDate(isoLikeString) {
   // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
@@ -16,11 +16,17 @@ function formatDate(isoLikeString) {
   return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
 }
 
+// Every digest below renders as a native <details>, not a plain
+// <section> -- with up to five of these able to stack above the Space
+// list, collapsing the ones you don't need right now is what keeps
+// that stack from just being "more scrolling before the actual list."
+// Native and boring on purpose: no state to manage, no persistence
+// needed, the browser already does this correctly.
 function OverdueReviews({ items }) {
   if (items.length === 0) return null;
   return (
-    <section className="digest">
-      <h3>Overdue for review</h3>
+    <details className="digest" open>
+      <summary>Overdue for review</summary>
       <ul>
         {items.map(({ spaceId, spaceTitle, item }) => (
           <li key={item.id}>
@@ -28,15 +34,15 @@ function OverdueReviews({ items }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
 function RecentTrailDigest({ entries }) {
   if (entries.length === 0) return null;
   return (
-    <section className="digest">
-      <h3>This week, across your Spaces</h3>
+    <details className="digest" open>
+      <summary>This week, across your Spaces</summary>
       <ul>
         {entries.map((entry) => (
           <li key={entry.id}>
@@ -44,20 +50,20 @@ function RecentTrailDigest({ entries }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
 function ResurfaceSuggestion({ space }) {
   if (!space) return null;
   return (
-    <section className="digest">
-      <h3>Maybe revisit...</h3>
+    <details className="digest" open>
+      <summary>Maybe revisit...</summary>
       <p>
         <Link to={`/spaces/${space.id}`}>{space.title}</Link> ({space.status}, last touched{' '}
         {formatDate(space.updated_at)})
       </p>
-    </section>
+    </details>
   );
 }
 
@@ -67,8 +73,8 @@ function ResurfaceSuggestion({ space }) {
 function ResourcesDigest({ spaces }) {
   if (spaces.length === 0) return null;
   return (
-    <section className="digest">
-      <h3>Resources</h3>
+    <details className="digest" open>
+      <summary>Resources</summary>
       <ul>
         {spaces.map((space) => (
           <li key={space.id}>
@@ -85,7 +91,7 @@ function ResourcesDigest({ spaces }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
@@ -95,8 +101,8 @@ function ResourcesDigest({ spaces }) {
 function SynthesesDigest({ spaces }) {
   if (spaces.length === 0) return null;
   return (
-    <section className="digest">
-      <h3>Syntheses</h3>
+    <details className="digest" open>
+      <summary>Syntheses</summary>
       <ul>
         {spaces.map((space) => (
           <li key={space.id}>
@@ -109,7 +115,7 @@ function SynthesesDigest({ spaces }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
@@ -121,6 +127,12 @@ function Dashboard() {
   const [resources, setResources] = useState([]);
   const [syntheses, setSyntheses] = useState([]);
   const [error, setError] = useState(null);
+  // Search/status are view-only, not persisted -- narrowing which
+  // Spaces show up in the list below, same "zoom in without hiding
+  // anything permanently" principle the Category filter strip already
+  // established on the Space page.
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(null);
 
   function refetchSpaces() {
     getSpaces().then(setSpaces).catch((err) => setError(err.message));
@@ -187,51 +199,87 @@ function Dashboard() {
         <p>No spaces yet. Create your first one to get started.</p>
       )}
 
-      {spaces && spaces.length > 0 && (
-        <ul className="space-list">
-          {spaces.map((space) => (
-            <li key={space.id} className="space-card">
-              <SpaceGlyph space={space} size={30} />
-              <div className="space-main">
-                <div className="space-title">
-                  <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                  {space.isTestSpace && (
-                    <span className="test-flag" title="Scratch area, not real content">
-                      TEST SPACE
-                    </span>
-                  )}
-                </div>
-                <div className="space-meta">
-                  <span className="status-pill" data-status={space.status}>
-                    {space.status}
-                  </span>
-                  <span className="sep">·</span>
-                  <span>updated {formatDate(space.updated_at)}</span>
-                  {space.tags.length > 0 && (
-                    <>
-                      <span className="sep">·</span>
-                      {space.tags.map((tag) => (
-                        <span key={tag} className="tag-chip">
-                          {tag}
-                        </span>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
-              {!space.isTestSpace && (
-                <button
-                  type="button"
-                  className="btn-ghost-small"
-                  onClick={() => handleDeleteSpace(space)}
+      {spaces && spaces.length > 0 && (() => {
+        const visibleSpaces = spaces.filter((space) => {
+          const matchesSearch = space.title.toLowerCase().includes(search.trim().toLowerCase());
+          const matchesStatus = !statusFilter || space.status === statusFilter;
+          return matchesSearch && matchesStatus;
+        });
+        return (
+          <>
+            <p className="space-search-row">
+              <input
+                type="text"
+                value={search}
+                placeholder="Search Spaces by title..."
+                className="space-search-input"
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <span
+                className={`category-filter-tab${statusFilter === null ? ' category-filter-tab-active' : ''}`}
+                onClick={() => setStatusFilter(null)}
+              >
+                All
+              </span>
+              {SPACE_STATUSES.map((status) => (
+                <span
+                  key={status}
+                  className={`category-filter-tab${statusFilter === status ? ' category-filter-tab-active' : ''}`}
+                  onClick={() => setStatusFilter(statusFilter === status ? null : status)}
                 >
-                  Delete
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                  {status}
+                </span>
+              ))}
+            </p>
+            {visibleSpaces.length === 0 && <p>No Spaces match &ldquo;{search}&rdquo;.</p>}
+            {visibleSpaces.length > 0 && (
+              <ul className="space-list">
+                {visibleSpaces.map((space) => (
+                  <li key={space.id} className="space-card">
+                    <SpaceGlyph space={space} size={30} />
+                    <div className="space-main">
+                      <div className="space-title">
+                        <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                        {space.isTestSpace && (
+                          <span className="test-flag" title="Scratch area, not real content">
+                            TEST SPACE
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-meta">
+                        <span className="status-pill" data-status={space.status}>
+                          {space.status}
+                        </span>
+                        <span className="sep">·</span>
+                        <span>updated {formatDate(space.updated_at)}</span>
+                        {space.tags.length > 0 && (
+                          <>
+                            <span className="sep">·</span>
+                            {space.tags.map((tag) => (
+                              <span key={tag} className="tag-chip">
+                                {tag}
+                              </span>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {!space.isTestSpace && (
+                      <button
+                        type="button"
+                        className="btn-ghost-small"
+                        onClick={() => handleDeleteSpace(space)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        );
+      })()}
     </main>
   );
 }

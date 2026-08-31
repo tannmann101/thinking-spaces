@@ -2061,3 +2061,146 @@ label {
   font-size: 11px;
   color: var(--ink-faint);
 }
+
+/* ---------- Insights ---------- */
+
+/* The Dashboard's one deliberately-loud entry point -- everything else
+   on this page (digests, the Space list) reads as calm/utilitarian on
+   purpose; this is the exception, since the person asked for Insights
+   to be made prominent as the app's founding reason for existing. */
+.insights-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 20px;
+  padding: 18px 22px;
+  border-radius: 4px;
+  border: 1px solid var(--maroon);
+  background: linear-gradient(120deg, var(--maroon-wash), var(--surface));
+  text-decoration: none;
+}
+.insights-banner:hover {
+  border-color: var(--maroon-bright);
+  background: linear-gradient(120deg, var(--maroon-wash), var(--surface-2));
+}
+.insights-banner-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--maroon-bright);
+}
+.insights-banner-sub {
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.insights-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.insight-section {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 18px 22px;
+}
+.insight-section h2 {
+  font-family: var(--display);
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+.insight-section-sub {
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0 0 16px;
+}
+.insight-section h3 {
+  font-size: 12px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink-dim);
+  font-weight: 500;
+  margin: 0 0 10px;
+}
+
+.insight-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 700px) {
+  .insight-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.insight-empty {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.insight-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.insight-bar-label {
+  flex: none;
+  width: 100px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.insight-bar-track {
+  flex: 1;
+  margin-bottom: 0;
+}
+.insight-bar-count {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  width: 22px;
+  text-align: right;
+}
+
+.insight-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+.insight-plain-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.insight-plain-list li:last-child {
+  border-bottom: none;
+}
+.insight-detail {
+  color: var(--ink-faint);
+}
+
+.insight-funnel {
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0 0 8px;
+}
+.insight-funnel-number {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-right: 6px;
+}

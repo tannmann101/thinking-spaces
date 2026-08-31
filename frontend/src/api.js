@@ -100,6 +100,10 @@ export const getWorkItems = () => request('/work-items');
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getRecentTrail = () => request('/dashboard/recent-trail');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
+// Everything InsightsPage.jsx needs in one call -- work mix, themes/
+// tensions, activity trend, and provenance/synthesis yield, all
+// computed across every Space at once.
+export const getInsights = () => request('/insights');
 
 // Template management (Pass 4 / "Dev Mode").
 export const getTemplate = (id) => request(`/templates/${id}`);

@@ -9,6 +9,7 @@ import { blocksRouter } from './routes/blocks.js';
 import { workspacesRouter } from './routes/workspaces.js';
 import { skeletonRouter } from './routes/skeleton.js';
 import { workRouter } from './routes/work.js';
+import { insightsRouter } from './routes/insights.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { ensureTestSpaceExists, migrateTextBlockLines, migrateWorkItemSupport } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
@@ -37,6 +38,7 @@ app.use('/api', blocksRouter);
 app.use('/api', workspacesRouter);
 app.use('/api', skeletonRouter);
 app.use('/api', workRouter);
+app.use('/api', insightsRouter);
 app.use('/api', dashboardRouter);
 
 app.listen(PORT, () => {

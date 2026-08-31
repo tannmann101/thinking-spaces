@@ -584,6 +584,13 @@ label {
   border: 1px solid var(--border-soft);
   background: var(--surface);
   border-radius: 3px;
+  max-width: 100%;
+  height: auto;
+  /* Dragging a node or panning the background shouldn't select the
+     page's text, and pinch/scroll gestures on a trackpad should zoom
+     the graph, not the page underneath it. */
+  user-select: none;
+  touch-action: none;
 }
 
 /* ---------- Text block ---------- */

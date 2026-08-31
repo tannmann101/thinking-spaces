@@ -118,6 +118,21 @@ export function createTemplate({ id = randomUUID(), name, blockArrangement }) {
   return getTemplateById(id);
 }
 
+// Editing a Template only ever touches the templates table -- it never
+// reaches into any Space, because applyTemplate (below) only ever runs
+// once, at Space-creation time. There's no ongoing link for an edit to
+// travel through.
+export function updateTemplate(id, { name, blockArrangement }) {
+  db.prepare(
+    `UPDATE templates SET name = ?, block_arrangement = ?, updated_at = datetime('now') WHERE id = ?`
+  ).run(name, JSON.stringify(blockArrangement), id);
+  return getTemplateById(id);
+}
+
+export function deleteTemplate(id) {
+  db.prepare(`DELETE FROM templates WHERE id = ?`).run(id);
+}
+
 // Applying a Template is a one-time copy, per CLAUDE.md -- not a live
 // link back to the template. Each block spec in block_arrangement is
 // just the same shape createBlock already takes.
@@ -253,6 +268,33 @@ export function createBlock({ spaceId, type, content = {}, properties = {}, posi
      VALUES (?, ?, ?, ?, ?, ?)`
   ).run(id, spaceId, type, JSON.stringify(content), JSON.stringify(properties), position);
   return getBlockById(id);
+}
+
+// Adding a block to an already-live Space -- same createBlock as
+// everything else uses, just appended at the end (nextPosition is
+// defined further down, used the same way Skeleton lanes get appended).
+export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }) {
+  return createBlock({ spaceId, type, content, properties, position: nextPosition(spaceId) });
+}
+
+export function deleteBlock(id) {
+  db.prepare(`DELETE FROM blocks WHERE id = ?`).run(id);
+}
+
+// Reordering blocks on a live Space (distinct from ListBlock's own
+// item reordering, which stays inside one block's content): swaps two
+// blocks' `position` values directly rather than renumbering the
+// whole list, so it works regardless of what positions currently are.
+export function moveBlockInSpace(spaceId, blockId, direction) {
+  const blocks = listBlocksForSpace(spaceId);
+  const index = blocks.findIndex((block) => block.id === blockId);
+  const targetIndex = index + direction;
+  if (index === -1 || targetIndex < 0 || targetIndex >= blocks.length) return;
+
+  const current = blocks[index];
+  const target = blocks[targetIndex];
+  db.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).run(target.position, current.id);
+  db.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).run(current.position, target.id);
 }
 
 // First editable block content: replaces a block's whole content blob.

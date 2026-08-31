@@ -56,8 +56,8 @@ function ReferenceBlock({ block, onSave, onBlocksChanged }) {
     : `/spaces/${target_space_id}`;
 
   return (
-    <p>
-      →{' '}
+    <p className="reference-block">
+      <span className="ref-arrow">→</span>
       <Link to={to} onClick={(event) => event.stopPropagation()}>
         {targetSpaceTitle || target_space_id}
       </Link>{' '}

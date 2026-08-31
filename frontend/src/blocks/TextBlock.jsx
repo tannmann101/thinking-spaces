@@ -128,8 +128,8 @@ function TextBlock({ block, onSave, onBlocksChanged }) {
 
   if (editing) {
     return (
-      <div>
-        {tag && <strong>[{tag}] </strong>}
+      <div className="text-block">
+        {tag && <span className="tag-label">{tag}</span>}
         <textarea
           ref={textareaRef}
           value={draft}
@@ -169,10 +169,12 @@ function TextBlock({ block, onSave, onBlocksChanged }) {
   }
 
   return (
-    <p onClick={startEditing} className={editable ? 'editable' : undefined}>
-      {tag && <strong>[{tag}] </strong>}
-      {renderTextWithLinks(savedText, block.space_id)}
-    </p>
+    <div className="text-block">
+      {tag && <span className="tag-label">{tag}</span>}
+      <p onClick={startEditing} className={editable ? 'editable' : undefined}>
+        {renderTextWithLinks(savedText, block.space_id)}
+      </p>
+    </div>
   );
 }
 

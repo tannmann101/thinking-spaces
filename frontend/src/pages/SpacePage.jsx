@@ -27,15 +27,15 @@ function BackLink() {
 
   if (fromId) {
     return (
-      <p>
-        <Link to={`/spaces/${fromId}`}>&larr; Back to {fromSpace ? fromSpace.title : '...'}</Link>
-      </p>
+      <Link to={`/spaces/${fromId}`} className="back-link">
+        &larr; Back to {fromSpace ? fromSpace.title : '...'}
+      </Link>
     );
   }
   return (
-    <p>
-      <Link to="/">&larr; Back to Dashboard</Link>
-    </p>
+    <Link to="/" className="back-link">
+      &larr; Back to Dashboard
+    </Link>
   );
 }
 
@@ -55,7 +55,7 @@ function SkeletonCompletenessStrip({ blocks }) {
   if (byLaneKey.size === 0) return null;
 
   return (
-    <p>
+    <p className="skeleton-strip">
       Skeleton:{' '}
       {SKELETON_LANE_LABELS.map(({ key }, index) => {
         const block = byLaneKey.get(key);
@@ -132,75 +132,91 @@ function SpacePage() {
 
       {space && (
         <>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <SpaceGlyph space={space} size={36} />
-            {space.title}
-            {space.isTestSpace && ' [TEST SPACE]'}
-          </h1>
-          <p>Status: {space.status}</p>
-
-          {backlinks && backlinks.length > 0 && (
-            <p>
-              Referenced by:{' '}
-              {backlinks.map((backlink, index) => (
-                <span key={backlink.blockId}>
-                  {index > 0 && ', '}
-                  <Link to={`/spaces/${backlink.sourceSpaceId}`}>{backlink.sourceSpaceTitle}</Link>
-                  {backlink.note && <> ({backlink.note})</>}
-                </span>
-              ))}
+          <div className="space-header">
+            <h1>
+              <SpaceGlyph space={space} size={36} />
+              {space.title}
+              {space.isTestSpace && <span className="test-flag">TEST SPACE</span>}
+            </h1>
+            <p className="space-meta">
+              <span className="status-pill" data-status={space.status}>
+                {space.status}
+              </span>
             </p>
-          )}
 
-          {blocks && <SkeletonCompletenessStrip blocks={blocks} />}
+            {backlinks && backlinks.length > 0 && (
+              <p className="space-meta">
+                Referenced by:{' '}
+                {backlinks.map((backlink, index) => (
+                  <span key={backlink.blockId}>
+                    {index > 0 && ', '}
+                    <Link to={`/spaces/${backlink.sourceSpaceId}`}>{backlink.sourceSpaceTitle}</Link>
+                    {backlink.note && <> ({backlink.note})</>}
+                  </span>
+                ))}
+              </p>
+            )}
+
+            {blocks && <SkeletonCompletenessStrip blocks={blocks} />}
+          </div>
 
           {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
-          {blocks &&
-            blocks.map((block, index) => {
-              const entry = blockRegistry[block.type];
-              const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
-                view.appliesTo(block)
-              );
-              return (
-                // Keying on updated_at forces a remount when a block's
-                // data changes underneath it (e.g. a Skeleton lane
-                // gaining an item via a different block's shorthand
-                // promotion) -- otherwise this component's own local
-                // edit state, set once at mount, would never notice.
-                <div
-                  key={`${block.id}-${block.updated_at}`}
-                  style={{ border: '1px solid #eee', padding: '8px', marginBottom: '8px' }}
-                >
-                  {entry ? (
-                    <entry.component block={block} onBlocksChanged={refetchAll} />
-                  ) : (
-                    <p>Unknown block type: {block.type}</p>
-                  )}
-                  {applicableViews.map(([key, view]) => (
-                    <view.component key={key} block={block} />
-                  ))}
-                  <p>
-                    <button
-                      type="button"
-                      onClick={() => handleMoveBlock(block.id, -1)}
-                      disabled={index === 0}
-                    >
-                      Move up
-                    </button>{' '}
-                    <button
-                      type="button"
-                      onClick={() => handleMoveBlock(block.id, 1)}
-                      disabled={index === blocks.length - 1}
-                    >
-                      Move down
-                    </button>{' '}
-                    <button type="button" onClick={() => handleRemoveBlock(block.id)}>
-                      Remove block
-                    </button>
-                  </p>
-                </div>
-              );
-            })}
+          {blocks && blocks.length > 0 && (
+            <div className="block-feed">
+              {blocks.map((block, index) => {
+                const entry = blockRegistry[block.type];
+                const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
+                  view.appliesTo(block)
+                );
+                return (
+                  // Keying on updated_at forces a remount when a block's
+                  // data changes underneath it (e.g. a Skeleton lane
+                  // gaining an item via a different block's shorthand
+                  // promotion) -- otherwise this component's own local
+                  // edit state, set once at mount, would never notice.
+                  <div key={`${block.id}-${block.updated_at}`} className="block-row">
+                    {entry ? (
+                      <entry.component block={block} onBlocksChanged={refetchAll} />
+                    ) : (
+                      <p>Unknown block type: {block.type}</p>
+                    )}
+                    {applicableViews.length > 0 && (
+                      <div className="view-grid">
+                        {applicableViews.map(([key, view]) => (
+                          <view.component key={key} block={block} />
+                        ))}
+                      </div>
+                    )}
+                    <div className="block-controls">
+                      <button
+                        type="button"
+                        className="btn-ghost-small"
+                        onClick={() => handleMoveBlock(block.id, -1)}
+                        disabled={index === 0}
+                      >
+                        Move up
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost-small"
+                        onClick={() => handleMoveBlock(block.id, 1)}
+                        disabled={index === blocks.length - 1}
+                      >
+                        Move down
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost-small"
+                        onClick={() => handleRemoveBlock(block.id)}
+                      >
+                        Remove block
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {blocks && <NewBlockForm onAdd={handleAddBlock} />}
 

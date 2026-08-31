@@ -1,8 +1,6 @@
 // Ledger: any List block's items that carry a number, shown with a
 // running total.
 
-const cellStyle = { border: '1px solid #ccc', padding: '4px' };
-
 function LedgerView({ block }) {
   const items = block.content.items.filter((item) => typeof item.number === 'number');
 
@@ -13,27 +11,27 @@ function LedgerView({ block }) {
   });
 
   return (
-    <section>
+    <div className="view-card">
       <h3>Ledger</h3>
-      <table style={{ borderCollapse: 'collapse' }}>
+      <table className="ledger-table">
         <thead>
           <tr>
-            <th style={cellStyle}>Item</th>
-            <th style={cellStyle}>Amount</th>
-            <th style={cellStyle}>Running total</th>
+            <th>Item</th>
+            <th>Amount</th>
+            <th>Running total</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td style={cellStyle}>{row.text}</td>
-              <td style={cellStyle}>{row.number}</td>
-              <td style={cellStyle}>{row.runningTotal}</td>
+              <td>{row.text}</td>
+              <td>{row.number}</td>
+              <td>{row.runningTotal}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </section>
+    </div>
   );
 }
 

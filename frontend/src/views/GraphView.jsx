@@ -28,10 +28,10 @@ function GraphView({ spaces, edges }) {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
 
   return (
-    <svg width={CENTER * 2} height={CENTER * 2} style={{ border: '1px solid #ccc' }}>
+    <svg className="graph-svg" width={CENTER * 2} height={CENTER * 2}>
       <defs>
         <marker id="graph-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 Z" fill="#999" />
+          <path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-faint)" />
         </marker>
       </defs>
       {edges.map((edge) => {
@@ -45,15 +45,15 @@ function GraphView({ spaces, edges }) {
             y1={from.y}
             x2={to.x}
             y2={to.y}
-            stroke="#999"
+            stroke="var(--ink-faint)"
             markerEnd="url(#graph-arrow)"
           />
         );
       })}
       {nodes.map((node) => (
         <g key={node.id}>
-          <circle cx={node.x} cy={node.y} r={8} fill="#333" />
-          <text x={node.x + 10} y={node.y + 4} fontSize="12">
+          <circle cx={node.x} cy={node.y} r={8} fill="var(--maroon-bright)" />
+          <text x={node.x + 10} y={node.y + 4} fontSize="12" fill="var(--ink)" fontFamily="var(--mono)">
             {node.title}
           </text>
         </g>

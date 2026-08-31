@@ -41,19 +41,31 @@ function MediaBlock({ block, onBlocksChanged }) {
 
   if (mediaType === 'image') {
     return (
-      <figure>
-        <img src={url} alt={savedCaption} />
-        <figcaption>{captionNode}</figcaption>
-      </figure>
+      <div className="media-block">
+        <figure>
+          <img src={url} alt={savedCaption} />
+          <figcaption>{captionNode}</figcaption>
+        </figure>
+      </div>
     );
   }
 
   if (mediaType === 'audio') {
-    return <p>[Audio block — playback not implemented yet. {captionNode}]</p>;
+    return (
+      <div className="media-block">
+        <div className="media-placeholder">Audio — playback not implemented yet</div>
+        <figcaption>{captionNode}</figcaption>
+      </div>
+    );
   }
 
   if (mediaType === 'sketch') {
-    return <p>[Sketch embed — not implemented yet. {captionNode}]</p>;
+    return (
+      <div className="media-block">
+        <div className="media-placeholder">Sketch embed — not implemented yet</div>
+        <figcaption>{captionNode}</figcaption>
+      </div>
+    );
   }
 
   return <p>Unknown media type: {mediaType}</p>;

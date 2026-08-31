@@ -41,7 +41,7 @@ function NewBlockForm({ onAdd }) {
   }
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '10px', marginTop: '8px' }}>
+    <div className="new-block-form">
       <label>
         Block type:{' '}
         <select value={type} onChange={(event) => setType(event.target.value)}>
@@ -77,7 +77,7 @@ function NewBlockForm({ onAdd }) {
         </>
       )}
       <p>
-        <button type="button" onClick={handleSubmit}>
+        <button type="button" className="btn" onClick={handleSubmit}>
           + Add Block
         </button>
       </p>

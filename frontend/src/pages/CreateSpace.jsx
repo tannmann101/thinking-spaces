@@ -30,10 +30,10 @@ function CreateSpace() {
 
   return (
     <main>
+      <Link to="/" className="back-link">
+        &larr; Back to Dashboard
+      </Link>
       <h1>New Space</h1>
-      <p>
-        <Link to="/">&larr; Back to Dashboard</Link>
-      </p>
 
       <form onSubmit={handleSubmit}>
         <div>
@@ -48,6 +48,7 @@ function CreateSpace() {
             required
           />
         </div>
+        <br />
 
         <fieldset>
           <legend>Start from a Template</legend>
@@ -81,7 +82,7 @@ function CreateSpace() {
         </fieldset>
 
         <p>
-          <button type="submit" disabled={submitting || !title.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={submitting || !title.trim()}>
             {submitting ? 'Creating...' : 'Create Space'}
           </button>
         </p>

@@ -33,6 +33,10 @@ import ComparisonBlock from '../blocks/ComparisonBlock.jsx';
 import ComparisonWorkshop from '../blocks/ComparisonWorkshop.jsx';
 import AssessmentBlock from '../blocks/AssessmentBlock.jsx';
 import QuestionBlock from '../blocks/QuestionBlock.jsx';
+import AnalysisBlock from '../blocks/AnalysisBlock.jsx';
+import DeductionBlock from '../blocks/DeductionBlock.jsx';
+import DefinitionBlock from '../blocks/DefinitionBlock.jsx';
+import DemonstrationBlock from '../blocks/DemonstrationBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -143,18 +147,22 @@ export const blockRegistry = {
       properties: {},
     },
   },
-  // "Work": the first two of a new kind of Tool, one real, distinct
-  // Tool per kind of thinking-act (assess, question, and whatever
-  // follows) rather than a generic block with a label. Both share one
-  // underlying shape ({statement, rationale, confidence} -- see
-  // WorkBlock.jsx) so Synthesis can pull from them uniformly; see
-  // backend/src/db/queries.js's WORK_TYPES, which must list every type
-  // registered here that Synthesis should be able to draw from.
+  // "Work": a new kind of Tool, one real, distinct Tool per kind of
+  // thinking-act (assess, question, analyze, deduce, define,
+  // demonstrate, and whatever follows) rather than a generic block
+  // with a label. Every kind shares one underlying shape ({statement,
+  // rationale, confidence} -- see WorkBlock.jsx) so Synthesis can pull
+  // from them uniformly, even though each one's two text fields are
+  // relabeled for its own kind (Definition is the one exception to
+  // "statement = the Tool's own name": its statement holds the term,
+  // not a definition-shaped sentence). See backend/src/db/queries.js's
+  // WORK_TYPES, which must list every type registered here that
+  // Synthesis should be able to draw from.
   assessment: {
     label: 'Assessment',
     description: 'A judgment on something, with supporting rationale and a confidence marker.',
     component: AssessmentBlock,
-    worksWith: ['question'],
+    worksWith: ['question', 'analysis', 'deduction'],
     demoBlock: {
       type: 'assessment',
       content: {
@@ -170,13 +178,78 @@ export const blockRegistry = {
     description:
       'An open question worth holding onto, with why it matters and a confidence marker for how central it feels.',
     component: QuestionBlock,
-    worksWith: ['assessment'],
+    worksWith: ['assessment', 'definition'],
     demoBlock: {
       type: 'question',
       content: {
         statement: 'Is the switching cost actually reversible?',
         rationale: 'If it is, the risk calculus for this decision changes a lot.',
         confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  analysis: {
+    label: 'Analysis',
+    description:
+      'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
+    component: AnalysisBlock,
+    worksWith: ['assessment', 'deduction'],
+    demoBlock: {
+      type: 'analysis',
+      content: {
+        statement: 'The delay is driven by onboarding friction, not price.',
+        rationale:
+          'Usage data shows drop-off concentrated in the first setup step, well before anyone reaches the pricing page.',
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  deduction: {
+    label: 'Deduction',
+    description:
+      'A conclusion reached by explicit reasoning from other claims, with that reasoning and a confidence marker.',
+    component: DeductionBlock,
+    worksWith: ['analysis', 'demonstration'],
+    demoBlock: {
+      type: 'deduction',
+      content: {
+        statement: 'Switching vendors this quarter is not worth it.',
+        rationale:
+          'Migration cost exceeds the savings within any window short enough to matter, and the contract already renewed.',
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  definition: {
+    label: 'Definition',
+    description: "A term and its meaning, with a confidence marker for how settled the definition feels.",
+    component: DefinitionBlock,
+    worksWith: ['question'],
+    demoBlock: {
+      type: 'definition',
+      content: {
+        statement: 'Switching cost',
+        rationale:
+          'Everything given up or spent to move from one option to another -- money, time, momentum, and what has to be relearned.',
+        confidence: 'solid',
+      },
+      properties: {},
+    },
+  },
+  demonstration: {
+    label: 'Demonstration',
+    description: 'A concrete worked example showing a claim to be true, with the walkthrough and a confidence marker.',
+    component: DemonstrationBlock,
+    worksWith: ['deduction'],
+    demoBlock: {
+      type: 'demonstration',
+      content: {
+        statement: 'The two migration plans really do cost the same over three years.',
+        rationale: 'Plan A: $400/mo x 36 = $14,400. Plan B: $9,000 upfront + $150/mo x 36 = $14,400.',
+        confidence: 'solid',
       },
       properties: {},
     },

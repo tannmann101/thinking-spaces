@@ -959,7 +959,7 @@ export function updateTrailEntry(id, note) {
 // Adding a new kind of Work later means adding its block type here and
 // registering it on the frontend; nothing else needs to change --
 // listWorkItems and the Synthesis picker both pick it up automatically.
-export const WORK_TYPES = ['assessment', 'question'];
+export const WORK_TYPES = ['assessment', 'question', 'analysis', 'deduction', 'definition', 'demonstration'];
 
 // Synthesis's picker needs to browse Work items across every Space,
 // not just the one you're in -- the same reason Resources are queried

@@ -62,12 +62,13 @@ function ToolsPage() {
       <h2>Blocks</h2>
       <p className="tool-family-intro">
         General-purpose Blocks first, then Work -- the ten Tools sharing one underlying shape
-        (statement, support, confidence) for a distinct kind of thinking-act.
+        (statement, support, confidence) for a distinct kind of thinking-act -- then Time, for a
+        Space's own operational timing rather than its content.
       </p>
       <h3>General</h3>
       <div className="tool-grid">
         {Object.entries(blockRegistry)
-          .filter(([, entry]) => entry.family !== 'work')
+          .filter(([, entry]) => entry.family === 'general')
           .map(([key, entry]) => (
             <ToolCard key={key} entry={entry} kind="Block" />
           ))}
@@ -77,6 +78,15 @@ function ToolsPage() {
       <div className="tool-grid">
         {Object.entries(blockRegistry)
           .filter(([, entry]) => entry.family === 'work')
+          .map(([key, entry]) => (
+            <ToolCard key={key} entry={entry} kind="Block" />
+          ))}
+      </div>
+
+      <h3>Time</h3>
+      <div className="tool-grid">
+        {Object.entries(blockRegistry)
+          .filter(([, entry]) => entry.family === 'time')
           .map(([key, entry]) => (
             <ToolCard key={key} entry={entry} kind="Block" />
           ))}

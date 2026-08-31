@@ -36,3 +36,4 @@ ensureColumn('spaces', 'goal', 'TEXT');
 ensureColumn('spaces', 'categories', `TEXT NOT NULL DEFAULT '[]'`);
 ensureColumn('spaces', 'accent', 'TEXT');
 ensureColumn('spaces', 'origin', 'TEXT');
+ensureColumn('spaces', 'due_date', 'TEXT');

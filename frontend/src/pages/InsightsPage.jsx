@@ -181,6 +181,114 @@ function ProvenanceSection({ provenance }) {
   );
 }
 
+// The Time arc's own facet -- the arc's final, cross-cutting layer,
+// pulling due dates, Milestones, Sessions, and Review into one place
+// now that all four exist to have something worth summing up.
+function TimeSection({ time }) {
+  const hasDueDates = time.dueDates.overdue.length > 0 || time.dueDates.upcoming.length > 0;
+  const hasReviewGaps = time.review.neverReviewed.length > 0 || time.review.staleReviews.length > 0;
+
+  return (
+    <section className="insight-section">
+      <h2>Time</h2>
+      <p className="insight-section-sub">
+        Due dates, Milestones, Sessions, and Review, threaded together -- what's coming up, what's
+        overdue, and how much has actually been logged.
+      </p>
+      <div className="insight-columns">
+        <div>
+          <h3>Due dates</h3>
+          {!hasDueDates && <p className="insight-empty">No Space has a due date set.</p>}
+          {time.dueDates.overdue.length > 0 && (
+            <ul className="insight-plain-list">
+              {time.dueDates.overdue.map((space) => (
+                <li key={space.id}>
+                  <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                  <span className="insight-detail"> -- overdue since {space.due_date}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {time.dueDates.upcoming.length > 0 && (
+            <ul className="insight-plain-list">
+              {time.dueDates.upcoming.map((space) => (
+                <li key={space.id}>
+                  <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                  <span className="insight-detail"> -- due {space.due_date}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h3>Milestones</h3>
+          {time.milestones.total === 0 && <p className="insight-empty">No Milestones yet.</p>}
+          {time.milestones.total > 0 && (
+            <p className="insight-funnel">
+              <span className="insight-funnel-number">{time.milestones.reachedCount}</span> of{' '}
+              {time.milestones.total} reached
+            </p>
+          )}
+          {time.milestones.overdueMilestones.length === 0 ? (
+            time.milestones.total > 0 && <p className="insight-empty">No overdue Milestones.</p>
+          ) : (
+            <ul className="insight-plain-list">
+              {time.milestones.overdueMilestones.map((milestone, index) => (
+                <li key={index}>
+                  <Link to={`/spaces/${milestone.spaceId}`}>{milestone.spaceTitle}</Link>: {milestone.label}
+                  <span className="insight-detail"> -- target {milestone.targetDate}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+      <div className="insight-columns">
+        <div>
+          <h3>Sessions</h3>
+          {time.sessions.completedCount === 0 ? (
+            <p className="insight-empty">No completed Sessions yet.</p>
+          ) : (
+            <p className="insight-funnel">
+              <span className="insight-funnel-number">{time.sessions.totalMinutesLogged}</span> minutes logged across{' '}
+              {time.sessions.completedCount} session{time.sessions.completedCount === 1 ? '' : 's'}
+            </p>
+          )}
+          {time.sessions.runningCount > 0 && (
+            <p className="insight-empty">
+              {time.sessions.runningCount} session{time.sessions.runningCount === 1 ? '' : 's'} currently running.
+            </p>
+          )}
+        </div>
+        <div>
+          <h3>Review ({time.review.reviewStaleThresholdDays}+ days since last)</h3>
+          {!hasReviewGaps && <p className="insight-empty">Every Space is either freshly reviewed or has nothing to review yet.</p>}
+          {time.review.neverReviewed.length > 0 && (
+            <ul className="insight-plain-list">
+              {time.review.neverReviewed.map((space) => (
+                <li key={space.id}>
+                  <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                  <span className="insight-detail"> -- never reviewed</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {time.review.staleReviews.length > 0 && (
+            <ul className="insight-plain-list">
+              {time.review.staleReviews.map((space) => (
+                <li key={space.id}>
+                  <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                  <span className="insight-detail"> -- {space.days_since} days since last review</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function InsightsPage() {
   const [insights, setInsights] = useState(null);
   const [error, setError] = useState(null);
@@ -206,6 +314,7 @@ function InsightsPage() {
           <ThemesSection themes={insights.themes} />
           <ActivitySection activity={insights.activity} />
           <ProvenanceSection provenance={insights.provenance} />
+          <TimeSection time={insights.time} />
         </div>
       )}
     </main>

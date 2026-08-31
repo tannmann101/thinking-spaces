@@ -21,15 +21,18 @@
 // one yet (each gets its own redesign pass, one at a time, per
 // CLAUDE.md's Open section) and just fall back to `component`.
 //
-// `family` is either 'general' (Text, List, Reference, Media,
-// Comparison -- the original five, no external input needed to add
-// most of them) or 'work' (Assessment and everything built on the
-// same shared skeleton). It exists so any UI that lists Tools --
+// `family` is 'general' (Text, List, Reference, Media, Comparison --
+// the original five, no external input needed to add most of them),
+// 'work' (Assessment and everything built on the same shared
+// skeleton), or 'time' (Milestone, and anything else about a Space's
+// own operational timing -- due dates, checkpoints, sessions -- rather
+// than its content). It exists so any UI that lists Tools --
 // ToolsPage.jsx's catalog, NewBlockForm.jsx's "+ Add Block" dropdown --
 // can group by family instead of rendering one flat, registry-order
 // list. Added once the app had grown to 15 Block types and both of
-// those screens had become hard to scan; adding a new Work Type only
-// ever needs `family: 'work'` here, nothing else touches those UIs.
+// those screens had become hard to scan; adding a new Work (or Time)
+// Type only ever needs its `family` set here, nothing else touches
+// those UIs.
 
 import TextBlock from '../blocks/TextBlock.jsx';
 import TextWorkshop from '../blocks/TextWorkshop.jsx';
@@ -51,6 +54,8 @@ import InsightBlock from '../blocks/InsightBlock.jsx';
 import ImplicationBlock from '../blocks/ImplicationBlock.jsx';
 import HypothesisBlock from '../blocks/HypothesisBlock.jsx';
 import ObjectionBlock from '../blocks/ObjectionBlock.jsx';
+import MilestoneBlock from '../blocks/MilestoneBlock.jsx';
+import SessionBlock from '../blocks/SessionBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -379,6 +384,56 @@ export const blockRegistry = {
         statement: 'The contract renewal date assumed in that deduction may already have passed.',
         support: [{ id: 'demo-1', text: 'Worth confirming with billing before treating the deduction as settled.' }],
         confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  // "Time": the app's operational timing around a Space's own work --
+  // due dates, checkpoints, and (later) sessions -- as real Tools of
+  // their own rather than more flavors of List item. Milestone is the
+  // first: a checkpoint with a target date and its own reached/not-yet
+  // -reached state, distinct from a List item's `reviewBy` (which is
+  // about "come back and reconsider this," not "this got done").
+  milestone: {
+    label: 'Milestone',
+    description: 'A checkpoint with a target date and a reached/not-yet-reached state.',
+    family: 'time',
+    component: MilestoneBlock,
+    worksWith: ['list', 'assessment'],
+    demoBlock: {
+      type: 'milestone',
+      content: {
+        label: 'Ship the first draft',
+        targetDate: '2026-09-15',
+        reached: false,
+        reachedAt: null,
+        note: 'Needs the intro section finished first.',
+      },
+      properties: {},
+    },
+  },
+  // A Session is one timed sitting of work -- start it, stop it, the
+  // elapsed time gets logged. Deliberately one Block per sitting
+  // (add another Session block for the next one) rather than a running
+  // log inside a single block, same granularity Milestone and Work
+  // items already use. startedAt/endedAt are the source of truth (not
+  // a client-side ticking number): SessionBlock.jsx derives "elapsed
+  // so far" from startedAt on every render, so a running session reads
+  // correctly even after the tab was closed and reopened.
+  session: {
+    label: 'Session',
+    description: 'A timed sitting of work -- start it, stop it, and the elapsed time is logged.',
+    family: 'time',
+    component: SessionBlock,
+    worksWith: ['milestone'],
+    demoBlock: {
+      type: 'session',
+      content: {
+        label: 'Drafting the intro',
+        startedAt: '2026-08-20T14:00:00.000Z',
+        endedAt: '2026-08-20T14:45:00.000Z',
+        durationMinutes: 45,
+        note: '',
       },
       properties: {},
     },

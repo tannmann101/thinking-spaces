@@ -264,6 +264,15 @@ function Dashboard() {
                         </span>
                         <span className="sep">·</span>
                         <span>updated {formatDate(space.updated_at)}</span>
+                        {space.due_date && (
+                          <>
+                            <span className="sep">·</span>
+                            <span className={space.isOverdue ? 'due-date-overdue' : undefined}>
+                              due {space.due_date}
+                            </span>
+                            {space.isOverdue && <span className="overdue-badge">Overdue</span>}
+                          </>
+                        )}
                         {space.tags.length > 0 && (
                           <>
                             <span className="sep">·</span>

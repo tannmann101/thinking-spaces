@@ -330,6 +330,25 @@ function WorkingToward({ space, onChanged }) {
   );
 }
 
+// A real target date for the Space as a whole -- distinct from a List
+// item's own `reviewBy` (which means "come back and reconsider this,"
+// not "this is due"). A native date input, since a free-text field for
+// a date invites exactly the ambiguity a date is supposed to remove.
+function DueDate({ space, onChanged }) {
+  async function setDueDate(value) {
+    await updateSpace(space.id, { dueDate: value || null });
+    onChanged();
+  }
+
+  return (
+    <p className={`due-date-row${space.isOverdue ? ' due-date-overdue' : ''}`}>
+      Due:{' '}
+      <input type="date" value={space.due_date || ''} onChange={(event) => setDueDate(event.target.value)} />
+      {space.isOverdue && <span className="overdue-badge">Overdue</span>}
+    </p>
+  );
+}
+
 // "An honest picture of where the thinking currently stands" -- not a
 // score, just which of the four Skeleton lanes have anything in them.
 // Only renders once at least one lane block exists for this Space.
@@ -593,6 +612,7 @@ function SpacePage() {
             <AccentPicker space={space} onChanged={refetchAll} />
 
             <WorkingToward space={space} onChanged={refetchAll} />
+            <DueDate space={space} onChanged={refetchAll} />
             <TagEditor space={space} onChanged={refetchAll} />
             <PromoteToResource space={space} onChanged={refetchAll} />
             <CategoryManager space={space} onChanged={refetchAll} />

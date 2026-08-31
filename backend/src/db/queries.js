@@ -62,7 +62,12 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
-const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, accent, origin, created_at, updated_at';
+const SPACE_COLUMNS =
+  'id, title, status, template_id, tags, goal, categories, accent, origin, due_date, created_at, updated_at';
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
@@ -73,6 +78,11 @@ function withComputedSpaceFields(space) {
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: getRelationDensity(space.id),
     openTensionCount: getOpenTensionCount(space.id),
+    // A Space is overdue purely by its own due_date having passed --
+    // independent of status, same reasoning staleness (Insights) is
+    // independent of status: a Space can sit at "developing" forever
+    // without anyone touching it, and a due date can pass the same way.
+    isOverdue: Boolean(space.due_date && space.due_date < todayString()),
   };
 }
 
@@ -126,25 +136,28 @@ export function createSpace({
   tags = [],
   categories = [],
   origin = null,
+  dueDate = null,
 }) {
   db.prepare(
-    `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin);
+    `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin, due_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin, dueDate);
   logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
   return getSpaceById(id);
 }
 
-// A Space's title, status, tags, goal, categories, and accent are all
-// edited through this one function. Any subset of fields can be given;
-// the rest keep their current value, same pattern as updateTemplate.
-// categories are freely-named facets specific to this Space's own
-// topic (e.g. "Financial Impact") that its own blocks get filed
-// under -- not to be confused with tags, which categorize the Space
-// itself (e.g. "resource") among every other Space. accent is Visual
-// Identity's manual layer -- a hand-picked mark drawn on top of the
-// glyph's computed base, independent of every other field here.
-export function updateSpace(id, { title, status, tags, goal, categories, accent } = {}) {
+// A Space's title, status, tags, goal, categories, accent, and due
+// date are all edited through this one function. Any subset of fields
+// can be given; the rest keep their current value, same pattern as
+// updateTemplate. categories are freely-named facets specific to this
+// Space's own topic (e.g. "Financial Impact") that its own blocks get
+// filed under -- not to be confused with tags, which categorize the
+// Space itself (e.g. "resource") among every other Space. accent is
+// Visual Identity's manual layer -- a hand-picked mark drawn on top of
+// the glyph's computed base, independent of every other field here.
+// dueDate is a real target date for the Space as a whole, distinct
+// from a List item's own `reviewBy`.
+export function updateSpace(id, { title, status, tags, goal, categories, accent, dueDate } = {}) {
   const existing = db.prepare(`SELECT * FROM spaces WHERE id = ?`).get(id);
   if (!existing) return null;
 
@@ -155,11 +168,12 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent 
     goal: goal !== undefined ? goal : existing.goal,
     categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
     accent: accent !== undefined ? accent : existing.accent,
+    due_date: dueDate !== undefined ? dueDate : existing.due_date,
   };
   db.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
-  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.accent, id);
+  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.accent, next.due_date, id);
   // Only a status change gets logged, not every title/tag/goal edit --
   // status progression (nascent -> developing -> mature) is genuinely
   // trend-worthy; a renamed tag isn't.
@@ -965,6 +979,98 @@ export function updateTrailEntry(id, note) {
   return parseTrailRow(db.prepare(`SELECT * FROM trail_entries WHERE id = ?`).get(id));
 }
 
+// --- Review -------------------------------------------------------
+// A Review is a third Trail entry kind, not a separate concept: a
+// deliberate, structured look-back at "what changed since last time,"
+// distinct from a manual entry's free-form "why" and an auto entry's
+// one-line structural note. It's still just a row in trail_entries --
+// same storage, same Rewind (its skeleton_snapshot is captured exactly
+// like every other entry's), same note-attaching path via
+// updateTrailEntry above (a Review's own kind isn't 'manual', so its
+// auto-computed summary is left alone when a note gets attached, same
+// as an auto entry's already is). This is the Time arc's third layer,
+// reusing Reports' "diff what changed" idea but scoped to "since the
+// last Review" instead of "right now."
+//
+// getReviewDraft is read-only -- it lets the person see what a Review
+// would say *before* committing it to Trail permanently -- and
+// createReview writes exactly that same computed summary, so the
+// preview and the recorded entry can never disagree with each other.
+export function getReviewDraft(spaceId) {
+  const space = getSpaceById(spaceId);
+  if (!space) return null;
+
+  const lastReview = db
+    .prepare(`SELECT created_at FROM trail_entries WHERE space_id = ? AND kind = 'review' ORDER BY created_at DESC LIMIT 1`)
+    .get(spaceId);
+  const sinceDate = lastReview ? lastReview.created_at : space.created_at;
+  const sinceDay = sinceDate.slice(0, 10);
+  // sinceDate is SQLite's `datetime('now')` format ('YYYY-MM-DD
+  // HH:MM:SS'); a Session's endedAt is a JS `toISOString()` string
+  // ('YYYY-MM-DDTHH:MM:SS.sssZ') -- both are UTC, but the two formats
+  // don't compare correctly as plain strings ('T' sorts after ' ' in
+  // ASCII, which skews every same-day comparison), so this normalizes
+  // sinceDate to the same ISO shape before it's compared against one.
+  const sinceDateIso = new Date(`${sinceDate.replace(' ', 'T')}Z`).toISOString();
+
+  const blocks = listBlocksForSpace(spaceId);
+  const newBlocks = blocks.filter((block) => block.created_at > sinceDate);
+  const blockCounts = {};
+  newBlocks.forEach((block) => {
+    blockCounts[block.type] = (blockCounts[block.type] || 0) + 1;
+  });
+  const blocksAdded = Object.entries(blockCounts).map(([type, count]) => ({ type, count }));
+
+  // Milestone/Session dates come from inside each block's own content
+  // (reachedAt/endedAt), not from the block row's created_at -- a
+  // Milestone can be reached, or a Session ended, long after the block
+  // itself was first added. reachedAt is date-only ('YYYY-MM-DD'), so
+  // a Milestone reached earlier the same day as the last Review can't
+  // be told apart from one reached just after it -- an accepted
+  // precision limit for a personal app, not worth a finer-grained
+  // timestamp just for this comparison.
+  const milestonesReached = blocks
+    .filter(
+      (block) =>
+        block.type === 'milestone' && block.content.reached && block.content.reachedAt && block.content.reachedAt >= sinceDay
+    )
+    .map((block) => ({ label: block.content.label, reachedAt: block.content.reachedAt }));
+
+  const sessionsCompleted = blocks
+    .filter((block) => block.type === 'session' && block.content.endedAt && block.content.endedAt > sinceDateIso)
+    .map((block) => ({ label: block.content.label, durationMinutes: block.content.durationMinutes || 0 }));
+  const totalMinutesLogged = sessionsCompleted.reduce((sum, session) => sum + session.durationMinutes, 0);
+
+  const summaryParts = [];
+  if (newBlocks.length > 0) {
+    summaryParts.push(`${newBlocks.length} block${newBlocks.length === 1 ? '' : 's'} added`);
+  }
+  if (milestonesReached.length > 0) {
+    summaryParts.push(`${milestonesReached.length} milestone${milestonesReached.length === 1 ? '' : 's'} reached`);
+  }
+  if (totalMinutesLogged > 0) {
+    summaryParts.push(`${totalMinutesLogged} min logged`);
+  }
+  const summaryText = summaryParts.length > 0 ? `Review: ${summaryParts.join(', ')}` : 'Review: nothing new since last review';
+
+  return {
+    isFirstReview: !lastReview,
+    sinceDate,
+    blocksAdded,
+    totalBlocksAdded: newBlocks.length,
+    milestonesReached,
+    sessionsCompleted,
+    totalMinutesLogged,
+    summaryText,
+  };
+}
+
+export function createReview(spaceId) {
+  const draft = getReviewDraft(spaceId);
+  if (!draft) return null;
+  return logTrailEntry({ spaceId, kind: 'review', summary: draft.summaryText });
+}
+
 // --- Work -----------------------------------------------------------
 // "Work" is the umbrella for a new kind of Tool: not a generic Text/
 // List block with a label, but a real, distinct Tool per kind of
@@ -1272,6 +1378,76 @@ export function getProvenanceInsights() {
   return { byOrigin, synthesisCount, promotedCount, workItemCount };
 }
 
+// The Time arc's own facet of Insights -- the arc's final, cross-
+// cutting layer, added now that due dates, Milestones, Sessions, and
+// Review all exist to have something worth summing up: what's coming
+// up, what's overdue, how much time has actually been logged, and
+// which Spaces have gone quiet on reflection even if they haven't
+// gone quiet on activity. The Test Space is excluded, same reasoning
+// as every other Insights query.
+export function getTimeInsights() {
+  const today = todayString();
+
+  const dueDateRows = db
+    .prepare(`SELECT id, title, due_date FROM spaces WHERE id != ? AND due_date IS NOT NULL ORDER BY due_date ASC`)
+    .all(TEST_SPACE_ID);
+  const overdueSpaces = dueDateRows.filter((row) => row.due_date < today);
+  const upcomingSpaces = dueDateRows.filter((row) => row.due_date >= today);
+
+  const milestoneRows = db
+    .prepare(
+      `SELECT blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
+       FROM blocks JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
+    )
+    .all(TEST_SPACE_ID);
+  const milestones = milestoneRows.map((row) => ({
+    ...JSON.parse(row.content),
+    spaceId: row.space_id,
+    spaceTitle: row.space_title,
+  }));
+  const reachedCount = milestones.filter((milestone) => milestone.reached).length;
+  const overdueMilestones = milestones.filter(
+    (milestone) => !milestone.reached && milestone.targetDate && milestone.targetDate < today
+  );
+
+  const sessionRows = db.prepare(`SELECT content FROM blocks WHERE type = 'session' AND space_id != ?`).all(TEST_SPACE_ID);
+  const sessions = sessionRows.map((row) => JSON.parse(row.content));
+  const completedSessions = sessions.filter((session) => session.endedAt);
+  const totalMinutesLogged = completedSessions.reduce((sum, session) => sum + (session.durationMinutes || 0), 0);
+  const runningCount = sessions.filter((session) => session.startedAt && !session.endedAt).length;
+
+  // A Space can be full of recent activity (Insights' own staleness
+  // check already covers that) while never once being deliberately
+  // reflected on -- this is a different question, answered the same
+  // "days since the most recent matching event" way that staleness is.
+  const reviewStaleThresholdDays = 14;
+  const reviewedRows = db
+    .prepare(
+      `SELECT trail_entries.space_id AS id, spaces.title AS title,
+              MAX(trail_entries.created_at) AS last_reviewed,
+              CAST(julianday('now') - julianday(MAX(trail_entries.created_at)) AS INTEGER) AS days_since
+       FROM trail_entries
+       JOIN spaces ON spaces.id = trail_entries.space_id
+       WHERE trail_entries.kind = 'review' AND spaces.id != ?
+       GROUP BY trail_entries.space_id`
+    )
+    .all(TEST_SPACE_ID);
+  const reviewedSpaceIds = new Set(reviewedRows.map((row) => row.id));
+  const neverReviewed = db
+    .prepare(`SELECT id, title FROM spaces WHERE id != ?`)
+    .all(TEST_SPACE_ID)
+    .filter((space) => !reviewedSpaceIds.has(space.id));
+  const staleReviews = reviewedRows.filter((row) => row.days_since > reviewStaleThresholdDays).sort((a, b) => b.days_since - a.days_since);
+
+  return {
+    dueDates: { overdue: overdueSpaces, upcoming: upcomingSpaces.slice(0, 5) },
+    milestones: { total: milestones.length, reachedCount, overdueMilestones },
+    sessions: { completedCount: completedSessions.length, totalMinutesLogged, runningCount },
+    review: { neverReviewed, staleReviews, reviewStaleThresholdDays },
+  };
+}
+
 // --- Reports ----------------------------------------------------------
 // Every page in the app -- a Space, a Workspace, a single Tool/Work
 // item -- can produce a report: a structured snapshot of its current
@@ -1310,6 +1486,8 @@ function labelForBlock(block) {
   if (block.type === 'reference') return `Reference to ${block.content.targetSpaceTitle || block.content.target_space_id}`;
   if (block.type === 'media') return block.content.caption || '(untitled Media)';
   if (block.type === 'comparison') return `${block.content.left?.text || '?'} vs. ${block.content.right?.text || '?'}`;
+  if (block.type === 'milestone') return block.content.label || '(untitled Milestone)';
+  if (block.type === 'session') return block.content.label || '(untitled Session)';
   return `${block.type} block`;
 }
 
@@ -1366,6 +1544,26 @@ function summarizeBlockContent(block) {
       `Statement: ${content.statement || '(no statement yet)'}`,
       `Confidence: ${content.confidence || 'tentative'}`,
       ...(content.support || []).map((point) => `Support: ${point.text || '(linked claim)'}`),
+    ];
+  }
+  if (type === 'milestone') {
+    return [
+      `Target date: ${content.targetDate || '(not set)'}`,
+      `Status: ${content.reached ? `Reached${content.reachedAt ? ` on ${content.reachedAt}` : ''}` : 'Not yet reached'}`,
+      ...(content.note ? [`Note: ${content.note}`] : []),
+    ];
+  }
+  if (type === 'session') {
+    const status = content.endedAt
+      ? `Completed, ${content.durationMinutes ?? '?'} minutes`
+      : content.startedAt
+      ? 'Currently running'
+      : 'Not started';
+    return [
+      `Status: ${status}`,
+      ...(content.startedAt ? [`Started: ${content.startedAt}`] : []),
+      ...(content.endedAt ? [`Ended: ${content.endedAt}`] : []),
+      ...(content.note ? [`Note: ${content.note}`] : []),
     ];
   }
   return [`(no summary available for block type "${type}")`];
@@ -1475,6 +1673,7 @@ export function getSpaceReport(spaceId) {
       heading: 'Identity',
       lines: [
         `Status: ${space.status}`,
+        `Due date: ${space.due_date || '(not set)'}${space.isOverdue ? ' (overdue)' : ''}`,
         `Goal: ${space.goal || '(not set)'}`,
         `Tags: ${space.tags.length > 0 ? space.tags.join(', ') : '(none)'}`,
         `Categories: ${space.categories.length > 0 ? space.categories.join(', ') : '(none)'}`,
@@ -1501,6 +1700,32 @@ export function getSpaceReport(spaceId) {
           (block) => `${block.type}: ${block.content.statement || '(no statement yet)'} [${block.content.confidence || 'tentative'}]`
         ),
       ],
+    });
+  }
+
+  const milestoneBlocks = blocks.filter((block) => block.type === 'milestone');
+  if (milestoneBlocks.length > 0) {
+    const reachedCount = milestoneBlocks.filter((block) => block.content.reached).length;
+    sections.push({
+      heading: `Milestones (${reachedCount}/${milestoneBlocks.length} reached)`,
+      lines: milestoneBlocks.map((block) => {
+        const { label, targetDate, reached, reachedAt } = block.content;
+        const status = reached ? `reached${reachedAt ? ` ${reachedAt}` : ''}` : `target ${targetDate || '(not set)'}`;
+        return `${label || '(untitled)'} -- ${status}`;
+      }),
+    });
+  }
+
+  const sessionBlocks = blocks.filter((block) => block.type === 'session');
+  if (sessionBlocks.length > 0) {
+    const totalMinutes = sessionBlocks.reduce((sum, block) => sum + (block.content.durationMinutes || 0), 0);
+    sections.push({
+      heading: `Sessions (${sessionBlocks.length}, ${totalMinutes} min logged)`,
+      lines: sessionBlocks.map((block) => {
+        const { label, startedAt, endedAt, durationMinutes } = block.content;
+        const status = endedAt ? `${durationMinutes ?? '?'} min` : startedAt ? 'running' : 'not started';
+        return `${label || '(untitled)'} -- ${status}`;
+      }),
     });
   }
 

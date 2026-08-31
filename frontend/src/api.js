@@ -66,6 +66,11 @@ export const getBacklinksForSpace = (spaceId) => request(`/spaces/${spaceId}/bac
 // getSpaceReport in backend/src/db/queries.js. Fetched lazily, only
 // when a Report panel is actually opened (see ReportButton.jsx).
 export const getSpaceReport = (spaceId) => request(`/spaces/${spaceId}/report`);
+// A Review: what changed since the last one, previewable before it's
+// committed permanently to Trail -- see getReviewDraft/createReview in
+// backend/src/db/queries.js.
+export const getReviewDraft = (spaceId) => request(`/spaces/${spaceId}/reviews/draft`);
+export const createReview = (spaceId) => request(`/spaces/${spaceId}/reviews`, { method: 'POST' });
 export const updateBlockContent = (blockId, content) =>
   request(`/blocks/${blockId}`, {
     method: 'PATCH',

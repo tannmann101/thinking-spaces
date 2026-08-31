@@ -27,6 +27,7 @@ const KIND_LABELS = {
   template_deleted: 'Template',
   trail_auto: 'Trail',
   trail_manual: 'Trail',
+  trail_review: 'Review',
 };
 
 function formatDate(isoLikeString) {

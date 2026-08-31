@@ -1513,6 +1513,29 @@ label {
   color: var(--ink-dim);
 }
 
+/* The Review draft preview -- what "Start a Review" shows before the
+   person commits it to Trail permanently (see ReviewStarter in
+   TrailSpine.jsx). Reads like a small self-contained card, same family
+   as a rewind-snapshot, since both are "a structured reading of state"
+   shown inline in the Trail section. */
+.review-draft {
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  border-radius: 3px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.review-draft-summary {
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.review-draft-list {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
 /* ---------- plain card lists (Templates page) ---------- */
 
 .plain-card-list {
@@ -1575,6 +1598,37 @@ label {
 }
 .working-toward .editable {
   color: var(--ink);
+}
+
+.due-date-row {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.due-date-row input[type='date'] {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 3px 6px;
+}
+.due-date-overdue {
+  color: var(--maroon-bright);
+}
+.overdue-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--maroon-bright);
+  border: 1px solid var(--maroon);
+  border-radius: 2px;
+  padding: 1px 6px;
 }
 
 .tag-row {
@@ -2134,6 +2188,12 @@ label {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+/* A section with more than one row of columns (Time is the first) --
+   each .insight-columns is its own grid, so two in a row need their
+   own separation rather than sitting flush against each other. */
+.insight-columns + .insight-columns {
+  margin-top: 20px;
+}
 @media (max-width: 700px) {
   .insight-columns {
     grid-template-columns: 1fr;
@@ -2203,6 +2263,101 @@ label {
   font-weight: 600;
   color: var(--ink);
   margin-right: 6px;
+}
+
+/* ---------- Milestone (a "Time"-family Block) ---------- */
+
+.milestone-block {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 10px 14px;
+}
+.milestone-block.milestone-overdue {
+  border-color: var(--maroon);
+}
+.milestone-block.milestone-reached {
+  opacity: 0.7;
+}
+.milestone-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.milestone-reached .milestone-label-row {
+  text-decoration: line-through;
+  color: var(--ink-faint);
+}
+.milestone-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin: 0 0 6px;
+}
+.milestone-meta-row input[type='date'] {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 3px 6px;
+}
+.milestone-reached-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+.milestone-note {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0;
+}
+
+/* ---------- Session (a "Time"-family Block) ---------- */
+
+.session-block {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 10px 14px;
+}
+.session-block.session-running {
+  border-color: var(--accent);
+}
+.session-label-row {
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+.session-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin: 0 0 6px;
+}
+.session-elapsed {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+.session-completed {
+  font-family: var(--mono);
+  color: var(--ink-faint);
+}
+.session-note {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0;
 }
 
 /* ---------- Reports ---------- */

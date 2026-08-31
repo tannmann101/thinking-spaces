@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS spaces (
                                     -- produced (a Synthesis, or anything later promoted to Resource
                                     -- status) -- see the Resources/Synthesis vocabulary entries.
                                     -- Null is an ordinary train-of-thought Space: neither.
+  due_date TEXT,                   -- 'YYYY-MM-DD' | null. A real target date for the Space as a
+                                    -- whole -- distinct from a List item's own `reviewBy` (which
+                                    -- means "come back and reconsider this," not "this is due").
+                                    -- Null means no due date set; that's the default.
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

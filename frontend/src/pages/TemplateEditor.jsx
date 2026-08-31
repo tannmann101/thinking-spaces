@@ -10,34 +10,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTemplate, createTemplate, updateTemplate } from '../api.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
-
-// Read-only preview of one draft block. Not the live blockRegistry
-// components -- those expect a real saved block with a database id and
-// would try to PATCH a block that doesn't exist yet. Text and List are
-// the two types this editor can actually create/edit; anything else
-// (Reference, Media, Comparison) can only already be present in a
-// template built before this UI existed, so it's shown but left alone
-// rather than silently dropped.
-function BlockPreview({ block }) {
-  if (block.type === 'text') {
-    return <p>[Text] {block.content?.text || <em>(empty)</em>}</p>;
-  }
-  if (block.type === 'list') {
-    return (
-      <div>
-        <p>
-          [List] {block.content?.laneLabel || <em>(no heading)</em>}
-        </p>
-        <ul>
-          {(block.content?.items || []).map((item) => (
-            <li key={item.id}>{item.text}</li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-  return <p>[{block.type}] (not editable in this UI -- preserved as-is)</p>;
-}
+import BlockPreview from '../blocks/BlockPreview.jsx';
 
 function TemplateEditor() {
   const { id } = useParams();

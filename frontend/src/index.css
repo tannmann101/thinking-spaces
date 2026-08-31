@@ -1,35 +1,300 @@
-/* Deliberately minimal. CLAUDE.md says: plain, legible, system-font UI
-   until the functional build passes are done -- no visual polish yet. */
+/* The Herbarium, take one: CLAUDE.md asks for a serif display face
+   paired with a monospace utility face, plus an eventual "vellum/ink"
+   palette -- but this specific dark matte-black/oxblood direction was
+   explored first as a standalone mockup and preferred over that, so
+   this is the real palette now. Deliberately single-theme (not
+   light/dark adaptive) to match that exploration: a private ledger
+   kept at night, not a UI that changes with OS settings.
+
+   This file is the one place the palette and type system live -- every
+   page/component below reads these variables rather than hardcoding
+   colors, so changing the look later means editing here, not hunting
+   through every page. */
+
+:root {
+  --bg: #0b0a0a;
+  --surface: #161213;
+  --surface-2: #201a1b;
+  --surface-3: #2a2224;
+  --border: #322829;
+  --border-soft: #241d1e;
+  --ink: #e9e1df;
+  --ink-dim: #a3898c;
+  --ink-faint: #6f5c5e;
+  --maroon: #8a2c3b;
+  --maroon-bright: #c14a5d;
+  --maroon-deep: #3a141a;
+  --maroon-wash: rgba(138, 44, 59, 0.12);
+
+  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --body: 'Source Serif 4', Georgia, serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--display);
+  font-weight: 600;
+}
+
+a {
+  color: var(--maroon-bright);
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--maroon);
+  color: #fff;
 }
 
 #root {
-  max-width: 720px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 24px 24px 96px;
 }
 
 /* Functional affordance, not decoration: anything with this class is
-   click-to-edit. A dashed underline is the signal; the darker hover
+   click-to-edit. A dashed underline is the signal; the maroon hover
    state confirms it before you click. */
 .editable {
   cursor: text;
-  border-bottom: 1px dashed #999;
+  border-bottom: 1px dashed var(--ink-faint);
 }
 .editable:hover {
-  border-bottom-color: #333;
-  background: rgba(0, 0, 0, 0.04);
+  border-bottom-color: var(--maroon-bright);
+  background: var(--maroon-wash);
 }
 
 /* Same dashed signal, but for a click-triggers-an-immediate-action
-   control (confidence cycling) rather than a text field. */
+   control (confidence/trust cycling) rather than a text field. */
 .editable-toggle {
   cursor: pointer;
-  border-bottom: 1px dashed #999;
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--ink-faint);
+  border-bottom: 1px dashed var(--ink-faint);
 }
 .editable-toggle:hover {
-  border-bottom-color: #333;
-  background: rgba(0, 0, 0, 0.04);
+  border-bottom-color: var(--maroon-bright);
+  background: var(--maroon-wash);
+}
+
+/* ---------- shared page chrome ---------- */
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.wordmark .dot {
+  color: var(--maroon-bright);
+}
+
+.nav-links {
+  display: flex;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.nav-links a {
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+.nav-links a:hover {
+  color: var(--maroon-bright);
+}
+
+/* A plain, secondary text link back to somewhere (Dashboard, a parent
+   Space) -- used above the page title on most pages. */
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+.back-link:hover {
+  color: var(--maroon-bright);
+}
+
+/* ---------- Dashboard: the Space list ---------- */
+
+.space-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  overflow: hidden;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.space-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+}
+.space-card:hover {
+  background: var(--surface-2);
+}
+
+.space-card .glyph {
+  flex: none;
+  opacity: 0.9;
+}
+
+.space-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.space-title a {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+}
+.space-title a:hover {
+  color: var(--maroon-bright);
+}
+
+.test-flag {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  color: var(--maroon-bright);
+  border: 1px solid var(--maroon);
+  border-radius: 2px;
+  padding: 2px 5px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.space-meta {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.space-meta .sep {
+  opacity: 0.5;
+}
+
+.status-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  color: var(--ink-faint);
+}
+.status-pill[data-status='developing'] {
+  color: var(--ink-dim);
+  border-color: var(--maroon-deep);
+}
+.status-pill[data-status='mature'] {
+  color: var(--ink);
+  border-color: var(--maroon);
+  background: var(--maroon-wash);
+}
+.status-pill[data-status='nascent'] {
+  color: var(--ink-faint);
+  border-style: dashed;
+}
+.status-pill[data-status='dormant'] {
+  color: var(--ink-faint);
+  opacity: 0.55;
+}
+
+.new-space-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 7px 12px;
+  text-decoration: none;
+  display: inline-block;
+}
+.new-space-btn:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+
+/* Dashboard digest sections (overdue reviews, recent Trail activity,
+   resurface suggestion) -- small surface cards, same family as a
+   view-card on a Space page, so the Dashboard doesn't read as one
+   polished list plus three unstyled afterthoughts. */
+.digest {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.digest h3 {
+  font-size: 13px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--ink-dim);
+  font-weight: 500;
+  margin: 0 0 10px;
+}
+.digest ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.digest p {
+  margin: 0;
 }

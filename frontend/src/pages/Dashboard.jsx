@@ -12,7 +12,7 @@ function formatDate(isoLikeString) {
 function OverdueReviews({ items }) {
   if (items.length === 0) return null;
   return (
-    <section>
+    <section className="digest">
       <h3>Overdue for review</h3>
       <ul>
         {items.map(({ spaceId, spaceTitle, item }) => (
@@ -28,7 +28,7 @@ function OverdueReviews({ items }) {
 function RecentTrailDigest({ entries }) {
   if (entries.length === 0) return null;
   return (
-    <section>
+    <section className="digest">
       <h3>This week, across your Spaces</h3>
       <ul>
         {entries.map((entry) => (
@@ -44,7 +44,7 @@ function RecentTrailDigest({ entries }) {
 function ResurfaceSuggestion({ space }) {
   if (!space) return null;
   return (
-    <section>
+    <section className="digest">
       <h3>Maybe revisit...</h3>
       <p>
         <Link to={`/spaces/${space.id}`}>{space.title}</Link> ({space.status}, last touched{' '}
@@ -70,10 +70,20 @@ function Dashboard() {
 
   return (
     <main>
-      <h1>Thinking Spaces</h1>
+      <header className="topbar">
+        <span className="wordmark">
+          Thinking Spaces<span className="dot">.</span>
+        </span>
+        <nav className="nav-links">
+          <Link to="/templates">Manage Templates</Link>
+          <Link to="/graph">View the Map</Link>
+        </nav>
+      </header>
+
       <p>
-        <Link to="/spaces/new">+ New Space</Link> · <Link to="/templates">Manage Templates</Link> ·{' '}
-        <Link to="/graph">View the Map</Link>
+        <Link to="/spaces/new" className="new-space-btn">
+          + New Space
+        </Link>
       </p>
 
       <OverdueReviews items={overdue} />
@@ -89,20 +99,27 @@ function Dashboard() {
       )}
 
       {spaces && spaces.length > 0 && (
-        <ul>
+        <ul className="space-list">
           {spaces.map((space) => (
-            <li key={space.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <SpaceGlyph space={space} size={24} />
-              <span>
-                <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                {space.isTestSpace && (
-                  <strong> [TEST SPACE — scratch area, not real content]</strong>
-                )}
-                {' — '}
-                status: {space.status}
-                {' — '}
-                updated: {formatDate(space.updated_at)}
-              </span>
+            <li key={space.id} className="space-card">
+              <SpaceGlyph space={space} size={30} />
+              <div className="space-main">
+                <div className="space-title">
+                  <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                  {space.isTestSpace && (
+                    <span className="test-flag" title="Scratch area, not real content">
+                      TEST SPACE
+                    </span>
+                  )}
+                </div>
+                <div className="space-meta">
+                  <span className="status-pill" data-status={space.status}>
+                    {space.status}
+                  </span>
+                  <span className="sep">·</span>
+                  <span>updated {formatDate(space.updated_at)}</span>
+                </div>
+              </div>
             </li>
           ))}
         </ul>

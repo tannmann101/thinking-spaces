@@ -35,6 +35,7 @@ export const updateSpace = (id, patch) =>
     method: 'PATCH',
     body: JSON.stringify(patch),
   });
+export const deleteSpace = (id) => request(`/spaces/${id}`, { method: 'DELETE' });
 export const getTemplates = () => request('/templates');
 export const getBlocksForSpace = (spaceId) => request(`/spaces/${spaceId}/blocks`);
 export const getBacklinksForSpace = (spaceId) => request(`/spaces/${spaceId}/backlinks`);

@@ -6,6 +6,7 @@ import {
   getOverdueReviews,
   getRecentTrail,
   getResurfaceSuggestion,
+  deleteSpace,
 } from '../api.js';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 
@@ -87,13 +88,29 @@ function Dashboard() {
   const [resources, setResources] = useState([]);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  function refetchSpaces() {
     getSpaces().then(setSpaces).catch((err) => setError(err.message));
+  }
+
+  useEffect(() => {
+    refetchSpaces();
     getOverdueReviews().then(setOverdue).catch(() => {});
     getRecentTrail().then(setRecentTrail).catch(() => {});
     getResurfaceSuggestion().then(setResurface).catch(() => {});
     getSpacesByTag('resource').then(setResources).catch(() => {});
   }, []);
+
+  // Same heavier, type-the-name confirmation as the Delete control on
+  // the Space page itself -- this is the one place a Space can vanish
+  // for good, so it should never be a single misclick away.
+  async function handleDeleteSpace(space) {
+    const typed = window.prompt(
+      `Delete "${space.title}" and everything in it? This cannot be undone.\n\nType the Space's name to confirm:`
+    );
+    if (typed !== space.title) return;
+    await deleteSpace(space.id);
+    refetchSpaces();
+  }
 
   return (
     <main>
@@ -159,6 +176,15 @@ function Dashboard() {
                   )}
                 </div>
               </div>
+              {!space.isTestSpace && (
+                <button
+                  type="button"
+                  className="btn-ghost-small"
+                  onClick={() => handleDeleteSpace(space)}
+                >
+                  Delete
+                </button>
+              )}
             </li>
           ))}
         </ul>

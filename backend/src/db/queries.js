@@ -124,6 +124,27 @@ export function updateSpace(id, { title, status, tags, goal } = {}) {
   return getSpaceById(id);
 }
 
+// You could create a Space but never get rid of one -- the last "add
+// with no remove" gap. Blocks and Trail entries are deleted first
+// since both carry a foreign key to spaces(id) with foreign_keys = ON
+// (see db/index.js); there's no ON DELETE CASCADE on the schema, so
+// this does it explicitly, in the same spirit as everything else in
+// this file being plain and visible rather than relying on database
+// magic. The Test Space is protected -- it's a fixed scratch area
+// other code assumes exists (ensureTestSpaceExists recreates it if
+// missing, but there's no reason to make that path fire by accident).
+// A Reference block elsewhere that pointed at the deleted Space is left
+// as-is; it just renders its raw target id once the title lookup can
+// no longer resolve, the same graceful fallback a bad id already gets.
+export function deleteSpace(id) {
+  if (id === TEST_SPACE_ID) {
+    throw new Error('The Test Space cannot be deleted');
+  }
+  db.prepare(`DELETE FROM blocks WHERE space_id = ?`).run(id);
+  db.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).run(id);
+  db.prepare(`DELETE FROM spaces WHERE id = ?`).run(id);
+}
+
 function parseTemplateRow(row) {
   if (!row) return row;
   return { ...row, block_arrangement: JSON.parse(row.block_arrangement) };

@@ -1027,3 +1027,27 @@ label {
 .cluster-preview-block p {
   margin: 0;
 }
+
+/* ---------- destructive actions ---------- */
+
+.danger-zone {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.btn-danger {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.btn-danger:hover {
+  color: var(--maroon-bright);
+  border-color: var(--maroon);
+}

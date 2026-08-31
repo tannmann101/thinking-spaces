@@ -501,6 +501,12 @@ function SpacePage() {
   // the topic" without hiding the multi-category chips on each block, so
   // switching back to "All" always shows the full, honest overlap again.
   const [activeCategory, setActiveCategory] = useState(null);
+  // Same idea, but by Block type rather than topic -- Categories are
+  // opt-in and only exist once you've named some, so a Space with none
+  // defined (or a Category that doesn't happen to cover what you're
+  // after) still had no way to say "just show me the Questions." Both
+  // filters can be active together (AND, not either/or).
+  const [activeType, setActiveType] = useState(null);
 
   const refetchTrail = useCallback(() => {
     getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
@@ -631,14 +637,48 @@ function SpacePage() {
             </p>
           )}
 
+          {/* A type filter strip, independent of Categories -- only
+              shows once the Space actually has more than one distinct
+              Block type on it (filtering a single-type Space would be
+              pointless). Unlike Categories, every block always has
+              exactly one type, so this only ever narrows, it never
+              needs a "some blocks lack this facet" case. */}
+          {blocks && blocks.length > 0 && new Set(blocks.map((block) => block.type)).size > 1 && (
+            <p className="category-filter-strip">
+              <span
+                className={`category-filter-tab${activeType === null ? ' category-filter-tab-active' : ''}`}
+                onClick={() => setActiveType(null)}
+              >
+                All types
+              </span>
+              {[...new Set(blocks.map((block) => block.type))].map((type) => (
+                <span
+                  key={type}
+                  className={`category-filter-tab${activeType === type ? ' category-filter-tab-active' : ''}`}
+                  onClick={() => setActiveType(activeType === type ? null : type)}
+                >
+                  {blockRegistry[type]?.label || type}
+                </span>
+              ))}
+            </p>
+          )}
+
           {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
           {blocks && blocks.length > 0 && (() => {
-            const visibleBlocks =
-              activeCategory === null
-                ? blocks
-                : blocks.filter((block) => (block.properties?.categories || []).includes(activeCategory));
+            const visibleBlocks = blocks.filter((block) => {
+              const matchesCategory =
+                activeCategory === null || (block.properties?.categories || []).includes(activeCategory);
+              const matchesType = activeType === null || block.type === activeType;
+              return matchesCategory && matchesType;
+            });
             if (visibleBlocks.length === 0) {
-              return <p>No blocks filed under &ldquo;{activeCategory}&rdquo; yet.</p>;
+              return (
+                <p>
+                  No blocks match the current filter
+                  {activeCategory !== null && <> (&ldquo;{activeCategory}&rdquo;)</>}
+                  {activeType !== null && <> ({blockRegistry[activeType]?.label || activeType})</>}.
+                </p>
+              );
             }
             return (
               <div className="block-feed">

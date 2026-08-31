@@ -34,6 +34,7 @@ function CreateSynthesis() {
   const [kind, setKind] = useState(null);
   const [workItems, setWorkItems] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [search, setSearch] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -90,8 +91,14 @@ function CreateSynthesis() {
     }
   }
 
+  // Search narrows which items show, grouped by Space same as before --
+  // it never touches selectedIds, so filtering the view and losing
+  // sight of a group doesn't lose a selection already made in it.
+  const filteredWorkItems = (workItems || []).filter((item) =>
+    item.content.statement.toLowerCase().includes(search.trim().toLowerCase())
+  );
   const bySpace = new Map();
-  (workItems || []).forEach((item) => {
+  filteredWorkItems.forEach((item) => {
     const bucket = bySpace.get(item.space_title) || [];
     bucket.push(item);
     bySpace.set(item.space_title, bucket);
@@ -142,6 +149,25 @@ function CreateSynthesis() {
         {workItems === null && <p>Loading...</p>}
         {workItems && workItems.length === 0 && (
           <p>No Assessments or Questions exist yet -- create some in a Space first.</p>
+        )}
+        {workItems && workItems.length > 0 && (
+          <p className="synthesis-picker-toolbar">
+            <input
+              type="text"
+              value={search}
+              placeholder="Search by statement..."
+              className="space-search-input"
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            {selectedIds.length > 0 && (
+              <span className="synthesis-selected-count">
+                {selectedIds.length} selected
+              </span>
+            )}
+          </p>
+        )}
+        {workItems && workItems.length > 0 && filteredWorkItems.length === 0 && (
+          <p>No Work items match &ldquo;{search}&rdquo;.</p>
         )}
         {[...bySpace.entries()].map(([spaceTitle, items]) => (
           <div key={spaceTitle}>

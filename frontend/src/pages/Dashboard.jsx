@@ -122,6 +122,7 @@ function Dashboard() {
           <Link to="/tools">Tools</Link>
           <Link to="/templates">Manage Templates</Link>
           <Link to="/graph">View the Map</Link>
+          <Link to="/log">Log</Link>
         </nav>
       </header>
 

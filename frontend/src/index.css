@@ -1051,3 +1051,68 @@ label {
   color: var(--maroon-bright);
   border-color: var(--maroon);
 }
+
+/* ---------- The Log ---------- */
+
+.log-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 16px 0 24px;
+}
+@media (max-width: 700px) {
+  .log-stats {
+    grid-template-columns: 1fr;
+  }
+}
+.log-stat-number {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.log-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+}
+.log-list li:last-child {
+  border-bottom: none;
+}
+.log-kind-tag {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2px 6px;
+  width: 70px;
+  text-align: center;
+}
+.log-list li > a,
+.log-list li > span:not(.log-kind-tag):not(.log-timestamp) {
+  flex: 1;
+  color: var(--ink-dim);
+}
+.log-list li > a {
+  color: var(--maroon-bright);
+}
+.log-timestamp {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+}

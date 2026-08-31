@@ -91,6 +91,9 @@ export const moveBlockInSpace = (spaceId, blockId, direction) =>
 
 // The Graph view (Pass 5): every Reference block across every Space.
 export const getGraph = () => request('/graph');
+
+// The Log: every structural lifecycle event plus the Trail, merged.
+export const getActivity = () => request('/activity');
 export const createRelationalSpace = ({ title, spaceIds }) =>
   request('/spaces/relational', {
     method: 'POST',

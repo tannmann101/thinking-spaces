@@ -14,6 +14,22 @@ import { db } from './index.js';
 // the isTestSpace flag added below, rather than hardcoding it elsewhere.
 export const TEST_SPACE_ID = 'test-space';
 
+// The Log: a global activity feed, deliberately scoped to structural
+// lifecycle events -- a Space/block/Template created or removed, a
+// Space's status changing -- not every keystroke-level content edit
+// (a List item's text, a checkbox toggle). Logging every edit would
+// bury the events actually worth seeing trends in; the finer-grained
+// Skeleton history already has a home in Trail, which the Log page
+// merges in separately rather than duplicating here. The Test Space is
+// excluded, same reasoning as everywhere else it's excluded: scratch
+// content, not real activity.
+function logActivity({ spaceId = null, spaceTitle = null, kind, summary }) {
+  if (spaceId === TEST_SPACE_ID) return;
+  db.prepare(
+    `INSERT INTO activity_log (id, space_id, space_title, kind, summary) VALUES (?, ?, ?, ?, ?)`
+  ).run(randomUUID(), spaceId, spaceTitle, kind, summary);
+}
+
 // Visual Identity's two computed dimensions besides status (see the
 // Tools & Resources doc). Both are plain per-space queries rather than
 // a batched aggregate -- this app's tables are small enough (one
@@ -99,6 +115,7 @@ export function createSpace({ id = randomUUID(), title, templateId = null, statu
     `INSERT INTO spaces (id, title, template_id, status, tags)
      VALUES (?, ?, ?, ?, ?)`
   ).run(id, title, templateId, status, JSON.stringify(tags));
+  logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
   return getSpaceById(id);
 }
 
@@ -121,6 +138,17 @@ export function updateSpace(id, { title, status, tags, goal } = {}) {
     `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).run(next.title, next.status, next.tags, next.goal, id);
+  // Only a status change gets logged, not every title/tag/goal edit --
+  // status progression (nascent -> developing -> mature) is genuinely
+  // trend-worthy; a renamed tag isn't.
+  if (status !== undefined && status !== existing.status) {
+    logActivity({
+      spaceId: id,
+      spaceTitle: next.title,
+      kind: 'space_status_changed',
+      summary: `"${next.title}" status changed to ${next.status}`,
+    });
+  }
   return getSpaceById(id);
 }
 
@@ -140,9 +168,20 @@ export function deleteSpace(id) {
   if (id === TEST_SPACE_ID) {
     throw new Error('The Test Space cannot be deleted');
   }
+  const existing = getSpaceById(id);
   db.prepare(`DELETE FROM blocks WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM spaces WHERE id = ?`).run(id);
+  // Logged with a snapshotted title (not a live join) precisely because
+  // the Space this refers to no longer exists after this point.
+  if (existing) {
+    logActivity({
+      spaceId: null,
+      spaceTitle: existing.title,
+      kind: 'space_deleted',
+      summary: `Deleted "${existing.title}"`,
+    });
+  }
 }
 
 function parseTemplateRow(row) {
@@ -172,6 +211,7 @@ export function createTemplate({ id = randomUUID(), name, blockArrangement }) {
   db.prepare(
     `INSERT INTO templates (id, name, block_arrangement) VALUES (?, ?, ?)`
   ).run(id, name, JSON.stringify(blockArrangement));
+  logActivity({ kind: 'template_created', summary: `Created template "${name}"` });
   return getTemplateById(id);
 }
 
@@ -183,11 +223,16 @@ export function updateTemplate(id, { name, blockArrangement }) {
   db.prepare(
     `UPDATE templates SET name = ?, block_arrangement = ?, updated_at = datetime('now') WHERE id = ?`
   ).run(name, JSON.stringify(blockArrangement), id);
+  logActivity({ kind: 'template_updated', summary: `Updated template "${name}"` });
   return getTemplateById(id);
 }
 
 export function deleteTemplate(id) {
+  const existing = getTemplateById(id);
   db.prepare(`DELETE FROM templates WHERE id = ?`).run(id);
+  if (existing) {
+    logActivity({ kind: 'template_deleted', summary: `Deleted template "${existing.name}"` });
+  }
 }
 
 // Applying a Template is a one-time copy, per CLAUDE.md -- not a live
@@ -399,12 +444,34 @@ export function createBlock({ spaceId, type, content = {}, properties = {}, posi
 // Adding a block to an already-live Space -- same createBlock as
 // everything else uses, just appended at the end (nextPosition is
 // defined further down, used the same way Skeleton lanes get appended).
+// Logged here specifically (not inside createBlock itself), since
+// createBlock also fires once per starter block when a Template is
+// applied -- that would bury "a Space was created" under a burst of
+// near-duplicate block-added entries for the same moment.
 export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }) {
-  return createBlock({ spaceId, type, content, properties, position: nextPosition(spaceId) });
+  const block = createBlock({ spaceId, type, content, properties, position: nextPosition(spaceId) });
+  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(spaceId);
+  logActivity({
+    spaceId,
+    spaceTitle: space?.title ?? null,
+    kind: 'block_added',
+    summary: `Added a ${type} block to "${space?.title ?? spaceId}"`,
+  });
+  return block;
 }
 
 export function deleteBlock(id) {
+  const block = getBlockById(id);
   db.prepare(`DELETE FROM blocks WHERE id = ?`).run(id);
+  if (block) {
+    const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(block.space_id);
+    logActivity({
+      spaceId: block.space_id,
+      spaceTitle: space?.title ?? null,
+      kind: 'block_removed',
+      summary: `Removed a ${block.type} block from "${space?.title ?? block.space_id}"`,
+    });
+  }
 }
 
 // A "Relational Space" isn't a distinct schema -- CLAUDE.md is explicit
@@ -624,6 +691,80 @@ export function listTrailEntries(spaceId) {
     .prepare(`SELECT * FROM trail_entries WHERE space_id = ? ORDER BY created_at ASC`)
     .all(spaceId);
   return rows.map(parseTrailRow);
+}
+
+// --- The Log (global activity) -------------------------------------
+// A cross-Space feed combining every structural lifecycle event
+// (activity_log) with the finer-grained Skeleton history (trail_entries)
+// into one chronological list -- "everything", without maintaining two
+// separate places to look for it. Test Space activity never appears:
+// logActivity already refuses to log it, and the trail_entries half of
+// the union filters it out directly (trail_entries has no such guard
+// at write time, since Trail is scoped to whatever Space it's viewed
+// from and the Test Space legitimately uses it while demoing Skeleton
+// promotion).
+export function listGlobalActivity(limit = 300) {
+  return db
+    .prepare(
+      `SELECT id, space_id, space_title, kind, summary, created_at
+       FROM (
+         SELECT id, space_id, space_title, kind, summary, created_at
+         FROM activity_log
+         UNION ALL
+         SELECT trail_entries.id, trail_entries.space_id, spaces.title AS space_title,
+                'trail_' || trail_entries.kind AS kind, trail_entries.summary, trail_entries.created_at
+         FROM trail_entries
+         JOIN spaces ON spaces.id = trail_entries.space_id
+         WHERE spaces.id != ?
+       )
+       ORDER BY created_at DESC
+       LIMIT ?`
+    )
+    .all(TEST_SPACE_ID, limit);
+}
+
+// A first taste of "trends" over the Log: how much has happened, how
+// much lately, and where. Deliberately simple -- a fuller trends view
+// can grow from here once there's more data to see real patterns in.
+export function getActivityStats() {
+  const totalCount =
+    db.prepare(`SELECT COUNT(*) AS count FROM activity_log`).get().count +
+    db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM trail_entries
+         JOIN spaces ON spaces.id = trail_entries.space_id
+         WHERE spaces.id != ?`
+      )
+      .get(TEST_SPACE_ID).count;
+
+  const last7Days = db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM (
+         SELECT created_at FROM activity_log WHERE created_at >= datetime('now', '-7 days')
+         UNION ALL
+         SELECT trail_entries.created_at FROM trail_entries
+         JOIN spaces ON spaces.id = trail_entries.space_id
+         WHERE spaces.id != ? AND trail_entries.created_at >= datetime('now', '-7 days')
+       )`
+    )
+    .get(TEST_SPACE_ID).count;
+
+  const mostActive = db
+    .prepare(
+      `SELECT space_title, COUNT(*) AS count FROM (
+         SELECT space_title FROM activity_log WHERE space_title IS NOT NULL
+         UNION ALL
+         SELECT spaces.title AS space_title FROM trail_entries
+         JOIN spaces ON spaces.id = trail_entries.space_id
+         WHERE spaces.id != ?
+       )
+       GROUP BY space_title
+       ORDER BY count DESC
+       LIMIT 1`
+    )
+    .get(TEST_SPACE_ID);
+
+  return { totalCount, last7Days, mostActive: mostActive || null };
 }
 
 // --- Dashboard aggregations -------------------------------------------

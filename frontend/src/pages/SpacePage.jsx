@@ -33,23 +33,32 @@ function BackLink() {
 // "An honest picture of where the thinking currently stands" -- not a
 // score, just which of the four Skeleton lanes have anything in them.
 // Only renders once at least one lane block exists for this Space.
+// Uses each lane block's own laneLabel (not a generic default list),
+// since a Space Type can relabel lanes -- Person-Reflection's "What I
+// Understand" instead of "Premises", for instance. SKELETON_LANE_LABELS
+// is used only for canonical key order, not for the displayed text.
 function SkeletonCompletenessStrip({ blocks }) {
-  const lanes = blocks.filter((block) => block.type === 'list' && block.properties?.skeletonLane);
-  if (lanes.length === 0) return null;
-
-  const filledByLane = new Map(
-    lanes.map((block) => [block.properties.skeletonLane, (block.content.items || []).length > 0])
+  const byLaneKey = new Map(
+    blocks
+      .filter((block) => block.type === 'list' && block.properties?.skeletonLane)
+      .map((block) => [block.properties.skeletonLane, block])
   );
+  if (byLaneKey.size === 0) return null;
 
   return (
     <p>
       Skeleton:{' '}
-      {SKELETON_LANE_LABELS.map(({ key, label }, index) => (
-        <span key={key}>
-          {index > 0 && ' · '}
-          {label} {filledByLane.get(key) ? '●' : '○'}
-        </span>
-      ))}
+      {SKELETON_LANE_LABELS.map(({ key }, index) => {
+        const block = byLaneKey.get(key);
+        if (!block) return null;
+        const filled = (block.content.items || []).length > 0;
+        return (
+          <span key={key}>
+            {index > 0 && ' · '}
+            {block.content.laneLabel} {filled ? '●' : '○'}
+          </span>
+        );
+      })}
     </p>
   );
 }

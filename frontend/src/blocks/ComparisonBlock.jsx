@@ -13,7 +13,7 @@ import TextBlock from './TextBlock.jsx';
 import ReferenceBlock from './ReferenceBlock.jsx';
 import { updateBlockContent } from '../api.js';
 
-function ComparisonBlock({ block }) {
+function ComparisonBlock({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);
   const [content, setContent] = useState(block.content);
   const { left, right, contrast, contrastNote } = content;
@@ -26,6 +26,7 @@ function ComparisonBlock({ block }) {
           const newContent = { ...content, [sideKey]: newSideContent };
           setContent(newContent);
           await updateBlockContent(block.id, newContent);
+          onBlocksChanged?.();
         }
       : undefined;
 

@@ -394,12 +394,19 @@ export function saveTextBlockWithPromotion(blockId, newText) {
 // extra storage a non-issue. "auto" entries log themselves (see
 // saveTextBlockWithPromotion above); "manual" ones are the person
 // adding a narrative "why" directly.
+// Includes each lane's actual laneLabel (not just its items), since a
+// Space Type can relabel lanes (e.g. Person-Reflection's "What I
+// Understand" instead of "Premises") -- Rewind should show the label
+// that was actually in use, not the generic default.
 function getSkeletonSnapshot(spaceId) {
   const blocks = listBlocksForSpace(spaceId);
   const lanes = {};
   SKELETON_LANES.forEach((lane) => {
     const block = blocks.find((b) => b.type === 'list' && b.properties.skeletonLane === lane.key);
-    lanes[lane.key] = block ? block.content.items : [];
+    lanes[lane.key] = {
+      label: block ? block.content.laneLabel : lane.label,
+      items: block ? block.content.items : [],
+    };
   });
   const articulationBlock = blocks.find(
     (b) => b.type === 'text' && b.properties.skeletonRole === 'current-best-articulation'

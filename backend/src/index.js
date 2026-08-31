@@ -7,12 +7,18 @@ import { spacesRouter } from './routes/spaces.js';
 import { templatesRouter } from './routes/templates.js';
 import { blocksRouter } from './routes/blocks.js';
 import { workspacesRouter } from './routes/workspaces.js';
+import { skeletonRouter } from './routes/skeleton.js';
 import { dashboardRouter } from './routes/dashboard.js';
-import { ensureTestSpaceExists } from './db/queries.js';
+import { ensureTestSpaceExists, migrateTextBlockLines } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
 import { seedTemplates } from './db/seedTemplates.js';
 
 ensureTestSpaceExists();
+// One-time backfill for any Text block created before the per-line
+// {lines} content shape existed -- new blocks self-normalize at
+// creation (see createBlock in db/queries.js), so this only ever has
+// pre-existing rows left to do, and is a no-op once they're all done.
+migrateTextBlockLines();
 seedTemplates();
 seedTestSpaceBlocks();
 
@@ -27,6 +33,7 @@ app.use('/api', spacesRouter);
 app.use('/api', templatesRouter);
 app.use('/api', blocksRouter);
 app.use('/api', workspacesRouter);
+app.use('/api', skeletonRouter);
 app.use('/api', dashboardRouter);
 
 app.listen(PORT, () => {

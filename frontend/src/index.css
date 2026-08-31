@@ -635,67 +635,107 @@ label {
 
 /* ---------- Text Workshop: the bespoke, spacious writing environment
    a Text Tool gets inside a Workspace, in place of the small inline
-   .text-block above. Generous serif type and breathing room, closer to
-   a real writing surface than a form field. ---------- */
+   .text-block above. Built around discrete, individually-tagged lines
+   rather than one blob of text -- each line is its own row: a tag
+   glyph in the margin, the line's own text, and (unless focused) small
+   controls to file it into the Skeleton or remove it. ---------- */
 
 .text-workshop {
   padding: 4px 2px;
 }
 
-.text-workshop-tags {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-.text-workshop-tag {
+.text-workshop-focus-toggle {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
   color: var(--ink-faint);
-  background: transparent;
+  background: none;
   border: 1px solid var(--border);
   border-radius: 2px;
   padding: 3px 8px;
   cursor: pointer;
+  margin-bottom: 12px;
 }
-.text-workshop-tag:hover {
+.text-workshop-focus-toggle:hover {
   border-color: var(--maroon);
   color: var(--ink);
 }
-.text-workshop-tag-active {
-  color: var(--maroon-bright);
+
+.text-workshop-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.text-workshop-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.text-workshop-tag-glyph {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  margin-top: 3px;
+}
+.text-workshop-tag-glyph:hover {
   border-color: var(--maroon);
+  color: var(--ink);
+}
+.text-workshop-tag-glyph-quote,
+.text-workshop-tag-glyph-paraphrase,
+.text-workshop-tag-glyph-reflection,
+.text-workshop-tag-glyph-inference {
+  border-color: var(--maroon);
+  color: var(--maroon-bright);
   background: var(--maroon-wash);
 }
 
-.text-workshop-surface {
-  display: block;
-  width: 100%;
-  min-height: 140px;
-  resize: none;
-  overflow: hidden;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--border-soft);
-  padding: 0 0 16px;
+.text-workshop-line-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.text-workshop-line-text {
+  margin: 0;
+  padding: 3px 0;
   font-family: var(--body);
-  font-size: 19px;
+  font-size: 17px;
   line-height: 1.6;
   color: var(--ink);
 }
-.text-workshop-surface:focus {
-  outline: none;
-  border-bottom-color: var(--maroon);
-}
-.text-workshop-surface::placeholder {
+.text-workshop-line-text em {
   color: var(--ink-faint);
-  font-style: italic;
+}
+
+.text-workshop-line-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--maroon);
+  padding: 3px 0;
+  font-family: var(--body);
+  font-size: 17px;
+  color: var(--ink);
+}
+.text-workshop-line-input:focus {
+  outline: none;
 }
 
 .text-workshop-suggestions {
   list-style: none;
-  margin: -8px 0 12px;
+  margin: 2px 0 6px;
   padding: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -717,34 +757,40 @@ label {
   background: var(--surface-3);
 }
 
-.text-workshop-footer {
+.text-workshop-popover {
+  margin: 4px 0 6px;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.text-workshop-line-controls {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.text-workshop-footer {
   font-family: var(--mono);
   font-size: 11px;
   color: var(--ink-faint);
-  margin: 10px 0;
+  margin: 10px 0 0;
 }
 
-.text-workshop-preview {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--border-soft);
+/* Focus mode: bigger, calmer type, every secondary control gone -- the
+   per-line controls/popovers are simply not rendered while focused
+   (see TextWorkshop.jsx), this just gives the remaining prose room. */
+.text-workshop-focused .text-workshop-line-text,
+.text-workshop-focused .text-workshop-line-input {
+  font-size: 21px;
+  line-height: 1.75;
 }
-.text-workshop-preview-label {
-  margin: 0 0 6px;
-  font-family: var(--mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--ink-faint);
-}
-.text-workshop-preview p {
-  margin: 0;
-  font-family: var(--display);
-  font-size: 17px;
-  line-height: 1.6;
-  color: var(--ink-dim);
+.text-workshop-focused .text-workshop-tag-glyph {
+  opacity: 0.5;
 }
 
 /* ---------- List block ---------- */
@@ -913,6 +959,57 @@ label {
   font-size: 12px;
   color: var(--ink-faint);
   margin: 0 0 8px;
+}
+
+/* ---------- Paired Tensions: a Tension item explicitly links two
+   specific existing statements, shown resolved beneath the item's own
+   editable label -- see ListWorkshop.jsx's TensionBuilder. ---------- */
+
+.tension-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0 22px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.tension-pair-statement {
+  flex: 1;
+}
+.tension-pair-statement em {
+  color: var(--ink-faint);
+}
+.tension-pair-vs {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  flex: none;
+}
+
+.tension-builder {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 12px 14px;
+  margin-top: 8px;
+}
+.tension-builder-label {
+  font-size: 13.5px;
+  color: var(--ink-dim);
+  margin: 0 0 8px;
+}
+.tension-builder-label em {
+  color: var(--ink);
+  font-style: italic;
+}
+.tension-builder-lane {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
 }
 
 /* ---------- Reference block ---------- */

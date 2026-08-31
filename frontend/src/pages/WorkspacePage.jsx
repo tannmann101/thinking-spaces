@@ -73,6 +73,13 @@ function WorkspacePage() {
   const [workspace, setWorkspace] = useState(null);
   const [blocks, setBlocks] = useState(null);
   const [error, setError] = useState(null);
+  // Focus mode: set to a block's id to hide every other block (and the
+  // add/pull-in/delete sections below) and show just that one, larger --
+  // "nothing but prose to look at." Only Text currently reads the
+  // resulting `focused`/`onFocus` props (via its Focus toggle), but
+  // every Component gets them uniformly rather than special-casing by
+  // block type here.
+  const [focusedBlockId, setFocusedBlockId] = useState(null);
 
   const refetchAll = useCallback(() => {
     getSpace(spaceId).then(setSpace).catch((err) => setError(err.message));
@@ -151,10 +158,14 @@ function WorkspacePage() {
 
       {space && workspace && (
         <>
-          <h1 className="workspace-title">
-            <EditableWorkspaceName workspace={workspace} onChanged={refetchAll} />
-          </h1>
-          <p className="workspace-subtitle">A Workspace inside &ldquo;{space.title}&rdquo;</p>
+          {!focusedBlockId && (
+            <>
+              <h1 className="workspace-title">
+                <EditableWorkspaceName workspace={workspace} onChanged={refetchAll} />
+              </h1>
+              <p className="workspace-subtitle">A Workspace inside &ldquo;{space.title}&rdquo;</p>
+            </>
+          )}
 
           {memberBlocks.length === 0 && (
             <p>Nothing assembled here yet -- add a Tool below, or pull in one already on the Space.</p>
@@ -162,78 +173,92 @@ function WorkspacePage() {
 
           {memberBlocks.length > 0 && (
             <div className="block-feed workspace-block-feed">
-              {memberBlocks.map((block) => {
-                const entry = blockRegistry[block.type];
-                // A Workspace is where a Tool gets its bespoke, more
-                // spacious environment -- workshopComponent, when the
-                // registry defines one for this Tool type, replaces the
-                // ordinary inline component just here. Falls back to the
-                // same component the flat feed uses for every Tool that
-                // hasn't gotten its own redesign yet.
-                const Component = entry?.workshopComponent || entry?.component;
-                const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
-                  view.appliesTo(block)
-                );
-                return (
-                  <div key={`${block.id}-${block.updated_at}`} className="block-row">
-                    {Component ? (
-                      <Component block={block} onBlocksChanged={refetchAll} />
-                    ) : (
-                      <p>Unknown block type: {block.type}</p>
-                    )}
-                    {applicableViews.length > 0 && (
-                      <div className="view-grid">
-                        {applicableViews.map(([key, view]) => (
-                          <view.component key={key} block={block} />
-                        ))}
-                      </div>
-                    )}
-                    <div className="block-controls">
-                      <button
-                        type="button"
-                        className="btn-ghost-small"
-                        onClick={() => handleRemoveFromWorkspace(block)}
-                      >
-                        Remove from Workspace
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost-small"
-                        onClick={() => handleDeleteBlock(block.id)}
-                      >
-                        Delete block
-                      </button>
+              {memberBlocks
+                .filter((block) => !focusedBlockId || block.id === focusedBlockId)
+                .map((block) => {
+                  const entry = blockRegistry[block.type];
+                  // A Workspace is where a Tool gets its bespoke, more
+                  // spacious environment -- workshopComponent, when the
+                  // registry defines one for this Tool type, replaces the
+                  // ordinary inline component just here. Falls back to the
+                  // same component the flat feed uses for every Tool that
+                  // hasn't gotten its own redesign yet.
+                  const Component = entry?.workshopComponent || entry?.component;
+                  const isFocused = focusedBlockId === block.id;
+                  const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
+                    view.appliesTo(block)
+                  );
+                  return (
+                    <div key={`${block.id}-${block.updated_at}`} className="block-row">
+                      {Component ? (
+                        <Component
+                          block={block}
+                          onBlocksChanged={refetchAll}
+                          focused={isFocused}
+                          onFocus={setFocusedBlockId}
+                        />
+                      ) : (
+                        <p>Unknown block type: {block.type}</p>
+                      )}
+                      {!focusedBlockId && applicableViews.length > 0 && (
+                        <div className="view-grid">
+                          {applicableViews.map(([key, view]) => (
+                            <view.component key={key} block={block} />
+                          ))}
+                        </div>
+                      )}
+                      {!focusedBlockId && (
+                        <div className="block-controls">
+                          <button
+                            type="button"
+                            className="btn-ghost-small"
+                            onClick={() => handleRemoveFromWorkspace(block)}
+                          >
+                            Remove from Workspace
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost-small"
+                            onClick={() => handleDeleteBlock(block.id)}
+                          >
+                            Delete block
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
 
-          <h2>Add a new Tool to this Workspace</h2>
-          <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />
-
-          {nonMemberBlocks.length > 0 && (
+          {!focusedBlockId && (
             <>
-              <h2>Pull in a Tool already on this Space</h2>
-              <ul className="checkbox-list">
-                {nonMemberBlocks.map((block) => (
-                  <li key={block.id} className="block-row">
-                    <BlockPreview block={block} />
-                    <button type="button" className="btn-ghost-small" onClick={() => handlePullIn(block)}>
-                      + Pull in
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <h2>Add a new Tool to this Workspace</h2>
+              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />
+
+              {nonMemberBlocks.length > 0 && (
+                <>
+                  <h2>Pull in a Tool already on this Space</h2>
+                  <ul className="checkbox-list">
+                    {nonMemberBlocks.map((block) => (
+                      <li key={block.id} className="block-row">
+                        <BlockPreview block={block} />
+                        <button type="button" className="btn-ghost-small" onClick={() => handlePullIn(block)}>
+                          + Pull in
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              <p className="danger-zone">
+                <button type="button" className="btn-danger" onClick={handleDeleteWorkspace}>
+                  Delete this Workspace
+                </button>
+              </p>
             </>
           )}
-
-          <p className="danger-zone">
-            <button type="button" className="btn-danger" onClick={handleDeleteWorkspace}>
-              Delete this Workspace
-            </button>
-          </p>
         </>
       )}
     </main>

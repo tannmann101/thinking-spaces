@@ -63,12 +63,14 @@ export const updateBlockContent = (blockId, content) =>
     body: JSON.stringify({ content }),
   });
 // Text blocks save through this instead of updateBlockContent, so the
-// backend can check for =/?/! shorthand and promote it into the
-// Skeleton before the trimmed text comes back.
-export const saveTextBlock = (blockId, text) =>
+// backend can check each line for =/?/! shorthand and promote it into
+// the Skeleton before the surviving lines come back. Takes the block's
+// whole new `lines` array ({id, text, tag} each), not a single string --
+// per-line attribution needs each line's own identity to survive a save.
+export const saveTextBlock = (blockId, lines) =>
   request(`/blocks/${blockId}/text`, {
     method: 'PATCH',
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ lines }),
   });
 export const getTrailEntries = (spaceId) => request(`/spaces/${spaceId}/trail`);
 export const addTrailNote = (spaceId, note) =>
@@ -134,6 +136,22 @@ export const renameWorkspace = (id, name) =>
     body: JSON.stringify({ name }),
   });
 export const deleteWorkspace = (id) => request(`/workspaces/${id}`, { method: 'DELETE' });
+
+// The Skeleton's alternate capture path: copy an already-written line
+// into a lane, leaving the Writing Surface untouched (see fileLineInLane
+// in backend/src/db/queries.js -- deliberately not a promotion).
+export const fileLineInLane = (spaceId, laneKey, text) =>
+  request(`/spaces/${spaceId}/skeleton/file`, {
+    method: 'POST',
+    body: JSON.stringify({ laneKey, text }),
+  });
+// A Tension paired explicitly between two specific existing statements
+// (each {blockId, itemId}), never inferred.
+export const createTensionPair = (spaceId, { label, statementA, statementB }) =>
+  request(`/spaces/${spaceId}/skeleton/tensions`, {
+    method: 'POST',
+    body: JSON.stringify({ label, statementA, statementB }),
+  });
 
 // The Graph view (Pass 5): every Reference block across every Space.
 export const getGraph = () => request('/graph');

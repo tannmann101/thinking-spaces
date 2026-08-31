@@ -1,30 +1,59 @@
-// Renders one Text block: a paragraph, with an optional inline
-// attribution tag (quote / paraphrase / reflection / inference), and
+// Renders one Text block: a paragraph (or several tagged lines), with
 // optional inline [[Space]] links.
 //
-// Link syntax is `[[spaceId|Title]]`, stored directly in content.text
+// Link syntax is `[[spaceId|Title]]`, stored directly in a line's text
 // -- the same convention as Obsidian-style wiki-links. The title is a
 // snapshot taken at insertion time (like a wiki-link alias): if the
 // target Space is later renamed, an existing link keeps showing the
 // old title until someone re-edits it. That's an accepted tradeoff for
 // keeping this simple -- no extra lookup needed to render a link.
 //
-// Editing only exists here because [[ ]] linking needs a real place to
-// type -- there's still no general block-editing UI. Editing shows the
-// raw text (including [[id|Title]] source), matching how Obsidian
-// itself shows raw link syntax while editing and renders it read-only.
+// A standalone Text block's content is `{ lines: [{id, text, tag}] }` --
+// each line carries its own attribution tag and a stable id, so a tag
+// survives an edit to a *different* line (see TextWorkshop.jsx, where
+// per-line tagging actually happens). This plain inline view stays
+// simple on purpose: click to edit reopens every line joined as one
+// ordinary multi-line textarea, and saving re-splits it back into
+// lines, matching each line to its old self by exact text so an
+// untouched line keeps its id and tag -- only a line that actually
+// changed loses its tag, which is the honest default (a changed
+// sentence's old attribution may no longer be right).
+//
+// Comparison embeds a "text-kind" side directly in its own content --
+// never as its own row in the blocks table -- and that side keeps the
+// older `{tag, text}` shape (one tag, one string) on purpose: it's
+// passed here via `onSave`, and this component renders whichever shape
+// `block.content` actually has, so Comparison's sides don't need their
+// own bespoke component just to stay on the shape they've always used.
 //
 // A line starting with =, ?, or ! is Skeleton shorthand (a Premise,
 // Open Question, or Tension) and gets promoted out of this block's
-// text into the matching lane when saved -- see saveTextBlockWithPromotion
-// on the backend. That only applies to a standalone Text block saving
-// itself (the default path below); a block using `onSave` (a
-// Comparison side) is just embedded content, not a real Writing
-// Surface, so it saves as plain text with no promotion.
+// lines when saved -- see saveTextBlockWithPromotion on the backend.
+// That only applies to a standalone Text block saving itself (the
+// default path below); a Comparison side saves as plain text with no
+// promotion, same as before.
 
 import { useRef, useState } from 'react';
 import { getSpaces, saveTextBlock } from '../api.js';
 import { renderTextWithLinks } from './textLinks.jsx';
+
+// Re-splits an edited joined string back into lines, reusing an old
+// line's id/tag wherever its exact text still appears (so editing one
+// line doesn't disturb every other line's attribution) and minting a
+// fresh, untagged line for anything genuinely new or changed.
+function relineFromText(newText, oldLines) {
+  const oldByText = new Map();
+  oldLines.forEach((line) => {
+    const bucket = oldByText.get(line.text) || [];
+    bucket.push(line);
+    oldByText.set(line.text, bucket);
+  });
+  return newText.split('\n').map((text) => {
+    const bucket = oldByText.get(text);
+    const reused = bucket && bucket.shift();
+    return reused || { id: crypto.randomUUID(), text, tag: null };
+  });
+}
 
 // onSave lets a parent block (Comparison) override where an edit goes,
 // for a Text-shaped side that isn't a standalone row in the blocks
@@ -34,18 +63,21 @@ import { renderTextWithLinks } from './textLinks.jsx';
 // this component has no other way to know about.
 function TextBlock({ block, onSave, onBlocksChanged }) {
   const editable = Boolean(block.id) || Boolean(onSave);
-  const { tag } = block.content;
+  const legacy = !block.content.lines; // Comparison's embedded {tag, text} sides
+  const savedLines = legacy
+    ? [{ id: 'legacy', text: block.content.text, tag: block.content.tag }]
+    : block.content.lines;
 
   const [editing, setEditing] = useState(false);
-  const [savedText, setSavedText] = useState(block.content.text);
-  const [draft, setDraft] = useState(block.content.text);
+  const [lines, setLines] = useState(savedLines);
+  const [draft, setDraft] = useState(savedLines.map((line) => line.text).join('\n'));
   const [spaces, setSpaces] = useState(null);
   const [suggestion, setSuggestion] = useState(null); // { query, start, end }
   const textareaRef = useRef(null);
 
   function startEditing() {
     if (!editable) return;
-    setDraft(savedText);
+    setDraft(lines.map((line) => line.text).join('\n'));
     setEditing(true);
   }
 
@@ -81,18 +113,21 @@ function TextBlock({ block, onSave, onBlocksChanged }) {
   async function finishEditing() {
     setEditing(false);
     setSuggestion(null);
-    // No "skip if unchanged" shortcut: even unchanged text can still
-    // contain un-promoted =/?/! shorthand that needs processing on the
-    // standalone (non-onSave) path.
-    if (draft === savedText && onSave) return;
+    const unchanged = draft === lines.map((line) => line.text).join('\n');
+    // No "skip if unchanged" shortcut on the standalone path: even
+    // unchanged text can still contain un-promoted =/?/! shorthand that
+    // needs processing.
+    if (unchanged && onSave) return;
     if (onSave) {
-      setSavedText(draft);
-      await onSave({ ...block.content, text: draft });
+      const nextText = draft;
+      setLines([{ id: 'legacy', text: nextText, tag: block.content.tag }]);
+      await onSave({ ...block.content, text: nextText });
     } else {
+      const nextLines = relineFromText(draft, lines);
       // The backend may have stripped promoted shorthand lines, so the
-      // saved text it returns -- not our local draft -- is what's real.
-      const updated = await saveTextBlock(block.id, draft);
-      setSavedText(updated.content.text);
+      // saved lines it returns -- not our local draft -- are what's real.
+      const updated = await saveTextBlock(block.id, nextLines);
+      setLines(updated.content.lines);
       onBlocksChanged?.();
     }
   }
@@ -105,7 +140,6 @@ function TextBlock({ block, onSave, onBlocksChanged }) {
   if (editing) {
     return (
       <div className="text-block">
-        {tag && <span className="tag-label">{tag}</span>}
         <textarea
           ref={textareaRef}
           value={draft}
@@ -145,11 +179,13 @@ function TextBlock({ block, onSave, onBlocksChanged }) {
   }
 
   return (
-    <div className="text-block">
-      {tag && <span className="tag-label">{tag}</span>}
-      <p onClick={startEditing} className={editable ? 'editable' : undefined}>
-        {renderTextWithLinks(savedText, block.space_id)}
-      </p>
+    <div className="text-block" onClick={startEditing}>
+      {lines.map((line) => (
+        <p key={line.id} className={editable ? 'editable' : undefined}>
+          {line.tag && <span className="tag-label">{line.tag}</span>}
+          {renderTextWithLinks(line.text, block.space_id)}
+        </p>
+      ))}
     </div>
   );
 }

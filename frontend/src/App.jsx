@@ -10,6 +10,7 @@ import TemplateEditor from './pages/TemplateEditor.jsx';
 import GraphPage from './pages/GraphPage.jsx';
 import ToolsPage from './pages/ToolsPage.jsx';
 import LogPage from './pages/LogPage.jsx';
+import InsightsPage from './pages/InsightsPage.jsx';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
       <Route path="/graph" element={<GraphPage />} />
       <Route path="/tools" element={<ToolsPage />} />
       <Route path="/log" element={<LogPage />} />
+      <Route path="/insights" element={<InsightsPage />} />
     </Routes>
   );
 }

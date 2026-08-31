@@ -166,6 +166,7 @@ function Dashboard() {
           Thinking Spaces<span className="dot">.</span>
         </span>
         <nav className="nav-links">
+          <Link to="/insights">Insights</Link>
           <Link to="/tools">Tools</Link>
           <Link to="/templates">Manage Templates</Link>
           <Link to="/graph">View the Map</Link>
@@ -184,6 +185,17 @@ function Dashboard() {
           + New Synthesis
         </Link>
       </p>
+
+      {/* The one thing on this page meant to actually stand out --
+          "see trends/metrics/insights across Spaces" was the Dashboard's
+          founding idea, and this is the real version of it, not another
+          digest in the stack below. */}
+      <Link to="/insights" className="insights-banner">
+        <span className="insights-banner-title">Insights</span>
+        <span className="insights-banner-sub">
+          What's actually going on across every Space -- Work Types, themes, activity, provenance.
+        </span>
+      </Link>
 
       <OverdueReviews items={overdue} />
       <RecentTrailDigest entries={recentTrail} />

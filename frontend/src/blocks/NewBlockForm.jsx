@@ -7,8 +7,9 @@
 // external input (a target Space, an image URL) that doesn't fit a
 // quick "+ Add Block" form, and Comparison needs two sub-blocks -- none
 // of those belong here. Every Work Type (Assessment, Question,
-// Analysis, Deduction, Definition, Demonstration) fits the same mold
-// Text and List already do (nothing but its own starting text), so
+// Analysis, Deduction, Definition, Demonstration, Insight, Implication)
+// fits the same mold Text and List already do (nothing but its own
+// starting text), so
 // they all join this form rather than getting a separate creation
 // flow. List items created here are plain text only -- no checkbox/
 // number/date/confidence at creation -- matching the same scope line
@@ -49,6 +50,8 @@ const WORK_TYPE_STARTER_PROMPTS = {
   deduction: 'The deduction',
   definition: 'The term',
   demonstration: 'The demonstration',
+  insight: 'The insight',
+  implication: 'The implication',
 };
 
 function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
@@ -115,6 +118,8 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
           <option value="deduction">Deduction</option>
           <option value="definition">Definition</option>
           <option value="demonstration">Demonstration</option>
+          <option value="insight">Insight</option>
+          <option value="implication">Implication</option>
         </select>
       </label>
       <br />

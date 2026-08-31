@@ -195,7 +195,13 @@ function WorkspacePage() {
                     view.appliesTo(block)
                   );
                   return (
-                    <div key={`${block.id}-${block.updated_at}`} className="block-row">
+                    <div key={`${block.id}-${block.updated_at}`} className="block-row" data-family={entry?.family}>
+                      {entry && !isFocused && (
+                        <p className="block-type-tag">
+                          {entry.icon && <span className="block-type-icon">{entry.icon}</span>}
+                          {entry.label}
+                        </p>
+                      )}
                       {Component ? (
                         <Component
                           block={block}

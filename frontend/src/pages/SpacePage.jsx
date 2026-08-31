@@ -720,7 +720,13 @@ function SpacePage() {
                     // gaining an item via a different block's shorthand
                     // promotion) -- otherwise this component's own local
                     // edit state, set once at mount, would never notice.
-                    <div key={`${block.id}-${block.updated_at}`} className="block-row">
+                    <div key={`${block.id}-${block.updated_at}`} className="block-row" data-family={entry?.family}>
+                      {entry && (
+                        <p className="block-type-tag">
+                          {entry.icon && <span className="block-type-icon">{entry.icon}</span>}
+                          {entry.label}
+                        </p>
+                      )}
                       {entry ? (
                         <entry.component block={block} onBlocksChanged={refetchAll} />
                       ) : (

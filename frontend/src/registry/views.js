@@ -16,6 +16,10 @@
 // registry/blocks.js. Every View here demos through a plain List
 // demoBlock except Graph, which takes {spaces, edges} directly rather
 // than a block, so it gets `demoProps` instead.
+//
+// `icon`, same reasoning as blockRegistry's own field: a small,
+// restrained per-Tool glyph so the Tools catalog doesn't read as one
+// flat wall of identical cards.
 
 import TimelineView from '../views/TimelineView.jsx';
 import ProgressView from '../views/ProgressView.jsx';
@@ -31,6 +35,7 @@ export const viewRegistry = {
   timeline: {
     label: 'Timeline',
     description: 'List items that carry a date, shown chronologically.',
+    icon: '▸',
     appliesTo: (block) => isListBlock(block) && block.content.items.some((item) => item.date),
     component: TimelineView,
     worksWith: ['list'],
@@ -47,6 +52,7 @@ export const viewRegistry = {
   progress: {
     label: 'Progress',
     description: 'List items that carry a checkbox, shown as a completion bar.',
+    icon: '◐',
     appliesTo: (block) =>
       isListBlock(block) && block.content.items.some((item) => typeof item.checkbox === 'boolean'),
     component: ProgressView,
@@ -65,6 +71,7 @@ export const viewRegistry = {
   streak: {
     label: 'Streak',
     description: 'A daily checkbox List (items with both a date and a checkbox), calendar-rendered.',
+    icon: '⟳',
     appliesTo: (block) =>
       isListBlock(block) &&
       block.content.items.some((item) => typeof item.checkbox === 'boolean' && item.date),
@@ -85,6 +92,7 @@ export const viewRegistry = {
   ledger: {
     label: 'Ledger',
     description: 'List items that carry a number, shown with a running total.',
+    icon: 'Σ',
     appliesTo: (block) =>
       isListBlock(block) && block.content.items.some((item) => typeof item.number === 'number'),
     component: LedgerView,
@@ -109,6 +117,7 @@ export const viewRegistry = {
   graph: {
     label: 'Graph',
     description: 'Every Reference block and every Workspace across every Space, as nodes and edges.',
+    icon: '◈',
     appliesTo: () => false,
     component: GraphView,
     worksWith: ['reference'],

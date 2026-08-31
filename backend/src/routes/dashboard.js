@@ -2,7 +2,12 @@
 // /spaces/:id since they read across every Space, not one.
 
 import { Router } from 'express';
-import { listOverdueReviews, listRecentTrailEntries, suggestSpaceToResurface } from '../db/queries.js';
+import {
+  listOverdueReviews,
+  listRecentTrailEntries,
+  suggestSpaceToResurface,
+  getGraphData,
+} from '../db/queries.js';
 
 export const dashboardRouter = Router();
 
@@ -16,4 +21,10 @@ dashboardRouter.get('/dashboard/recent-trail', (req, res) => {
 
 dashboardRouter.get('/dashboard/resurface', (req, res) => {
   res.json(suggestSpaceToResurface());
+});
+
+// The Graph view (Pass 5): every Reference block across every Space,
+// as nodes and edges. Cross-Space like everything else in this file.
+dashboardRouter.get('/graph', (req, res) => {
+  res.json(getGraphData());
 });

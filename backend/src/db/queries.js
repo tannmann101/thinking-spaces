@@ -229,6 +229,40 @@ export function listBacklinksForSpace(spaceId) {
   }));
 }
 
+// The Graph view (Pass 5's "Map"): every Reference block across every
+// Space, as nodes (Spaces) and edges (References). This is a plain
+// query over the blocks table -- CLAUDE.md is explicit that no separate
+// graph structure gets modeled or cached, so this always reflects
+// whatever the blocks table currently holds. The Test Space is left out
+// for the same reason it's left out of every other cross-Space view:
+// it's scratch content, not part of the real Map.
+export function getGraphData() {
+  const spaces = db
+    .prepare(`SELECT id, title, status FROM spaces WHERE id != ? ORDER BY title ASC`)
+    .all(TEST_SPACE_ID);
+
+  const edges = db
+    .prepare(
+      `SELECT blocks.id AS block_id, blocks.space_id AS source_space_id, blocks.content AS content
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type = 'reference' AND spaces.id != ?`
+    )
+    .all(TEST_SPACE_ID)
+    .map((row) => {
+      const content = JSON.parse(row.content);
+      return {
+        blockId: row.block_id,
+        sourceSpaceId: row.source_space_id,
+        targetSpaceId: content.target_space_id,
+        note: content.note ?? null,
+      };
+    })
+    .filter((edge) => edge.targetSpaceId && edge.targetSpaceId !== TEST_SPACE_ID);
+
+  return { spaces, edges };
+}
+
 export function getBlockById(id) {
   const row = db
     .prepare(
@@ -279,6 +313,24 @@ export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }
 
 export function deleteBlock(id) {
   db.prepare(`DELETE FROM blocks WHERE id = ?`).run(id);
+}
+
+// A "Relational Space" isn't a distinct schema -- CLAUDE.md is explicit
+// that it's just an ordinary Space whose content happens to reference
+// two or more other Spaces. This composes the same createSpace/
+// addBlockToSpace every other Space creation path uses: one Reference
+// block per selected Space, plus one blank Text block for the
+// synthesis, seeded once at creation like any Template would be.
+export function createRelationalSpace({ title, spaceIds }) {
+  const space = createSpace({ title });
+  addBlockToSpace(space.id, { type: 'text', content: { tag: null, text: '' } });
+  spaceIds.forEach((targetSpaceId) => {
+    addBlockToSpace(space.id, {
+      type: 'reference',
+      content: { target_space_id: targetSpaceId, note: null },
+    });
+  });
+  return getSpaceById(space.id);
 }
 
 // Reordering blocks on a live Space (distinct from ListBlock's own

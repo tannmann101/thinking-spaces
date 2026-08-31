@@ -180,6 +180,41 @@ export function applyTemplate(spaceId, templateId) {
   });
 }
 
+// Creation Mode's whole job is composing a Space from the same pieces
+// every other path already uses -- a Template's starting blocks
+// (applyTemplate), any extra Tools chosen on top of it
+// (addBlockToSpace), a Reference block per Resource pulled in
+// (addBlockToSpace again, same as createRelationalSpace does for its
+// selections), and the Space's own tags/goal (createSpace/updateSpace).
+// Nothing here is new machinery -- this just does all of it in one
+// request instead of asking the frontend to sequence several.
+export function createSpaceWithSetup({
+  title,
+  templateId = null,
+  extraBlocks = [],
+  resourceSpaceIds = [],
+  tags = [],
+  goal = null,
+}) {
+  const space = createSpace({ title, templateId, tags });
+  if (templateId) {
+    applyTemplate(space.id, templateId);
+  }
+  extraBlocks.forEach((blockSpec) => {
+    addBlockToSpace(space.id, blockSpec);
+  });
+  resourceSpaceIds.forEach((targetSpaceId) => {
+    addBlockToSpace(space.id, {
+      type: 'reference',
+      content: { target_space_id: targetSpaceId, note: null },
+    });
+  });
+  if (goal) {
+    updateSpace(space.id, { goal });
+  }
+  return getSpaceById(space.id);
+}
+
 // Idempotent: creates the Test Space the first time the app runs, does
 // nothing on every run after that. Called once at startup.
 export function ensureTestSpaceExists() {

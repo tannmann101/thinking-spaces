@@ -6,12 +6,11 @@ import {
   listSpaces,
   listSpacesByTag,
   getSpaceById,
-  createSpace,
   updateSpace,
   listBacklinksForSpace,
   listTrailEntries,
   addManualTrailEntry,
-  applyTemplate,
+  createSpaceWithSetup,
   createRelationalSpace,
 } from '../db/queries.js';
 
@@ -25,17 +24,25 @@ spacesRouter.get('/spaces', (req, res) => {
   res.json(tag ? listSpacesByTag(tag) : listSpaces());
 });
 
+// Creation Mode: a Template (applied once, not a live link -- see
+// applyTemplate in queries.js), any extra Tools chosen on top of it,
+// any Resources pulled in (each becomes an ordinary Reference block),
+// and initial tags/goal, all composed by createSpaceWithSetup. Every
+// field but title is optional, so this is still just as capable of
+// "start blank" as it always was.
 spacesRouter.post('/spaces', (req, res) => {
-  const { title, templateId } = req.body;
+  const { title, templateId, extraBlocks, resourceSpaceIds, tags, goal } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
-  const space = createSpace({ title: title.trim(), templateId: templateId || null });
-  // Applying a Template is a one-time copy of its blocks into the new
-  // Space, not a live link -- see applyTemplate in queries.js.
-  if (templateId) {
-    applyTemplate(space.id, templateId);
-  }
+  const space = createSpaceWithSetup({
+    title: title.trim(),
+    templateId: templateId || null,
+    extraBlocks: extraBlocks || [],
+    resourceSpaceIds: resourceSpaceIds || [],
+    tags: tags || [],
+    goal: goal || null,
+  });
   res.status(201).json(space);
 });
 

@@ -20,10 +20,13 @@ export const getHealth = () => request('/health');
 export const getSpaces = () => request('/spaces');
 export const getSpacesByTag = (tag) => request(`/spaces?tag=${encodeURIComponent(tag)}`);
 export const getSpace = (id) => request(`/spaces/${id}`);
-export const createSpace = ({ title, templateId }) =>
+// Creation Mode: templateId, extraBlocks, resourceSpaceIds, tags, and
+// goal are all optional -- passing none of them is still just "start
+// blank," same as before this existed.
+export const createSpace = ({ title, templateId, extraBlocks, resourceSpaceIds, tags, goal }) =>
   request('/spaces', {
     method: 'POST',
-    body: JSON.stringify({ title, templateId }),
+    body: JSON.stringify({ title, templateId, extraBlocks, resourceSpaceIds, tags, goal }),
   });
 // Title, status, tags, and goal ("working toward") all go through this
 // one PATCH -- pass only the fields that changed.

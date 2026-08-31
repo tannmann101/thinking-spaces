@@ -21,10 +21,16 @@
 // app itself produced through Work/Synthesis.
 
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createSpace, getSpaces } from '../api.js';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
-const RESOURCE_TYPE_SUGGESTIONS = ['book', 'person', 'account', 'tool', 'place', 'media'];
+// Deliberately says "app," not "tool" -- a sub-type suggestion here
+// named "tool" would collide with the app's own capitalized "Tool"
+// concept (the Block/View catalog at /tools), even though they mean
+// completely different things.
+const RESOURCE_TYPE_SUGGESTIONS = ['book', 'person', 'account', 'app', 'place', 'media'];
 
 // The four facets this flow homes in on, in order. Used both as the
 // question labels and, verbatim, as the new Space's starting Categories
@@ -36,6 +42,7 @@ const TOUCHES = 'Touches / Touched By';
 const WHAT_IT_OFFERS = 'What It Offers';
 
 function CreateResource() {
+  usePageTitle('New Resource');
   const [title, setTitle] = useState('');
   const [typeTags, setTypeTags] = useState([]);
   const [typeInput, setTypeInput] = useState('');
@@ -124,13 +131,11 @@ function CreateResource() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav />
       <h1>New Resource</h1>
       <p>
         A Resource is something outside (or alongside) your thinking that's worth having on hand --
-        a book, a person, an account, a tool, anything. This homes in on what it actually is, rather
+        a book, a person, an account, an app, anything. This homes in on what it actually is, rather
         than starting from a blank Text/List page.
       </p>
 

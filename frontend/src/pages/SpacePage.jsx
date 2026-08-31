@@ -25,7 +25,14 @@ import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import ReportButton from '../components/ReportButton.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
+// Only renders when there's somewhere more specific to go back to than
+// the Dashboard -- arriving here via a Reference/backlink from another
+// Space (?from=<id>) -- since TopNav's wordmark already covers "back to
+// Dashboard" from every page; showing both here would just be two links
+// doing the same job.
 function BackLink() {
   const [searchParams] = useSearchParams();
   const fromId = searchParams.get('from');
@@ -35,16 +42,10 @@ function BackLink() {
     if (fromId) getSpace(fromId).then(setFromSpace).catch(() => setFromSpace(null));
   }, [fromId]);
 
-  if (fromId) {
-    return (
-      <Link to={`/spaces/${fromId}`} className="back-link">
-        &larr; Back to {fromSpace ? fromSpace.title : '...'}
-      </Link>
-    );
-  }
+  if (!fromId) return null;
   return (
-    <Link to="/" className="back-link">
-      &larr; Back to Dashboard
+    <Link to={`/spaces/${fromId}`} className="back-link">
+      &larr; Back to {fromSpace ? fromSpace.title : '...'}
     </Link>
   );
 }
@@ -515,6 +516,7 @@ function SpacePage() {
   const { confirm: confirmDialog, promptToMatch } = useConfirmDialog();
   const navigate = useNavigate();
   const [space, setSpace] = useState(null);
+  usePageTitle(space?.title);
   const [blocks, setBlocks] = useState(null);
   const [workspaces, setWorkspaces] = useState(null);
   const [backlinks, setBacklinks] = useState(null);
@@ -592,6 +594,7 @@ function SpacePage() {
 
   return (
     <main>
+      <TopNav />
       <BackLink />
 
       {error && <p>Could not load Space: {error}</p>}

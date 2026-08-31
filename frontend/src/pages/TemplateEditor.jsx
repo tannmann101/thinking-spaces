@@ -1,21 +1,24 @@
-// Create or edit one Template. This is "Dev Mode" for this architecture:
-// there's no live-cascading system to be careful with, because editing a
-// Template only ever writes to the templates table (see updateTemplate in
-// backend/src/db/queries.js) -- applyTemplate only runs once, at the moment
-// a Space is created from a Template, and nothing ever reads template_id
-// again after that. So this editor can be as blunt as it likes: whatever
-// is saved here only affects Spaces created from this Template from now on.
+// Create or edit one Template. There's no live-cascading system to be
+// careful with here, because editing a Template only ever writes to the
+// templates table (see updateTemplate in backend/src/db/queries.js) --
+// applyTemplate only runs once, at the moment a Space is created from a
+// Template, and nothing ever reads template_id again after that. So
+// this editor can be as blunt as it likes: whatever is saved here only
+// affects Spaces created from this Template from now on.
 
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTemplate, createTemplate, updateTemplate } from '../api.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function TemplateEditor() {
   const { id } = useParams();
   const isEditing = Boolean(id);
   const navigate = useNavigate();
+  usePageTitle(isEditing ? 'Edit Template' : 'New Template');
 
   const [name, setName] = useState('');
   const [blocks, setBlocks] = useState([]);
@@ -82,6 +85,7 @@ function TemplateEditor() {
 
   return (
     <main>
+      <TopNav current="templates" />
       <Link to="/templates" className="back-link">
         &larr; Back to Templates
       </Link>

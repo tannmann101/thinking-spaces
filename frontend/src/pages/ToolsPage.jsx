@@ -11,9 +11,10 @@
 // `id` as "not editable"), so nothing here can accidentally write to
 // the database.
 
-import { Link } from 'react-router-dom';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const ALL_TOOLS = { ...blockRegistry, ...viewRegistry };
 
@@ -48,11 +49,10 @@ function ToolCard({ entry, kind }) {
 }
 
 function ToolsPage() {
+  usePageTitle('Tools');
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav current="tools" />
       <h1>Tools</h1>
       <p>
         Every Tool a Space can use. Blocks hold content; Views compute a lens over it

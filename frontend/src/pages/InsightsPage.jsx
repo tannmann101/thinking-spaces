@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getInsights } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function labelFor(workType) {
   return blockRegistry[workType]?.label || workType;
@@ -290,6 +292,7 @@ function TimeSection({ time }) {
 }
 
 function InsightsPage() {
+  usePageTitle('Insights');
   const [insights, setInsights] = useState(null);
   const [error, setError] = useState(null);
 
@@ -299,9 +302,7 @@ function InsightsPage() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav current="insights" />
       <h1>Insights</h1>
       <p>What's actually going on across every Space -- the thinking, not just the record of it.</p>
 

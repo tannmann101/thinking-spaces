@@ -178,6 +178,13 @@ select:focus-visible,
 .nav-links a:hover {
   color: var(--maroon-bright);
 }
+/* The nav entry for whatever page is actually on screen right now --
+   "can I tell what page I'm on" answered at the chrome level, not just
+   by each page's own <h1>. */
+.nav-links a.nav-link-current {
+  color: var(--ink);
+  border-bottom: 1px solid var(--maroon-bright);
+}
 
 /* A plain, secondary text link back to somewhere (Dashboard, a parent
    Space) -- used above the page title on most pages. */

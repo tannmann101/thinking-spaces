@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTemplates, deleteTemplate } from '../api.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import TopNav from '../components/TopNav.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function TemplatesPage() {
+  usePageTitle('Templates');
   const [templates, setTemplates] = useState(null);
   const [error, setError] = useState(null);
   const { confirm } = useConfirmDialog();
@@ -30,9 +33,7 @@ function TemplatesPage() {
 
   return (
     <main>
-      <Link to="/" className="back-link">
-        &larr; Back to Dashboard
-      </Link>
+      <TopNav current="templates" />
       <div className="page-head">
         <h1>Templates</h1>
         <Link to="/templates/new" className="btn">

@@ -265,14 +265,25 @@ export function ensureTestSpaceExists() {
 // that it's just an ordinary Space whose content happens to reference
 // two or more other Spaces. This composes the same createSpace/
 // addBlockToSpace every other Space creation path uses: one Reference
-// block per selected Space, plus one blank Text block for the
-// synthesis, seeded once at creation like any Template would be. Lives
-// here (moved from its original spot in the old single-file queries.js,
-// physically grouped with the Blocks section) rather than in blocks.js,
-// since creating a Relational Space is conceptually a Space-creation
-// function, same family as createSpaceWithSetup above.
+// block per selected Space, plus one blank Text block for your own
+// writing about the connection, seeded once at creation like any
+// Template would be. Lives here (moved from its original spot in the
+// old single-file queries.js, physically grouped with the Blocks
+// section) rather than in blocks.js, since creating a Relational Space
+// is conceptually a Space-creation function, same family as
+// createSpaceWithSetup above.
+//
+// Tagged 'relational' at creation, the same way a Resource gets tagged
+// 'resource' and a Synthesis gets tagged 'synthesis' -- surfaced from
+// the category-hygiene audit that a Relational Space had no persistent
+// signal at all once created (no origin, no tag), so it read as
+// completely indistinguishable from a Space built by hand the moment
+// you left the Graph page. The tag is an ordinary tag, not a protected
+// flag: it shows up as a chip wherever tags already render (the
+// Dashboard's Space list, the Space page's own TagEditor) and can be
+// removed like any other tag, same as everything else in this app.
 export function createRelationalSpace({ title, spaceIds }) {
-  const space = createSpace({ title });
+  const space = createSpace({ title, tags: ['relational'] });
   addBlockToSpace(space.id, { type: 'text', content: { tag: null, text: '' } });
   spaceIds.forEach((targetSpaceId) => {
     addBlockToSpace(space.id, {

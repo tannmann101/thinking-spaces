@@ -7,17 +7,17 @@
 // external input (a target Space, an image URL) that doesn't fit a
 // quick "+ Add Block" form, and Comparison needs two sub-blocks -- none
 // of those belong here. Every Work Type (Assessment, Question,
-// Analysis, Deduction, Definition, Demonstration, Insight, Implication)
-// fits the same mold Text and List already do (nothing but its own
-// starting text), so
-// they all join this form rather than getting a separate creation
-// flow. List items created here are plain text only -- no checkbox/
-// number/date/confidence at creation -- matching the same scope line
-// the "+ Add item" control already draws; a Work block likewise starts
-// with just its statement, rationale/confidence set afterward on the
-// block itself. WORK_TYPE_STARTER_PROMPTS is the one place a new Work
-// Type's starting-text placeholder needs adding -- nothing else in
-// this form is type-specific.
+// Analysis, Deduction, Definition, Demonstration, Insight, Implication,
+// Hypothesis, Objection) fits the same mold Text and List already do
+// (nothing but its own starting text), so they all join this form
+// rather than getting a separate creation flow. List items created
+// here are plain text only -- no checkbox/number/date/confidence at
+// creation -- matching the same scope line the "+ Add item" control
+// already draws; a Work block likewise starts with just its statement
+// and an empty support list, both set/added afterward on the block
+// itself. WORK_TYPE_STARTER_PROMPTS is the one place a new Work Type's
+// starting-text placeholder needs adding -- nothing else in this form
+// is type-specific.
 //
 // `categories` is optional and only meaningful on a live Space that has
 // already defined some (Template editing and Creation Mode's draft
@@ -52,6 +52,8 @@ const WORK_TYPE_STARTER_PROMPTS = {
   demonstration: 'The demonstration',
   insight: 'The insight',
   implication: 'The implication',
+  hypothesis: 'The hypothesis',
+  objection: 'The objection',
 };
 
 function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
@@ -94,9 +96,10 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         .map((line) => ({ id: crypto.randomUUID(), text: line }));
       onAdd({ type: 'list', content: { laneLabel: laneLabel.trim(), items }, properties });
     } else {
-      // Any Work Type -- all of them start with just a statement;
-      // rationale/confidence are set afterward on the block itself.
-      onAdd({ type, content: { statement: text.trim(), rationale: '', confidence: 'tentative' }, properties });
+      // Any Work Type -- all of them start with just a statement and
+      // an empty support list; both are added to/set afterward on the
+      // block itself.
+      onAdd({ type, content: { statement: text.trim(), support: [], confidence: 'tentative' }, properties });
     }
     setText('');
     setLaneLabel('');
@@ -120,6 +123,8 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
           <option value="demonstration">Demonstration</option>
           <option value="insight">Insight</option>
           <option value="implication">Implication</option>
+          <option value="hypothesis">Hypothesis</option>
+          <option value="objection">Objection</option>
         </select>
       </label>
       <br />

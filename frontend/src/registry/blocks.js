@@ -39,6 +39,8 @@ import DefinitionBlock from '../blocks/DefinitionBlock.jsx';
 import DemonstrationBlock from '../blocks/DemonstrationBlock.jsx';
 import InsightBlock from '../blocks/InsightBlock.jsx';
 import ImplicationBlock from '../blocks/ImplicationBlock.jsx';
+import HypothesisBlock from '../blocks/HypothesisBlock.jsx';
+import ObjectionBlock from '../blocks/ObjectionBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -51,8 +53,13 @@ const TEST_SPACE_ID = 'test-space';
 // this list instead of redefining it.
 export const TEXT_ATTRIBUTION_TAGS = ['quote', 'paraphrase', 'reflection', 'inference'];
 
-// The only values a List item's confidence property can hold.
-export const CONFIDENCE_LEVELS = ['solid', 'tentative', 'questioned'];
+// The only values a List item's or Work item's confidence property can
+// hold, ordered least- to most-confident. Widened from an original
+// 3-level scale (solid/tentative/questioned) to this 5-level one for
+// more "surgical" precision -- the original three words are kept as-is
+// (so no existing stored value needed migrating), with `moderate` and
+// `certain` added to round the scale out.
+export const CONFIDENCE_LEVELS = ['questioned', 'tentative', 'moderate', 'solid', 'certain'];
 
 // The only kinds a Media block's content.mediaType can hold. Only
 // 'image' actually renders anything yet -- see MediaBlock.jsx.
@@ -153,23 +160,26 @@ export const blockRegistry = {
   // thinking-act (assess, question, analyze, deduce, define,
   // demonstrate, realize, imply, and whatever follows) rather than a
   // generic block with a label. Every kind shares one underlying shape
-  // ({statement, rationale, confidence} -- see WorkBlock.jsx) so Synthesis can pull
-  // from them uniformly, even though each one's two text fields are
-  // relabeled for its own kind (Definition is the one exception to
-  // "statement = the Tool's own name": its statement holds the term,
-  // not a definition-shaped sentence). See backend/src/db/queries.js's
-  // WORK_TYPES, which must list every type registered here that
-  // Synthesis should be able to draw from.
+  // ({statement, support, confidence} -- see WorkBlock.jsx) so Synthesis
+  // can pull from them uniformly, even though each one's two text
+  // fields are relabeled for its own kind (Definition is the one
+  // exception to "statement = the Tool's own name": its statement
+  // holds the term, not a definition-shaped sentence). `support` is a
+  // list of discrete points, each either its own short claim or a live
+  // link to another existing claim (another Work block, or a Skeleton
+  // lane item) -- see WorkBlock.jsx for how a support point resolves.
+  // See backend/src/db/queries.js's WORK_TYPES, which must list every
+  // type registered here that Synthesis should be able to draw from.
   assessment: {
     label: 'Assessment',
-    description: 'A judgment on something, with supporting rationale and a confidence marker.',
+    description: 'A judgment on something, with supporting points and a confidence marker.',
     component: AssessmentBlock,
-    worksWith: ['question', 'analysis', 'deduction'],
+    worksWith: ['question', 'analysis', 'deduction', 'objection'],
     demoBlock: {
       type: 'assessment',
       content: {
         statement: 'This vendor is not worth the switching cost.',
-        rationale: 'Migration effort outweighs the savings within any reasonable payback window.',
+        support: [{ id: 'demo-1', text: 'Migration effort outweighs the savings within any reasonable payback window.' }],
         confidence: 'tentative',
       },
       properties: {},
@@ -185,7 +195,7 @@ export const blockRegistry = {
       type: 'question',
       content: {
         statement: 'Is the switching cost actually reversible?',
-        rationale: 'If it is, the risk calculus for this decision changes a lot.',
+        support: [{ id: 'demo-1', text: 'If it is, the risk calculus for this decision changes a lot.' }],
         confidence: 'tentative',
       },
       properties: {},
@@ -193,16 +203,19 @@ export const blockRegistry = {
   },
   analysis: {
     label: 'Analysis',
-    description:
-      'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
+    description: 'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
     component: AnalysisBlock,
     worksWith: ['assessment', 'deduction', 'insight'],
     demoBlock: {
       type: 'analysis',
       content: {
         statement: 'The delay is driven by onboarding friction, not price.',
-        rationale:
-          'Usage data shows drop-off concentrated in the first setup step, well before anyone reaches the pricing page.',
+        support: [
+          {
+            id: 'demo-1',
+            text: 'Usage data shows drop-off concentrated in the first setup step, well before anyone reaches the pricing page.',
+          },
+        ],
         confidence: 'tentative',
       },
       properties: {},
@@ -213,13 +226,17 @@ export const blockRegistry = {
     description:
       'A conclusion reached by explicit reasoning from other claims, with that reasoning and a confidence marker.',
     component: DeductionBlock,
-    worksWith: ['analysis', 'demonstration', 'implication'],
+    worksWith: ['analysis', 'demonstration', 'implication', 'objection'],
     demoBlock: {
       type: 'deduction',
       content: {
         statement: 'Switching vendors this quarter is not worth it.',
-        rationale:
-          'Migration cost exceeds the savings within any window short enough to matter, and the contract already renewed.',
+        support: [
+          {
+            id: 'demo-1',
+            text: 'Migration cost exceeds the savings within any window short enough to matter, and the contract already renewed.',
+          },
+        ],
         confidence: 'tentative',
       },
       properties: {},
@@ -234,8 +251,12 @@ export const blockRegistry = {
       type: 'definition',
       content: {
         statement: 'Switching cost',
-        rationale:
-          'Everything given up or spent to move from one option to another -- money, time, momentum, and what has to be relearned.',
+        support: [
+          {
+            id: 'demo-1',
+            text: 'Everything given up or spent to move from one option to another -- money, time, momentum, and what has to be relearned.',
+          },
+        ],
         confidence: 'solid',
       },
       properties: {},
@@ -245,12 +266,15 @@ export const blockRegistry = {
     label: 'Demonstration',
     description: 'A concrete worked example showing a claim to be true, with the walkthrough and a confidence marker.',
     component: DemonstrationBlock,
-    worksWith: ['deduction', 'implication'],
+    worksWith: ['deduction', 'implication', 'hypothesis'],
     demoBlock: {
       type: 'demonstration',
       content: {
         statement: 'The two migration plans really do cost the same over three years.',
-        rationale: 'Plan A: $400/mo x 36 = $14,400. Plan B: $9,000 upfront + $150/mo x 36 = $14,400.',
+        support: [
+          { id: 'demo-1', text: 'Plan A: $400/mo x 36 = $14,400.' },
+          { id: 'demo-2', text: 'Plan B: $9,000 upfront + $150/mo x 36 = $14,400.' },
+        ],
         confidence: 'solid',
       },
       properties: {},
@@ -271,7 +295,9 @@ export const blockRegistry = {
       type: 'insight',
       content: {
         statement: 'The complaints were never about the price at all.',
-        rationale: 'Re-reading the support thread, every escalation happened after a setup step, not a billing screen.',
+        support: [
+          { id: 'demo-1', text: 'Re-reading the support thread, every escalation happened after a setup step, not a billing screen.' },
+        ],
         confidence: 'tentative',
       },
       properties: {},
@@ -287,7 +313,46 @@ export const blockRegistry = {
       type: 'implication',
       content: {
         statement: 'The team may be understaffed for onboarding, not just support.',
-        rationale: 'Onboarding drop-off and slow support responses both spike on the same weeks.',
+        support: [{ id: 'demo-1', text: 'Onboarding drop-off and slow support responses both spike on the same weeks.' }],
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  // Hypothesis and Objection followed once the support-point/linking
+  // structure existed to make them worth adding: a Hypothesis is a
+  // claim proposed to test, not yet believed (distinct from
+  // Assessment's already-reached judgment), and an Objection is a
+  // targeted challenge to another existing claim -- which is exactly
+  // what a linked support point is for, so Objection needed no
+  // dedicated pointer field of its own to stay consistent with the
+  // shared shape every other Work Type uses.
+  hypothesis: {
+    label: 'Hypothesis',
+    description: 'A claim proposed to test, not yet believed, with what would test it and a confidence marker.',
+    component: HypothesisBlock,
+    worksWith: ['assessment', 'demonstration'],
+    demoBlock: {
+      type: 'hypothesis',
+      content: {
+        statement: 'Reducing the setup form to three fields would cut onboarding drop-off.',
+        support: [{ id: 'demo-1', text: 'A/B test a three-field version against the current seven-field one for two weeks.' }],
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  objection: {
+    label: 'Objection',
+    description:
+      'A specific challenge to another existing claim, with what it challenges (typically a linked claim) and a confidence marker.',
+    component: ObjectionBlock,
+    worksWith: ['assessment', 'deduction'],
+    demoBlock: {
+      type: 'objection',
+      content: {
+        statement: 'The contract renewal date assumed in that deduction may already have passed.',
+        support: [{ id: 'demo-1', text: 'Worth confirming with billing before treating the deduction as settled.' }],
         confidence: 'tentative',
       },
       properties: {},

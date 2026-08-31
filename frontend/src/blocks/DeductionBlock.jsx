@@ -5,7 +5,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function DeductionBlock(props) {
-  return <WorkBlock {...props} statementLabel="Deduction" rationaleLabel="Reasoning" />;
+  return <WorkBlock {...props} statementLabel="Deduction" supportLabel="Reasoning" />;
 }
 
 export default DeductionBlock;

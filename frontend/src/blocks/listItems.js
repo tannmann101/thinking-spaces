@@ -5,7 +5,10 @@
 // (Progress, Ledger, Streak) assume that uniformity. So a new item's
 // shape is always inferred from whatever's already there.
 
-export const CONFIDENCE_CYCLE = ['solid', 'tentative', 'questioned'];
+// Mirrors CONFIDENCE_LEVELS in registry/blocks.js -- kept as a
+// separate export since this file predates that one and other code
+// already imports CONFIDENCE_CYCLE from here; both must stay in sync.
+export const CONFIDENCE_CYCLE = ['questioned', 'tentative', 'moderate', 'solid', 'certain'];
 
 // `shapeOverride` is only meaningful when `items` is empty -- there's
 // nothing to infer a shape from yet, so the List Workshop lets the very

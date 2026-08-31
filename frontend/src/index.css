@@ -810,10 +810,10 @@ label {
   margin: 0 0 8px;
   color: var(--ink);
 }
-.work-block-rationale {
+.work-block-support {
   font-size: 14px;
   color: var(--ink-dim);
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
 .work-block-field-label {
   font-family: var(--mono);
@@ -821,6 +821,43 @@ label {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--ink-faint);
+}
+.work-block-support-list {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+}
+.work-block-support-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+}
+.work-block-support-item::before {
+  content: '\2013';
+  color: var(--ink-faint);
+}
+.work-block-support-pointer {
+  font-style: italic;
+}
+.work-block-support-link-icon {
+  color: var(--maroon-bright);
+  font-family: var(--mono);
+}
+.work-block-support-remove {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: auto;
+}
+.work-block-linker {
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
 }
 .work-block-confidence {
   font-size: 13px;

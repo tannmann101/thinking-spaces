@@ -10,7 +10,7 @@ import { workspacesRouter } from './routes/workspaces.js';
 import { skeletonRouter } from './routes/skeleton.js';
 import { workRouter } from './routes/work.js';
 import { dashboardRouter } from './routes/dashboard.js';
-import { ensureTestSpaceExists, migrateTextBlockLines } from './db/queries.js';
+import { ensureTestSpaceExists, migrateTextBlockLines, migrateWorkItemSupport } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
 import { seedTemplates } from './db/seedTemplates.js';
 
@@ -20,6 +20,7 @@ ensureTestSpaceExists();
 // creation (see createBlock in db/queries.js), so this only ever has
 // pre-existing rows left to do, and is a no-op once they're all done.
 migrateTextBlockLines();
+migrateWorkItemSupport();
 seedTemplates();
 seedTestSpaceBlocks();
 

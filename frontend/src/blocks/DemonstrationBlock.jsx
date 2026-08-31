@@ -5,7 +5,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function DemonstrationBlock(props) {
-  return <WorkBlock {...props} statementLabel="Demonstration" rationaleLabel="Walkthrough" />;
+  return <WorkBlock {...props} statementLabel="Demonstration" supportLabel="Walkthrough" />;
 }
 
 export default DemonstrationBlock;

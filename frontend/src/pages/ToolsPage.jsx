@@ -26,7 +26,7 @@ function ToolCard({ entry, kind }) {
   return (
     <div className="tool-card">
       <div className="tool-card-head">
-        <h3>{entry.label}</h3>
+        <h4>{entry.label}</h4>
         <span className="tool-kind-tag">{kind}</span>
       </div>
       <p className="tool-description">{entry.description}</p>
@@ -60,10 +60,26 @@ function ToolsPage() {
       </p>
 
       <h2>Blocks</h2>
+      <p className="tool-family-intro">
+        General-purpose Blocks first, then Work -- the ten Tools sharing one underlying shape
+        (statement, support, confidence) for a distinct kind of thinking-act.
+      </p>
+      <h3>General</h3>
       <div className="tool-grid">
-        {Object.entries(blockRegistry).map(([key, entry]) => (
-          <ToolCard key={key} entry={entry} kind="Block" />
-        ))}
+        {Object.entries(blockRegistry)
+          .filter(([, entry]) => entry.family !== 'work')
+          .map(([key, entry]) => (
+            <ToolCard key={key} entry={entry} kind="Block" />
+          ))}
+      </div>
+
+      <h3>Work</h3>
+      <div className="tool-grid">
+        {Object.entries(blockRegistry)
+          .filter(([, entry]) => entry.family === 'work')
+          .map(([key, entry]) => (
+            <ToolCard key={key} entry={entry} kind="Block" />
+          ))}
       </div>
 
       <h2>Views</h2>

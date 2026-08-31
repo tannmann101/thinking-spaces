@@ -14,6 +14,13 @@
 // immediately. A Reference block per distinct source Space is added
 // alongside it purely for traceability -- the same Graph/backlink
 // machinery every other Reference already gets for free.
+//
+// origin: 'internal' marks this as something the app itself produced
+// -- the counterpart to a Resource's 'external' (see
+// CreateResource.jsx) -- distinct provenance from a Resource even
+// though a mature Synthesis can later be promoted to also carry the
+// "resource" tag (see PromoteToResource in SpacePage.jsx) once it's
+// settled enough to be cited the way an external Resource is.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -74,6 +81,7 @@ function CreateSynthesis() {
         tags: ['synthesis', ...(kind ? [kind] : [])],
         categories: [],
         goal: null,
+        origin: 'internal',
       });
       navigate(`/spaces/${space.id}`);
     } catch (err) {

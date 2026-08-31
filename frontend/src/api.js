@@ -21,8 +21,11 @@ export const getSpaces = () => request('/spaces');
 export const getSpacesByTag = (tag) => request(`/spaces?tag=${encodeURIComponent(tag)}`);
 export const getSpace = (id) => request(`/spaces/${id}`);
 // Creation Mode: templateId, extraBlocks, resourceSpaceIds, tags,
-// categories, workspaces, and goal are all optional -- passing none of
-// them is still just "start blank," same as before this existed.
+// categories, workspaces, goal, and origin are all optional -- passing
+// none of them is still just "start blank," same as before this
+// existed. origin ('external'/'internal') is provenance: CreateResource
+// passes 'external', CreateSynthesis passes 'internal', ordinary
+// Creation Mode leaves it unset.
 export const createSpace = ({
   title,
   templateId,
@@ -32,6 +35,7 @@ export const createSpace = ({
   categories,
   workspaces,
   goal,
+  origin,
 }) =>
   request('/spaces', {
     method: 'POST',
@@ -44,6 +48,7 @@ export const createSpace = ({
       categories,
       workspaces,
       goal,
+      origin,
     }),
   });
 // Title, status, tags, and goal ("working toward") all go through this

@@ -73,6 +73,15 @@ function ResourcesDigest({ spaces }) {
         {spaces.map((space) => (
           <li key={space.id}>
             <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+            {/* A promoted Synthesis carries the "resource" tag too, so
+                it shows up here alongside ordinary external Resources
+                -- this distinguishes the two at a glance rather than
+                letting a produced piece read as something sourced. */}
+            {space.origin === 'internal' && (
+              <span className="origin-badge-small" title="Produced by the app itself, promoted from a Synthesis">
+                Internal
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -92,6 +101,11 @@ function SynthesesDigest({ spaces }) {
         {spaces.map((space) => (
           <li key={space.id}>
             <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+            {space.tags.includes('resource') && (
+              <span className="origin-badge-small" title="Promoted to Resource status">
+                ↑ Resource
+              </span>
+            )}
           </li>
         ))}
       </ul>

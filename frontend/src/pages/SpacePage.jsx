@@ -139,6 +139,56 @@ function AccentPicker({ space, onChanged }) {
   );
 }
 
+// Shows at a glance whether this Space was brought in from outside the
+// app (external -- a Resource) or produced by the app itself (internal
+// -- a Synthesis, or anything later promoted to Resource status).
+// Read-only here: origin is set once at creation (see
+// CreateResource.jsx/CreateSynthesis.jsx), not editable in place --
+// provenance is a fact about how a Space came to exist, not a property
+// to be reassigned later.
+function OriginBadge({ space }) {
+  if (!space.origin) return null;
+  return (
+    <span
+      className="origin-badge"
+      data-origin={space.origin}
+      title={space.origin === 'external' ? 'Brought in from outside the app' : 'Produced by the app itself'}
+    >
+      {space.origin === 'external' ? 'External' : 'Internal'}
+    </span>
+  );
+}
+
+// A mature Synthesis (origin: 'internal') can be explicitly promoted
+// to also carry the "resource" tag, once it's settled enough to be
+// cited elsewhere the way an external Resource is. Deliberately just a
+// tag addition -- no new Space, no content changes -- since promoting
+// doesn't change what the Space *is*, just that it's now also
+// discoverable as a Resource (the Dashboard's Resources digest already
+// reads tag membership, so promoting needs no new plumbing). Scoped to
+// Syntheses only for now: a raw Space full of scattered Work items
+// isn't "a thing" yet the way a compiled Synthesis is -- Synthesis is
+// already the maturation step this builds on.
+function PromoteToResource({ space, onChanged }) {
+  if (space.origin !== 'internal' || !space.tags.includes('synthesis') || space.tags.includes('resource')) {
+    return null;
+  }
+
+  async function promote() {
+    await updateSpace(space.id, { tags: [...space.tags, 'resource'] });
+    onChanged();
+  }
+
+  return (
+    <p className="promote-row">
+      <button type="button" className="btn-ghost-small" onClick={promote}>
+        ↑ Promote to Resource
+      </button>{' '}
+      <span className="promote-hint">mark this Synthesis as settled enough to cite elsewhere, like a Resource</span>
+    </p>
+  );
+}
+
 function TagEditor({ space, onChanged }) {
   const [newTag, setNewTag] = useState('');
 
@@ -526,11 +576,13 @@ function SpacePage() {
             </h1>
             <p className="space-meta">
               <StatusPill space={space} onChanged={refetchAll} />
+              <OriginBadge space={space} />
             </p>
             <AccentPicker space={space} onChanged={refetchAll} />
 
             <WorkingToward space={space} onChanged={refetchAll} />
             <TagEditor space={space} onChanged={refetchAll} />
+            <PromoteToResource space={space} onChanged={refetchAll} />
             <CategoryManager space={space} onChanged={refetchAll} />
 
             {backlinks && backlinks.length > 0 && (

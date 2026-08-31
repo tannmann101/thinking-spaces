@@ -13,6 +13,12 @@
 // Views, the Graph, the Trail, the Log, deletion, all of it. Nothing
 // about "what it engages with" needed new machinery; it needed a
 // creation flow that actually asks about it.
+//
+// origin: 'external' marks this as something brought in from outside
+// the app -- the counterpart to Synthesis's 'internal' (see
+// CreateSynthesis.jsx) -- so the Space page can show at a glance
+// whether a given Space is a citable thing you sourced, or one the
+// app itself produced through Work/Synthesis.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -107,6 +113,7 @@ function CreateResource() {
         tags: ['resource', ...typeTags],
         categories: [WHAT_IT_IS, WHAT_IT_AFFORDS, TOUCHES, WHAT_IT_OFFERS],
         goal: null,
+        origin: 'external',
       });
       navigate(`/spaces/${space.id}`);
     } catch (err) {

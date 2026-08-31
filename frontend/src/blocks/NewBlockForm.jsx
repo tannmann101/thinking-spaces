@@ -6,18 +6,20 @@
 // Limited to the self-contained Tools: Reference and Media need real
 // external input (a target Space, an image URL) that doesn't fit a
 // quick "+ Add Block" form, and Comparison needs two sub-blocks -- none
-// of those belong here. Every Work Type (Assessment, Question,
-// Analysis, Deduction, Definition, Demonstration, Insight, Implication,
-// Hypothesis, Objection) fits the same mold Text and List already do
-// (nothing but its own starting text), so they all join this form
-// rather than getting a separate creation flow. List items created
-// here are plain text only -- no checkbox/number/date/confidence at
-// creation -- matching the same scope line the "+ Add item" control
-// already draws; a Work block likewise starts with just its statement
-// and an empty support list, both set/added afterward on the block
-// itself. WORK_TYPE_STARTER_PROMPTS is the one place a new Work Type's
-// starting-text placeholder needs adding -- nothing else in this form
-// is type-specific.
+// of those belong here. Every Work Type fits the same mold Text and
+// List already do (nothing but its own starting text), so they all
+// join this form rather than getting a separate creation flow -- and
+// the dropdown's Work options are read straight from blockRegistry's
+// `family: 'work'` entries (grouped under their own <optgroup>, not
+// mixed flat with Text/List) rather than hardcoded here, so a new Work
+// Type needs no edit to this file at all, just its registry entry.
+// List items created here are plain text only -- no checkbox/number/
+// date/confidence at creation -- matching the same scope line the
+// "+ Add item" control already draws; a Work block likewise starts
+// with just its statement and an empty support list, both set/added
+// afterward on the block itself. WORK_TYPE_STARTER_PROMPTS gives a few
+// Work Types a nicer starting-text placeholder than the generic
+// "The <label>" fallback every other Work Type gets automatically.
 //
 // `categories` is optional and only meaningful on a live Space that has
 // already defined some (Template editing and Creation Mode's draft
@@ -39,22 +41,22 @@
 // it can't yet know.
 
 import { useState } from 'react';
+import { blockRegistry } from '../registry/blocks.js';
 
-// The starting-text placeholder for each Work Type -- everything else
-// about adding one here is identical, so this is the only thing a new
-// Work Type needs added to this form.
+// A nicer starting-text placeholder for a Work Type than the generic
+// "The <label>" fallback below -- optional, since a new Work Type
+// reads fine without an entry here (e.g. "The demonstration").
+// Definition is the one that actually needs an override: its
+// statement holds a term, not "the definition".
 const WORK_TYPE_STARTER_PROMPTS = {
-  assessment: 'The assessment',
-  question: 'The question',
-  analysis: 'The analysis',
-  deduction: 'The deduction',
   definition: 'The term',
-  demonstration: 'The demonstration',
-  insight: 'The insight',
-  implication: 'The implication',
-  hypothesis: 'The hypothesis',
-  objection: 'The objection',
 };
+
+const WORK_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'work');
+
+function workTypeStarterPrompt(type) {
+  return WORK_TYPE_STARTER_PROMPTS[type] || `The ${blockRegistry[type].label.toLowerCase()}`;
+}
 
 function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
   const [type, setType] = useState('text');
@@ -113,18 +115,17 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
       <label>
         Block type:{' '}
         <select value={type} onChange={(event) => setType(event.target.value)}>
-          <option value="text">Text</option>
-          <option value="list">List</option>
-          <option value="assessment">Assessment</option>
-          <option value="question">Question</option>
-          <option value="analysis">Analysis</option>
-          <option value="deduction">Deduction</option>
-          <option value="definition">Definition</option>
-          <option value="demonstration">Demonstration</option>
-          <option value="insight">Insight</option>
-          <option value="implication">Implication</option>
-          <option value="hypothesis">Hypothesis</option>
-          <option value="objection">Objection</option>
+          <optgroup label="General">
+            <option value="text">Text</option>
+            <option value="list">List</option>
+          </optgroup>
+          <optgroup label="Work">
+            {WORK_TYPES.map(([key, entry]) => (
+              <option key={key} value={key}>
+                {entry.label}
+              </option>
+            ))}
+          </optgroup>
         </select>
       </label>
       <br />
@@ -132,9 +133,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         <textarea
           value={text}
           placeholder={
-            type === 'text'
-              ? 'Starting text (can be left blank)'
-              : `${WORK_TYPE_STARTER_PROMPTS[type]} (can be left blank)`
+            type === 'text' ? 'Starting text (can be left blank)' : `${workTypeStarterPrompt(type)} (can be left blank)`
           }
           rows={2}
           style={{ width: '100%', marginTop: '6px' }}

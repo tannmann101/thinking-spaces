@@ -262,7 +262,7 @@ function GraphView({ spaces, workspaces = [], edges }) {
     }
   }
 
-  function onMouseUp(event) {
+  function onMouseUp() {
     const gesture = gestureRef.current;
     if (!gesture) return;
     if (gesture.kind === 'node') {
@@ -283,6 +283,17 @@ function GraphView({ spaces, workspaces = [], edges }) {
     return <p>No Spaces yet.</p>;
   }
 
+  // Reading a ref's .current during render is a real anti-pattern in
+  // general (React's own docs warn against it, and the linter flags
+  // it) -- but it's a deliberate choice here, not an oversight. Copying
+  // every node's live x/y/vx/vy into useState on every animation frame
+  // (60fps) just to satisfy that rule would mean a full React re-render
+  // cycle per frame purely to shuttle data React itself never needs to
+  // reconcile against anything else. The physics loop's own
+  // `forceRender` call (in the tick() effect above) already guarantees
+  // a render happens on every frame the simulation is running, so this
+  // never actually goes stale in practice -- it's read here, in render,
+  // simply because render is where the SVG needs the current positions.
   const nodes = nodesRef.current;
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   // Only reference edges (Space-to-Space) inflate a Space's apparent

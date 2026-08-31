@@ -32,7 +32,11 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
   // Only ticks while actually running, and only to refresh this
   // component's own "elapsed so far" display -- nothing is written to
   // the block until Stop is clicked.
-  const [now, setNow] = useState(Date.now());
+  // Lazy initializer: Date.now() should only ever be called once, at
+  // mount, not re-evaluated on every render the way a bare `Date.now()`
+  // argument would be (React only uses that value once, but the impure
+  // call itself would still fire every render).
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!isRunning) return undefined;
     const interval = setInterval(() => setNow(Date.now()), 1000);

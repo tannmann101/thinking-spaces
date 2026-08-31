@@ -18,6 +18,8 @@ function CreateSpace() {
   const [templates, setTemplates] = useState(null);
   const [templateId, setTemplateId] = useState(null); // null = start blank
   const [extraBlocks, setExtraBlocks] = useState([]);
+  const [workspaceNames, setWorkspaceNames] = useState([]);
+  const [workspaceNameInput, setWorkspaceNameInput] = useState('');
   const [resources, setResources] = useState(null);
   const [selectedResourceIds, setSelectedResourceIds] = useState(new Set());
   const [tags, setTags] = useState([]);
@@ -63,6 +65,33 @@ function CreateSpace() {
     setTags(tags.filter((t) => t !== tag));
   }
 
+  // Named here, before any Workspace exists as a real row -- see
+  // NewBlockForm's `workspaceNames` prop and createSpaceWithSetup on the
+  // backend, which resolves these draft names into real Workspace ids
+  // once the Space (and so the Workspaces) actually get created.
+  function addDraftWorkspace() {
+    const name = workspaceNameInput.trim();
+    setWorkspaceNameInput('');
+    if (!name || workspaceNames.includes(name)) return;
+    setWorkspaceNames([...workspaceNames, name]);
+  }
+
+  function removeDraftWorkspace(name) {
+    setWorkspaceNames(workspaceNames.filter((n) => n !== name));
+    // A block already filed under a Workspace that's just been removed
+    // simply loses that (now-nonexistent) assignment -- same as removing
+    // a Category never deletes what was filed under it.
+    setExtraBlocks(
+      extraBlocks.map((block) => ({
+        ...block,
+        properties: {
+          ...block.properties,
+          workspaceNames: (block.properties?.workspaceNames || []).filter((n) => n !== name),
+        },
+      }))
+    );
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!title.trim()) return;
@@ -75,6 +104,7 @@ function CreateSpace() {
         extraBlocks,
         resourceSpaceIds: [...selectedResourceIds],
         tags,
+        workspaces: workspaceNames,
         goal: goal.trim() || null,
       });
       navigate(`/spaces/${space.id}`);
@@ -147,6 +177,41 @@ function CreateSpace() {
           </div>
         )}
 
+        <h2>Workspaces</h2>
+        <p>
+          Optionally name a Workspace or two up front -- a dedicated environment to assemble some of
+          this Space's Tools into from the start, instead of only ever adding one after creation.
+        </p>
+        {workspaceNames.length > 0 && (
+          <p className="workspace-name-row">
+            {workspaceNames.map((name) => (
+              <span key={name} className="workspace-chip">
+                {name}{' '}
+                <span className="editable-toggle" onClick={() => removeDraftWorkspace(name)} title="Remove">
+                  ✕
+                </span>
+              </span>
+            ))}
+          </p>
+        )}
+        <span className="workspace-add-form">
+          <input
+            type="text"
+            value={workspaceNameInput}
+            placeholder="+ Workspace name"
+            onChange={(event) => setWorkspaceNameInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addDraftWorkspace();
+              }
+            }}
+          />
+          <button type="button" className="btn-ghost-small" onClick={addDraftWorkspace}>
+            Add
+          </button>
+        </span>
+
         <h2>Tools</h2>
         <p>Add any extra Tools this Space should start with, on top of its cluster.</p>
         {extraBlocks.length > 0 && (
@@ -154,6 +219,15 @@ function CreateSpace() {
             {extraBlocks.map((block, index) => (
               <li key={index} className="cluster-preview-block block-row">
                 <BlockPreview block={block} />
+                {block.properties?.workspaceNames?.length > 0 && (
+                  <p className="block-workspace-row">
+                    {block.properties.workspaceNames.map((name) => (
+                      <span key={name} className="workspace-chip workspace-chip-active">
+                        {name}
+                      </span>
+                    ))}
+                  </p>
+                )}
                 <div className="block-controls">
                   <button
                     type="button"
@@ -167,7 +241,7 @@ function CreateSpace() {
             ))}
           </ol>
         )}
-        <NewBlockForm onAdd={(spec) => setExtraBlocks([...extraBlocks, spec])} />
+        <NewBlockForm onAdd={(spec) => setExtraBlocks([...extraBlocks, spec])} workspaceNames={workspaceNames} />
 
         <h2>Resources</h2>
         {resources === null && <p>Loading...</p>}

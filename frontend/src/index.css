@@ -1167,6 +1167,14 @@ label {
   font-size: 14px;
 }
 
+.workspace-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+
 .workspace-add-form {
   display: flex;
   gap: 6px;

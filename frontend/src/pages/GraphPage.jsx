@@ -62,7 +62,7 @@ function GraphPage() {
 
       {graph && (
         <>
-          <GraphView spaces={graph.spaces} edges={graph.edges} />
+          <GraphView spaces={graph.spaces} workspaces={graph.workspaces} edges={graph.edges} />
 
           <h2>Combine Spaces into a Relational Space</h2>
           <p>Select two or more Spaces below, name the new Space, and it will start with a Reference to each one plus a blank space for your synthesis.</p>

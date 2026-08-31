@@ -253,6 +253,15 @@ function ensureResourceDemoSpace() {
         { id: 'book-item-author', text: 'Author: Donella Meadows' },
         { id: 'book-item-read', text: 'Finished reading', checkbox: true },
         { id: 'book-item-concept', text: 'Key concept: leverage points', confidence: 'solid' },
+        // Deliberately overdue (in the past), and deliberately outside
+        // the Test Space, so the Dashboard's "Overdue for review"
+        // digest (which excludes the Test Space on purpose) has
+        // something real to show without anyone setting one up first.
+        {
+          id: 'book-item-review',
+          text: 'Revisit notes on feedback loops before citing this in a real Space',
+          reviewBy: daysAgo(3),
+        },
       ],
     },
     position: 1,
@@ -338,6 +347,82 @@ function seedShorthandDemo() {
   });
 }
 
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Decision Log: needs no new Block type or View -- just checkbox
+// (decided) + flagged (load-bearing) + reviewBy on a plain List. The
+// third item's reviewBy is deliberately in the past, so the
+// Dashboard's "Overdue for review" digest has something to show
+// without anyone needing to set one up first.
+function seedDecisionLogDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 20)) return;
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'list',
+    content: {
+      laneLabel: 'Decision Log',
+      items: [
+        {
+          id: 'decision-1',
+          text: 'Ship Pass 2 functional work before any visual polish',
+          checkbox: true,
+          flagged: true,
+        },
+        { id: 'decision-2', text: 'Use SQLite instead of a heavier database', checkbox: true, flagged: false },
+        {
+          id: 'decision-3',
+          text: 'Whether to add real-time collaboration',
+          checkbox: false,
+          reviewBy: daysAgo(3),
+        },
+      ],
+    },
+    position: 20,
+  });
+}
+
+// Time/Effort Ledger: the Ledger view already works over any numbered
+// List -- this just points it at minutes instead of money, to show
+// that's not a new feature, just a different use of an existing one.
+function seedTimeLedgerDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 21)) return;
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'list',
+    content: {
+      laneLabel: 'Time Log (minutes)',
+      items: [
+        { id: 'time-1', text: 'Designing the substrate', number: 90 },
+        { id: 'time-2', text: 'Implementing Pass 1', number: 120 },
+        { id: 'time-3', text: 'Implementing Pass 2 so far', number: 240 },
+      ],
+    },
+    position: 21,
+  });
+}
+
+// Source Trust Rating demo: a second Reference to the Resource demo
+// Space, this time seeded with a trust rating already set, so the
+// marker is visible without needing to click it first.
+function seedTrustRatingDemo() {
+  if (blockExistsAtPosition(TEST_SPACE_ID, 22)) return;
+  ensureResourceDemoSpace();
+  createBlock({
+    spaceId: TEST_SPACE_ID,
+    type: 'reference',
+    content: {
+      target_space_id: RESOURCE_DEMO_SPACE_ID,
+      note: 'Rated high-trust: a well-established systems-thinking text.',
+      trust: 'high',
+    },
+    position: 22,
+  });
+}
+
 export function seedTestSpaceBlocks() {
   seedTextBlocks();
   seedGeneralListBlock();
@@ -352,4 +437,7 @@ export function seedTestSpaceBlocks() {
   seedInlineLinkDemo();
   seedSkeletonLanes();
   seedShorthandDemo();
+  seedDecisionLogDemo();
+  seedTimeLedgerDemo();
+  seedTrustRatingDemo();
 }

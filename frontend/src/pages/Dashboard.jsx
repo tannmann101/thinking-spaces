@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getSpaces } from '../api.js';
+import { getSpaces, getOverdueReviews, getRecentTrail, getResurfaceSuggestion } from '../api.js';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 
 function formatDate(isoLikeString) {
@@ -9,12 +9,63 @@ function formatDate(isoLikeString) {
   return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
 }
 
+function OverdueReviews({ items }) {
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <h3>Overdue for review</h3>
+      <ul>
+        {items.map(({ spaceId, spaceTitle, item }) => (
+          <li key={item.id}>
+            <Link to={`/spaces/${spaceId}`}>{spaceTitle}</Link>: {item.text} (was due {item.reviewBy})
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function RecentTrailDigest({ entries }) {
+  if (entries.length === 0) return null;
+  return (
+    <section>
+      <h3>This week, across your Spaces</h3>
+      <ul>
+        {entries.map((entry) => (
+          <li key={entry.id}>
+            <Link to={`/spaces/${entry.space_id}`}>{entry.spaceTitle}</Link>: {entry.summary}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ResurfaceSuggestion({ space }) {
+  if (!space) return null;
+  return (
+    <section>
+      <h3>Maybe revisit...</h3>
+      <p>
+        <Link to={`/spaces/${space.id}`}>{space.title}</Link> ({space.status}, last touched{' '}
+        {formatDate(space.updated_at)})
+      </p>
+    </section>
+  );
+}
+
 function Dashboard() {
   const [spaces, setSpaces] = useState(null);
+  const [overdue, setOverdue] = useState([]);
+  const [recentTrail, setRecentTrail] = useState([]);
+  const [resurface, setResurface] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     getSpaces().then(setSpaces).catch((err) => setError(err.message));
+    getOverdueReviews().then(setOverdue).catch(() => {});
+    getRecentTrail().then(setRecentTrail).catch(() => {});
+    getResurfaceSuggestion().then(setResurface).catch(() => {});
   }, []);
 
   return (
@@ -23,6 +74,10 @@ function Dashboard() {
       <p>
         <Link to="/spaces/new">+ New Space</Link>
       </p>
+
+      <OverdueReviews items={overdue} />
+      <RecentTrailDigest entries={recentTrail} />
+      <ResurfaceSuggestion space={resurface} />
 
       {error && <p>Could not load spaces: {error}</p>}
 

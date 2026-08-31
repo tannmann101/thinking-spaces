@@ -20,6 +20,9 @@ import { getTemplateById, createTemplate, SKELETON_LANES } from './queries.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// The last block is a Steelman prompt -- "before finalizing, what's
+// the strongest case against this" -- pre-filled as a question rather
+// than left blank, since it's a prompt to answer, not a label.
 function buildSkeletonBlocks(startPosition, labelOverrides = {}) {
   const laneBlocks = SKELETON_LANES.map((lane, index) => ({
     type: 'list',
@@ -27,13 +30,23 @@ function buildSkeletonBlocks(startPosition, labelOverrides = {}) {
     properties: { skeletonLane: lane.key },
     position: startPosition + index,
   }));
+  const articulationPosition = startPosition + laneBlocks.length;
   return [
     ...laneBlocks,
     {
       type: 'text',
       content: { tag: null, text: '' },
       properties: { skeletonRole: 'current-best-articulation' },
-      position: startPosition + laneBlocks.length,
+      position: articulationPosition,
+    },
+    {
+      type: 'text',
+      content: {
+        tag: null,
+        text: 'Steelman: before finalizing, what is the strongest case against your current conclusion?',
+      },
+      properties: {},
+      position: articulationPosition + 1,
     },
   ];
 }

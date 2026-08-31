@@ -44,3 +44,6 @@ export const addTrailNote = (spaceId, note) =>
     method: 'POST',
     body: JSON.stringify({ note }),
   });
+export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
+export const getRecentTrail = () => request('/dashboard/recent-trail');
+export const getResurfaceSuggestion = () => request('/dashboard/resurface');

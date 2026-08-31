@@ -31,6 +31,8 @@ import MediaBlock from '../blocks/MediaBlock.jsx';
 import MediaWorkshop from '../blocks/MediaWorkshop.jsx';
 import ComparisonBlock from '../blocks/ComparisonBlock.jsx';
 import ComparisonWorkshop from '../blocks/ComparisonWorkshop.jsx';
+import AssessmentBlock from '../blocks/AssessmentBlock.jsx';
+import QuestionBlock from '../blocks/QuestionBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -137,6 +139,44 @@ export const blockRegistry = {
         right: { kind: 'text', tag: null, text: 'Option B' },
         contrast: true,
         contrastNote: 'demo contrast',
+      },
+      properties: {},
+    },
+  },
+  // "Work": the first two of a new kind of Tool, one real, distinct
+  // Tool per kind of thinking-act (assess, question, and whatever
+  // follows) rather than a generic block with a label. Both share one
+  // underlying shape ({statement, rationale, confidence} -- see
+  // WorkBlock.jsx) so Synthesis can pull from them uniformly; see
+  // backend/src/db/queries.js's WORK_TYPES, which must list every type
+  // registered here that Synthesis should be able to draw from.
+  assessment: {
+    label: 'Assessment',
+    description: 'A judgment on something, with supporting rationale and a confidence marker.',
+    component: AssessmentBlock,
+    worksWith: ['question'],
+    demoBlock: {
+      type: 'assessment',
+      content: {
+        statement: 'This vendor is not worth the switching cost.',
+        rationale: 'Migration effort outweighs the savings within any reasonable payback window.',
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  question: {
+    label: 'Question',
+    description:
+      'An open question worth holding onto, with why it matters and a confidence marker for how central it feels.',
+    component: QuestionBlock,
+    worksWith: ['assessment'],
+    demoBlock: {
+      type: 'question',
+      content: {
+        statement: 'Is the switching cost actually reversible?',
+        rationale: 'If it is, the risk calculus for this decision changes a lot.',
+        confidence: 'tentative',
       },
       properties: {},
     },

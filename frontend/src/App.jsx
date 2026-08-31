@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import CreateSpace from './pages/CreateSpace.jsx';
 import CreateResource from './pages/CreateResource.jsx';
+import CreateSynthesis from './pages/CreateSynthesis.jsx';
 import SpacePage from './pages/SpacePage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
@@ -16,6 +17,7 @@ function App() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/spaces/new" element={<CreateSpace />} />
       <Route path="/resources/new" element={<CreateResource />} />
+      <Route path="/synthesis/new" element={<CreateSynthesis />} />
       <Route path="/spaces/:id" element={<SpacePage />} />
       <Route path="/spaces/:spaceId/workspaces/:workspaceId" element={<WorkspacePage />} />
       <Route path="/templates" element={<TemplatesPage />} />

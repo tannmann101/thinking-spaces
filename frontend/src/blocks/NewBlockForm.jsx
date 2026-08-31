@@ -1,15 +1,18 @@
 // A minimal "add a block" form, shared between the Template editor
 // (where it appends to a draft block_arrangement) and a live Space
-// (where it POSTs immediately) -- what a new Text or List block needs
-// at creation is the same question in both places.
+// (where it POSTs immediately) -- what a new Text, List, Assessment, or
+// Question block needs at creation is the same question in both places.
 //
-// Deliberately limited to Text and List: those two cover everything
-// the five built-in Templates actually use apart from one Media block
-// and a couple of Reference/Comparison blocks, and both of those need
-// real external input (a target Space, an image URL) that doesn't fit
-// a quick "+ Add Block" form. List items created here are plain text
-// only -- no checkbox/number/date/confidence at creation -- matching
-// the same scope line the "+ Add item" control already draws.
+// Limited to the self-contained Tools: Reference and Media need real
+// external input (a target Space, an image URL) that doesn't fit a
+// quick "+ Add Block" form, and Comparison needs two sub-blocks -- none
+// of those belong here. Assessment and Question fit the same mold Text
+// and List already do (nothing but their own starting text), so they
+// join this form rather than getting a separate creation flow. List
+// items created here are plain text only -- no checkbox/number/date/
+// confidence at creation -- matching the same scope line the "+ Add
+// item" control already draws; Assessment/Question likewise start with
+// just a statement, rationale/confidence set afterward on the block.
 //
 // `categories` is optional and only meaningful on a live Space that has
 // already defined some (Template editing and Creation Mode's draft
@@ -64,13 +67,17 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
     };
     if (type === 'text') {
       onAdd({ type: 'text', content: { tag: null, text }, properties });
-    } else {
+    } else if (type === 'list') {
       const items = itemLines
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean)
         .map((line) => ({ id: crypto.randomUUID(), text: line }));
       onAdd({ type: 'list', content: { laneLabel: laneLabel.trim(), items }, properties });
+    } else {
+      // assessment or question -- both start with just a statement;
+      // rationale/confidence are set afterward on the block itself.
+      onAdd({ type, content: { statement: text.trim(), rationale: '', confidence: 'tentative' }, properties });
     }
     setText('');
     setLaneLabel('');
@@ -86,13 +93,21 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         <select value={type} onChange={(event) => setType(event.target.value)}>
           <option value="text">Text</option>
           <option value="list">List</option>
+          <option value="assessment">Assessment</option>
+          <option value="question">Question</option>
         </select>
       </label>
       <br />
-      {type === 'text' ? (
+      {type === 'text' || type === 'assessment' || type === 'question' ? (
         <textarea
           value={text}
-          placeholder="Starting text (can be left blank)"
+          placeholder={
+            type === 'text'
+              ? 'Starting text (can be left blank)'
+              : type === 'assessment'
+                ? 'The assessment (can be left blank)'
+                : 'The question (can be left blank)'
+          }
           rows={2}
           style={{ width: '100%', marginTop: '6px' }}
           onChange={(event) => setText(event.target.value)}

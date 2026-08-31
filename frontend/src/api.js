@@ -88,6 +88,10 @@ export const updateTrailNote = (spaceId, entryId, note) =>
 // The live Skeleton state, in the same {lanes, articulation} shape a
 // stored Trail snapshot has -- Rewind's "Now" column reads this.
 export const getCurrentSkeleton = (spaceId) => request(`/spaces/${spaceId}/skeleton/current`);
+// Cross-Space "Work" items (Assessment/Question, and any future kind)
+// -- powers Synthesis's picker, which needs candidates from every
+// Space, not just the current one.
+export const getWorkItems = () => request('/work-items');
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getRecentTrail = () => request('/dashboard/recent-trail');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');

@@ -80,12 +80,32 @@ function ResourcesDigest({ spaces }) {
   );
 }
 
+// Same pattern as ResourcesDigest above, filtered to the "synthesis"
+// tag instead -- a Synthesis is just a Space tagged accordingly, same
+// as a Resource is.
+function SynthesesDigest({ spaces }) {
+  if (spaces.length === 0) return null;
+  return (
+    <section className="digest">
+      <h3>Syntheses</h3>
+      <ul>
+        {spaces.map((space) => (
+          <li key={space.id}>
+            <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Dashboard() {
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
   const [recentTrail, setRecentTrail] = useState([]);
   const [resurface, setResurface] = useState(null);
   const [resources, setResources] = useState([]);
+  const [syntheses, setSyntheses] = useState([]);
   const [error, setError] = useState(null);
 
   function refetchSpaces() {
@@ -98,6 +118,7 @@ function Dashboard() {
     getRecentTrail().then(setRecentTrail).catch(() => {});
     getResurfaceSuggestion().then(setResurface).catch(() => {});
     getSpacesByTag('resource').then(setResources).catch(() => {});
+    getSpacesByTag('synthesis').then(setSyntheses).catch(() => {});
   }, []);
 
   // Same heavier, type-the-name confirmation as the Delete control on
@@ -133,12 +154,16 @@ function Dashboard() {
         <Link to="/resources/new" className="new-space-btn new-resource-btn">
           + New Resource
         </Link>
+        <Link to="/synthesis/new" className="new-space-btn new-resource-btn">
+          + New Synthesis
+        </Link>
       </p>
 
       <OverdueReviews items={overdue} />
       <RecentTrailDigest entries={recentTrail} />
       <ResurfaceSuggestion space={resurface} />
       <ResourcesDigest spaces={resources} />
+      <SynthesesDigest spaces={syntheses} />
 
       {error && <p>Could not load spaces: {error}</p>}
 

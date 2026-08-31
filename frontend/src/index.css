@@ -806,6 +806,115 @@ label {
   flex: 1;
 }
 
+/* ---------- List Workshop: the bespoke, card-per-item environment a
+   List Tool gets inside a Workspace, in place of the compact run-on
+   .list-block rows above. Real drag-and-drop reordering instead of
+   up/down buttons, and each item's secondary fields (confidence, date,
+   number...) get their own small labeled chips instead of inline dashes. ---------- */
+
+.list-workshop-heading,
+.list-workshop-heading-input {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.list-workshop-heading-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--maroon);
+  background: transparent;
+}
+
+.list-workshop-empty {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.list-workshop-items {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.list-workshop-item {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.list-workshop-item.dragging {
+  opacity: 0.4;
+}
+.list-workshop-item.drag-over {
+  border-color: var(--maroon);
+}
+
+.list-workshop-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.list-workshop-handle {
+  cursor: grab;
+  color: var(--ink-faint);
+  font-size: 14px;
+}
+.list-workshop-item-text {
+  flex: 1;
+  font-size: 15.5px;
+  color: var(--ink);
+}
+.list-workshop-field-input {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--maroon);
+  color: var(--ink);
+}
+.list-workshop-remove {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 13px;
+}
+.list-workshop-remove:hover {
+  color: var(--maroon-bright);
+}
+
+.list-workshop-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0 22px; /* aligns under the item text, past the drag handle */
+}
+.list-workshop-meta-field {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2px 7px;
+}
+.list-workshop-confidence {
+  cursor: pointer;
+}
+.list-workshop-confidence:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+
+.list-workshop-shape-picker {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin: 0 0 8px;
+}
+
 /* ---------- Reference block ---------- */
 
 .reference-block {

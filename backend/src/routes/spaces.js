@@ -15,6 +15,8 @@ import {
   createSpaceWithSetup,
   createRelationalSpace,
   getSpaceReport,
+  getReviewDraft,
+  createReview,
 } from '../db/queries.js';
 import { renderReportText } from '../reportFormat.js';
 
@@ -132,6 +134,27 @@ spacesRouter.get('/spaces/:id/report', (req, res) => {
     return res.status(404).json({ error: 'Space not found' });
   }
   res.json({ report, narrative: renderReportText(report) });
+});
+
+// A Review's draft is read-only -- what a Review would say if created
+// right now, so it can be shown before it's committed to Trail
+// permanently. Creating one writes exactly that same computed summary
+// as a new 'review'-kind Trail entry -- see getReviewDraft/createReview
+// in queries.js.
+spacesRouter.get('/spaces/:id/reviews/draft', (req, res) => {
+  const draft = getReviewDraft(req.params.id);
+  if (!draft) {
+    return res.status(404).json({ error: 'Space not found' });
+  }
+  res.json(draft);
+});
+
+spacesRouter.post('/spaces/:id/reviews', (req, res) => {
+  const review = createReview(req.params.id);
+  if (!review) {
+    return res.status(404).json({ error: 'Space not found' });
+  }
+  res.status(201).json(review);
 });
 
 spacesRouter.get('/spaces/:id/trail', (req, res) => {

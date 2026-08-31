@@ -885,6 +885,105 @@ label {
   font-size: 11px;
 }
 
+/* ---------- Categories: per-Space facets, distinct from tags ---------- */
+/* Same shape as tags (chip + inline add-form) but in the maroon accent
+   rather than the neutral surface color, so a Category reads as "part
+   of this Space's own topic" at a glance, never confused with a tag. */
+
+.category-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+.category-row-label {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-right: 2px;
+}
+.category-chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--maroon-bright);
+  background: var(--maroon-wash);
+  border: 1px solid var(--maroon);
+  border-radius: 2px;
+  padding: 2px 6px;
+}
+.category-chip .editable-toggle {
+  border-bottom: none;
+  color: var(--ink-faint);
+}
+.category-chip .editable-toggle:hover {
+  color: var(--maroon-bright);
+  background: none;
+}
+.category-add-form {
+  display: inline-block;
+}
+.category-add-form input {
+  width: 100px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+/* A chip that's also a toggle -- assigning/unassigning a block to a
+   Category (on a live block, or when filing a new one at creation).
+   Unselected chips stay dim so an at-a-glance scan shows only what's
+   actually assigned; clicking any chip (assigned or not) toggles it. */
+.category-chip-toggle {
+  cursor: pointer;
+  opacity: 0.45;
+}
+.category-chip-toggle:hover {
+  opacity: 0.75;
+}
+.category-chip-toggle.category-chip-active {
+  opacity: 1;
+}
+
+.block-category-row {
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* The filter strip above the block feed -- "All" plus one tab per
+   Category, letting you zoom in on a single facet without ever hiding
+   the per-block chips that show the full multi-category picture. */
+.category-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 14px 0;
+}
+.category-filter-tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--ink-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.category-filter-tab:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+.category-filter-tab-active {
+  color: var(--maroon-bright);
+  border-color: var(--maroon);
+  background: var(--maroon-wash);
+}
+
 /* ---------- Tools catalog ---------- */
 
 .tool-grid {

@@ -9,6 +9,7 @@ import {
   deleteBlockApi,
   moveBlockInSpace,
   updateSpace,
+  updateBlockCategories,
   deleteSpace,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
@@ -143,6 +144,57 @@ function TagEditor({ space, onChanged }) {
   );
 }
 
+// A Space's own Categories -- freely-named facets of whatever this
+// Space is trying to understand (e.g. "Financial Impact", "Risk
+// Tolerance"), distinct from tags (which categorize the Space itself
+// among every other Space). Categories are defined here, at the Space
+// level; individual blocks then get filed under any number of them
+// (see BlockCategoryPicker below) -- one thing can sit under several
+// facets of the same topic at once, which is the whole point.
+function CategoryManager({ space, onChanged }) {
+  const [newCategory, setNewCategory] = useState('');
+
+  async function addCategory(event) {
+    event.preventDefault();
+    const category = newCategory.trim();
+    setNewCategory('');
+    if (!category || space.categories.includes(category)) return;
+    await updateSpace(space.id, { categories: [...space.categories, category] });
+    onChanged();
+  }
+
+  async function removeCategory(category) {
+    await updateSpace(space.id, { categories: space.categories.filter((c) => c !== category) });
+    onChanged();
+  }
+
+  return (
+    <p className="category-row">
+      <span className="category-row-label">Categories:</span>
+      {space.categories.map((category) => (
+        <span key={category} className="category-chip">
+          {category}{' '}
+          <span
+            className="editable-toggle"
+            onClick={() => removeCategory(category)}
+            title="Remove category"
+          >
+            ✕
+          </span>
+        </span>
+      ))}
+      <form onSubmit={addCategory} className="category-add-form">
+        <input
+          type="text"
+          value={newCategory}
+          placeholder="+ category"
+          onChange={(event) => setNewCategory(event.target.value)}
+        />
+      </form>
+    </p>
+  );
+}
+
 // "What this Space is working towards" -- a property of the Space
 // itself (like status), not a block. It sits above the content rather
 // than inside it, which is exactly what makes it different from
@@ -224,6 +276,42 @@ function SkeletonCompletenessStrip({ blocks }) {
   );
 }
 
+// Which of the Space's own Categories this one block belongs to. Only
+// shows up once the Space has defined at least one Category -- with
+// none defined there's nothing to file anything under yet, same as the
+// filter strip below. Toggling a chip is the only way to assign one;
+// new Category names are only ever created via CategoryManager, so a
+// block can't accidentally invent a facet that doesn't apply Space-wide.
+function BlockCategoryPicker({ block, spaceCategories, onChanged }) {
+  if (spaceCategories.length === 0) return null;
+  const current = block.properties?.categories || [];
+
+  async function toggle(category) {
+    const next = current.includes(category)
+      ? current.filter((c) => c !== category)
+      : [...current, category];
+    await updateBlockCategories(block.id, next);
+    onChanged();
+  }
+
+  return (
+    <p className="block-category-row">
+      {spaceCategories.map((category) => (
+        <span
+          key={category}
+          className={`category-chip category-chip-toggle${
+            current.includes(category) ? ' category-chip-active' : ''
+          }`}
+          onClick={() => toggle(category)}
+          title={current.includes(category) ? `Remove from ${category}` : `File under ${category}`}
+        >
+          {category}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function SpacePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -232,6 +320,11 @@ function SpacePage() {
   const [backlinks, setBacklinks] = useState(null);
   const [trail, setTrail] = useState(null);
   const [error, setError] = useState(null);
+  // null = show every block; a category name = focus on just that facet.
+  // This is view-only state (not persisted) -- "zoom in on one aspect of
+  // the topic" without hiding the multi-category chips on each block, so
+  // switching back to "All" always shows the full, honest overlap again.
+  const [activeCategory, setActiveCategory] = useState(null);
 
   const refetchTrail = useCallback(() => {
     getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
@@ -310,6 +403,7 @@ function SpacePage() {
 
             <WorkingToward space={space} onChanged={refetchAll} />
             <TagEditor space={space} onChanged={refetchAll} />
+            <CategoryManager space={space} onChanged={refetchAll} />
 
             {backlinks && backlinks.length > 0 && (
               <p className="space-meta">
@@ -327,65 +421,108 @@ function SpacePage() {
             {blocks && <SkeletonCompletenessStrip blocks={blocks} />}
           </div>
 
-          {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
-          {blocks && blocks.length > 0 && (
-            <div className="block-feed">
-              {blocks.map((block, index) => {
-                const entry = blockRegistry[block.type];
-                const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
-                  view.appliesTo(block)
-                );
-                return (
-                  // Keying on updated_at forces a remount when a block's
-                  // data changes underneath it (e.g. a Skeleton lane
-                  // gaining an item via a different block's shorthand
-                  // promotion) -- otherwise this component's own local
-                  // edit state, set once at mount, would never notice.
-                  <div key={`${block.id}-${block.updated_at}`} className="block-row">
-                    {entry ? (
-                      <entry.component block={block} onBlocksChanged={refetchAll} />
-                    ) : (
-                      <p>Unknown block type: {block.type}</p>
-                    )}
-                    {applicableViews.length > 0 && (
-                      <div className="view-grid">
-                        {applicableViews.map(([key, view]) => (
-                          <view.component key={key} block={block} />
-                        ))}
-                      </div>
-                    )}
-                    <div className="block-controls">
-                      <button
-                        type="button"
-                        className="btn-ghost-small"
-                        onClick={() => handleMoveBlock(block.id, -1)}
-                        disabled={index === 0}
-                      >
-                        Move up
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost-small"
-                        onClick={() => handleMoveBlock(block.id, 1)}
-                        disabled={index === blocks.length - 1}
-                      >
-                        Move down
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost-small"
-                        onClick={() => handleRemoveBlock(block.id)}
-                      >
-                        Remove block
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Filtering by Category is the "zoom in on one aspect of the
+              topic" the flat feed couldn't offer -- but it only narrows
+              which blocks are shown, never which categories a block
+              actually carries, so switching back to "All" always shows
+              the same honest multi-category overlap. Only appears once
+              the Space has defined at least one Category. */}
+          {blocks && space.categories.length > 0 && (
+            <p className="category-filter-strip">
+              <span
+                className={`category-filter-tab${activeCategory === null ? ' category-filter-tab-active' : ''}`}
+                onClick={() => setActiveCategory(null)}
+              >
+                All
+              </span>
+              {space.categories.map((category) => (
+                <span
+                  key={category}
+                  className={`category-filter-tab${
+                    activeCategory === category ? ' category-filter-tab-active' : ''
+                  }`}
+                  onClick={() => setActiveCategory(category)}
+                >
+                  {category}
+                </span>
+              ))}
+            </p>
           )}
 
-          {blocks && <NewBlockForm onAdd={handleAddBlock} />}
+          {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
+          {blocks && blocks.length > 0 && (() => {
+            const visibleBlocks =
+              activeCategory === null
+                ? blocks
+                : blocks.filter((block) => (block.properties?.categories || []).includes(activeCategory));
+            if (visibleBlocks.length === 0) {
+              return <p>No blocks filed under &ldquo;{activeCategory}&rdquo; yet.</p>;
+            }
+            return (
+              <div className="block-feed">
+                {visibleBlocks.map((block) => {
+                  const index = blocks.indexOf(block);
+                  const entry = blockRegistry[block.type];
+                  const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
+                    view.appliesTo(block)
+                  );
+                  return (
+                    // Keying on updated_at forces a remount when a block's
+                    // data changes underneath it (e.g. a Skeleton lane
+                    // gaining an item via a different block's shorthand
+                    // promotion) -- otherwise this component's own local
+                    // edit state, set once at mount, would never notice.
+                    <div key={`${block.id}-${block.updated_at}`} className="block-row">
+                      {entry ? (
+                        <entry.component block={block} onBlocksChanged={refetchAll} />
+                      ) : (
+                        <p>Unknown block type: {block.type}</p>
+                      )}
+                      {applicableViews.length > 0 && (
+                        <div className="view-grid">
+                          {applicableViews.map(([key, view]) => (
+                            <view.component key={key} block={block} />
+                          ))}
+                        </div>
+                      )}
+                      <BlockCategoryPicker
+                        block={block}
+                        spaceCategories={space.categories}
+                        onChanged={refetchAll}
+                      />
+                      <div className="block-controls">
+                        <button
+                          type="button"
+                          className="btn-ghost-small"
+                          onClick={() => handleMoveBlock(block.id, -1)}
+                          disabled={index === 0}
+                        >
+                          Move up
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost-small"
+                          onClick={() => handleMoveBlock(block.id, 1)}
+                          disabled={index === blocks.length - 1}
+                        >
+                          Move down
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost-small"
+                          onClick={() => handleRemoveBlock(block.id)}
+                        >
+                          Remove block
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {blocks && <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />}
 
           {trail && <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />}
 

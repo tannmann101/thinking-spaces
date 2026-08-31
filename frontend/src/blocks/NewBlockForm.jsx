@@ -10,14 +10,29 @@
 // a quick "+ Add Block" form. List items created here are plain text
 // only -- no checkbox/number/date/confidence at creation -- matching
 // the same scope line the "+ Add item" control already draws.
+//
+// `categories` is optional and only meaningful on a live Space that has
+// already defined some (Template editing and Creation Mode's draft
+// blocks have no Space yet to define categories against, so they omit
+// this prop and the picker below simply doesn't render). Assigning at
+// creation is what actually answers "picking Text/List feels like an
+// abstract dropdown" -- the new block is filed under a real facet of
+// the Space's topic from the moment it exists, not after the fact.
 
 import { useState } from 'react';
 
-function NewBlockForm({ onAdd }) {
+function NewBlockForm({ onAdd, categories = [] }) {
   const [type, setType] = useState('text');
   const [text, setText] = useState('');
   const [laneLabel, setLaneLabel] = useState('');
   const [itemLines, setItemLines] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
+
+  function toggleCategory(category) {
+    setSelectedCategories((current) =>
+      current.includes(category) ? current.filter((c) => c !== category) : [...current, category]
+    );
+  }
 
   // Not a <form> -- this gets rendered inside the Template editor's own
   // <form> (and, on a live Space, right alongside one), and nested
@@ -25,19 +40,21 @@ function NewBlockForm({ onAdd }) {
   // the inner submit button's click to the outer form instead. A plain
   // button + onClick sidesteps that entirely.
   function handleSubmit() {
+    const properties = selectedCategories.length > 0 ? { categories: selectedCategories } : {};
     if (type === 'text') {
-      onAdd({ type: 'text', content: { tag: null, text }, properties: {} });
+      onAdd({ type: 'text', content: { tag: null, text }, properties });
     } else {
       const items = itemLines
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean)
         .map((line) => ({ id: crypto.randomUUID(), text: line }));
-      onAdd({ type: 'list', content: { laneLabel: laneLabel.trim(), items }, properties: {} });
+      onAdd({ type: 'list', content: { laneLabel: laneLabel.trim(), items }, properties });
     }
     setText('');
     setLaneLabel('');
     setItemLines('');
+    setSelectedCategories([]);
   }
 
   return (
@@ -75,6 +92,22 @@ function NewBlockForm({ onAdd }) {
             onChange={(event) => setItemLines(event.target.value)}
           />
         </>
+      )}
+      {categories.length > 0 && (
+        <p className="block-category-row">
+          File under:{' '}
+          {categories.map((category) => (
+            <span
+              key={category}
+              className={`category-chip category-chip-toggle${
+                selectedCategories.includes(category) ? ' category-chip-active' : ''
+              }`}
+              onClick={() => toggleCategory(category)}
+            >
+              {category}
+            </span>
+          ))}
+        </p>
       )}
       <p>
         <button type="button" className="btn" onClick={handleSubmit}>

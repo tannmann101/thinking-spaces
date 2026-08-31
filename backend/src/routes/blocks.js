@@ -3,6 +3,7 @@ import {
   listBlocksForSpace,
   getBlockById,
   updateBlockContent,
+  updateBlockCategories,
   saveTextBlockWithPromotion,
   addBlockToSpace,
   deleteBlock,
@@ -34,16 +35,25 @@ blocksRouter.post('/spaces/:spaceId/blocks/:blockId/move', (req, res) => {
   res.json(listBlocksForSpace(req.params.spaceId));
 });
 
+// content and categories are independent edits (content vs. a
+// property), so either can be sent alone or both together.
 blocksRouter.patch('/blocks/:id', (req, res) => {
   const existing = getBlockById(req.params.id);
   if (!existing) {
     return res.status(404).json({ error: 'Block not found' });
   }
-  const { content } = req.body;
-  if (!content || typeof content !== 'object') {
-    return res.status(400).json({ error: 'content is required' });
+  const { content, categories } = req.body;
+  if (content === undefined && categories === undefined) {
+    return res.status(400).json({ error: 'content or categories is required' });
   }
-  res.json(updateBlockContent(req.params.id, content));
+  let updated = existing;
+  if (content !== undefined) {
+    updated = updateBlockContent(req.params.id, content);
+  }
+  if (categories !== undefined) {
+    updated = updateBlockCategories(req.params.id, categories);
+  }
+  res.json(updated);
 });
 
 blocksRouter.delete('/blocks/:id', (req, res) => {

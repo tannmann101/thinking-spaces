@@ -11,6 +11,7 @@ import {
   listBacklinksForSpace,
   listTrailEntries,
   addManualTrailEntry,
+  updateTrailEntry,
   createSpaceWithSetup,
   createRelationalSpace,
 } from '../db/queries.js';
@@ -79,7 +80,7 @@ spacesRouter.get('/spaces/:id', (req, res) => {
 // principle Pass 4 applied to blocks now applies to the Space's own
 // properties too. Any subset of fields can be sent.
 spacesRouter.patch('/spaces/:id', (req, res) => {
-  const { title, status, tags, goal, categories } = req.body;
+  const { title, status, tags, goal, categories, accent } = req.body;
   if (title !== undefined && !title.trim()) {
     return res.status(400).json({ error: 'title cannot be empty' });
   }
@@ -89,6 +90,7 @@ spacesRouter.patch('/spaces/:id', (req, res) => {
     tags,
     goal,
     categories,
+    accent,
   });
   if (!updated) {
     return res.status(404).json({ error: 'Space not found' });
@@ -127,4 +129,20 @@ spacesRouter.post('/spaces/:id/trail', (req, res) => {
     return res.status(400).json({ error: 'note is required' });
   }
   res.status(201).json(addManualTrailEntry(req.params.id, note.trim()));
+});
+
+// Attaches a "why" to an auto entry after the fact, or edits a manual
+// entry's own note -- the one thing Trail entries couldn't do before
+// (write-once). See updateTrailEntry in queries.js for how a manual
+// entry's summary stays in sync with an edited note.
+spacesRouter.patch('/spaces/:id/trail/:entryId', (req, res) => {
+  const { note } = req.body;
+  if (typeof note !== 'string' || !note.trim()) {
+    return res.status(400).json({ error: 'note is required' });
+  }
+  const updated = updateTrailEntry(req.params.entryId, note.trim());
+  if (!updated) {
+    return res.status(404).json({ error: 'Trail entry not found' });
+  }
+  res.json(updated);
 });

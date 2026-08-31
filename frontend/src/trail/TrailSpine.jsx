@@ -1,30 +1,26 @@
 // The Trail: a history spine for one Space. "auto" entries are logged
 // by the backend whenever a Skeleton structural change happens
 // (saveTextBlockWithPromotion); "manual" entries are added here by the
-// person, with a narrative "why". Collapsed shows type + date only,
-// per the doc -- expanding reveals the summary/note and a Rewind
-// snapshot of the Skeleton's state at that point.
+// person, with a narrative "why". Collapsed rows show type + date only,
+// per the doc -- expanding reveals the summary/note, an optional
+// attached "why" for an auto entry, and Rewind: a read-only Now-vs-As-of
+// comparison of the Skeleton against how it stood at that entry.
 
 import { useState } from 'react';
-import { addTrailNote } from '../api.js';
+import { addTrailNote, updateTrailNote, getCurrentSkeleton } from '../api.js';
 
 function formatDate(isoLikeString) {
   return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
 }
 
-function RewindSnapshot({ entry }) {
-  const { lanes, articulation } = entry.skeleton_snapshot;
-  // Object key order is insertion order here (the backend always
-  // builds it premises/evidence/open-questions/tensions), and each
-  // lane carries its own label -- so a relabeled Space Type (e.g.
-  // Person-Reflection) shows the label it actually used, not a generic
-  // default.
+// Renders one Skeleton reading (a snapshot or the live "Now" state) --
+// both are the exact same {lanes, articulation} shape, since Now comes
+// from the same getSkeletonSnapshot function a stored snapshot was
+// built from. Shared so the two Rewind columns can't drift apart.
+function SkeletonReading({ snapshot }) {
   return (
-    <div className="rewind-snapshot">
-      <p>
-        <em>Read-only Skeleton snapshot from {formatDate(entry.created_at)}</em>
-      </p>
-      {Object.values(lanes).map((lane) => (
+    <>
+      {Object.values(snapshot.lanes).map((lane) => (
         <div key={lane.label}>
           <strong>{lane.label}</strong>
           <ul>
@@ -36,15 +32,109 @@ function RewindSnapshot({ entry }) {
         </div>
       ))}
       <p>
-        <strong>Current Best Articulation:</strong> {articulation || '(empty)'}
+        <strong>Current Best Articulation:</strong> {snapshot.articulation || '(empty)'}
       </p>
+    </>
+  );
+}
+
+function RewindCompare({ entry, currentSkeleton }) {
+  if (!currentSkeleton) {
+    return <p><em>Loading current Skeleton state...</em></p>;
+  }
+  return (
+    <div className="rewind-compare">
+      <div className="rewind-column">
+        <h5>Now</h5>
+        <SkeletonReading snapshot={currentSkeleton} />
+      </div>
+      <div className="rewind-column">
+        <h5>As of {formatDate(entry.created_at)}</h5>
+        <SkeletonReading snapshot={entry.skeleton_snapshot} />
+      </div>
     </div>
   );
 }
 
-function TrailEntryRow({ entry }) {
+// The "why": an auto entry writes itself with only a short computed
+// summary (e.g. "Promoted: 2 Premises"), and can optionally get a
+// manual note attached afterward explaining why -- entries used to be
+// write-once, with no way to do this. A manual entry's own note is
+// editable the same way, for fixing a typo in what you originally wrote.
+function TrailNoteEditor({ entry, spaceId, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(entry.note || '');
+  const [saving, setSaving] = useState(false);
+
+  async function save(event) {
+    event.preventDefault();
+    if (!draft.trim()) return;
+    setSaving(true);
+    await updateTrailNote(spaceId, entry.id, draft.trim());
+    setSaving(false);
+    setEditing(false);
+    onSaved();
+  }
+
+  if (editing) {
+    return (
+      <form onSubmit={save} className="add-item-row">
+        <input
+          type="text"
+          value={draft}
+          autoFocus
+          placeholder="Why did this happen?"
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <button type="submit" className="btn-ghost-small" disabled={saving || !draft.trim()}>
+          Save
+        </button>
+      </form>
+    );
+  }
+
+  if (entry.note) {
+    return (
+      <p className="trail-why">
+        <em>Why:</em> {entry.note}{' '}
+        <span
+          className="editable-toggle"
+          onClick={() => {
+            setDraft(entry.note);
+            setEditing(true);
+          }}
+        >
+          (edit)
+        </span>
+      </p>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="btn-ghost-small"
+      onClick={() => {
+        setDraft('');
+        setEditing(true);
+      }}
+    >
+      + Add a why
+    </button>
+  );
+}
+
+function TrailEntryRow({ entry, spaceId, onEntryChanged }) {
   const [expanded, setExpanded] = useState(false);
-  const [showRewind, setShowRewind] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [currentSkeleton, setCurrentSkeleton] = useState(null);
+
+  async function toggleCompare() {
+    if (!comparing && !currentSkeleton) {
+      setCurrentSkeleton(await getCurrentSkeleton(spaceId));
+    }
+    setComparing(!comparing);
+  }
 
   return (
     <li>
@@ -58,10 +148,13 @@ function TrailEntryRow({ entry }) {
       {expanded && (
         <div>
           <p>{entry.kind === 'manual' ? entry.note : entry.summary}</p>
-          <button type="button" className="btn-ghost-small" onClick={() => setShowRewind(!showRewind)}>
-            {showRewind ? 'Hide' : 'View'} Skeleton state at this point
-          </button>
-          {showRewind && <RewindSnapshot entry={entry} />}
+          <TrailNoteEditor entry={entry} spaceId={spaceId} onSaved={onEntryChanged} />
+          <p>
+            <button type="button" className="btn-ghost-small" onClick={toggleCompare}>
+              {comparing ? 'Return to Now' : 'Compare to Now'}
+            </button>
+          </p>
+          {comparing && <RewindCompare entry={entry} currentSkeleton={currentSkeleton} />}
         </div>
       )}
     </li>
@@ -89,7 +182,7 @@ function TrailSpine({ spaceId, entries, onEntryAdded }) {
       {entries.length > 0 && (
         <ul className="trail-list">
           {entries.map((entry) => (
-            <TrailEntryRow key={entry.id} entry={entry} />
+            <TrailEntryRow key={entry.id} entry={entry} spaceId={spaceId} onEntryChanged={onEntryAdded} />
           ))}
         </ul>
       )}

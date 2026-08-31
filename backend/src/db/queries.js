@@ -62,7 +62,7 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
-const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, created_at, updated_at';
+const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, accent, created_at, updated_at';
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
@@ -131,14 +131,16 @@ export function createSpace({
   return getSpaceById(id);
 }
 
-// A Space's title, status, tags, goal, and categories are all edited
-// through this one function. Any subset of fields can be given; the
-// rest keep their current value, same pattern as updateTemplate.
+// A Space's title, status, tags, goal, categories, and accent are all
+// edited through this one function. Any subset of fields can be given;
+// the rest keep their current value, same pattern as updateTemplate.
 // categories are freely-named facets specific to this Space's own
 // topic (e.g. "Financial Impact") that its own blocks get filed
 // under -- not to be confused with tags, which categorize the Space
-// itself (e.g. "resource") among every other Space.
-export function updateSpace(id, { title, status, tags, goal, categories } = {}) {
+// itself (e.g. "resource") among every other Space. accent is Visual
+// Identity's manual layer -- a hand-picked mark drawn on top of the
+// glyph's computed base, independent of every other field here.
+export function updateSpace(id, { title, status, tags, goal, categories, accent } = {}) {
   const existing = db.prepare(`SELECT * FROM spaces WHERE id = ?`).get(id);
   if (!existing) return null;
 
@@ -148,11 +150,12 @@ export function updateSpace(id, { title, status, tags, goal, categories } = {}) 
     tags: tags !== undefined ? JSON.stringify(tags) : existing.tags,
     goal: goal !== undefined ? goal : existing.goal,
     categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
+    accent: accent !== undefined ? accent : existing.accent,
   };
   db.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, updated_at = datetime('now')
      WHERE id = ?`
-  ).run(next.title, next.status, next.tags, next.goal, next.categories, id);
+  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.accent, id);
   // Only a status change gets logged, not every title/tag/goal edit --
   // status progression (nascent -> developing -> mature) is genuinely
   // trend-worthy; a renamed tag isn't.
@@ -877,8 +880,12 @@ export function createTensionPair(spaceId, { label, statementA, statementB }) {
 // Includes each lane's actual laneLabel (not just its items), since a
 // Space Type can relabel lanes (e.g. Person-Reflection's "What I
 // Understand" instead of "Premises") -- Rewind should show the label
-// that was actually in use, not the generic default.
-function getSkeletonSnapshot(spaceId) {
+// that was actually in use, not the generic default. Exported as well
+// as used internally: it's also how Rewind's "Now" column gets the
+// live Skeleton state, in the exact same shape a stored snapshot has,
+// so both sides of a Now-vs-As-of comparison render through one
+// function instead of two independent readings of the same data.
+export function getSkeletonSnapshot(spaceId) {
   const blocks = listBlocksForSpace(spaceId);
   const lanes = {};
   SKELETON_LANES.forEach((lane) => {
@@ -908,9 +915,12 @@ export function logTrailEntry({ spaceId, kind, summary, note = null }) {
   return parseTrailRow(db.prepare(`SELECT * FROM trail_entries WHERE id = ?`).get(id));
 }
 
+function truncateForSummary(text) {
+  return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+}
+
 export function addManualTrailEntry(spaceId, note) {
-  const summary = note.length > 60 ? `${note.slice(0, 57)}...` : note;
-  return logTrailEntry({ spaceId, kind: 'manual', summary, note });
+  return logTrailEntry({ spaceId, kind: 'manual', summary: truncateForSummary(note), note });
 }
 
 export function listTrailEntries(spaceId) {
@@ -918,6 +928,22 @@ export function listTrailEntries(spaceId) {
     .prepare(`SELECT * FROM trail_entries WHERE space_id = ? ORDER BY created_at ASC`)
     .all(spaceId);
   return rows.map(parseTrailRow);
+}
+
+// Entries used to be write-once -- an auto entry that wrote itself
+// (e.g. "Promoted: 2 Premises") had no way to get a manual "why"
+// attached afterward, and a manual note had no way to fix a typo once
+// saved. This is the one function both go through. For a manual entry,
+// note *is* its own text, so its summary (the truncated preview the
+// Log page shows) is recomputed to match; an auto entry's summary is
+// left alone, since a note added here is a "why" layered on top of
+// what already wrote itself, not a replacement for it.
+export function updateTrailEntry(id, note) {
+  const existing = db.prepare(`SELECT * FROM trail_entries WHERE id = ?`).get(id);
+  if (!existing) return null;
+  const summary = existing.kind === 'manual' ? truncateForSummary(note) : existing.summary;
+  db.prepare(`UPDATE trail_entries SET note = ?, summary = ? WHERE id = ?`).run(note, summary, id);
+  return parseTrailRow(db.prepare(`SELECT * FROM trail_entries WHERE id = ?`).get(id));
 }
 
 // --- The Log (global activity) -------------------------------------

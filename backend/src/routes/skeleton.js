@@ -3,10 +3,13 @@
 // (a copy, not a promotion -- see fileLineInLane in db/queries.js) and
 // creating a paired Tension between two specific existing statements
 // (see createTensionPair). Typed =/?/! shorthand promotion still goes
-// through the ordinary text-save route in blocks.js.
+// through the ordinary text-save route in blocks.js. Also the live
+// "Now" reading Trail's Rewind compares an As-of snapshot against --
+// see getSkeletonSnapshot in db/queries.js, the same function a Trail
+// entry's own stored snapshot was built from.
 
 import { Router } from 'express';
-import { fileLineInLane, createTensionPair, SKELETON_LANES } from '../db/queries.js';
+import { fileLineInLane, createTensionPair, getSkeletonSnapshot, SKELETON_LANES } from '../db/queries.js';
 
 export const skeletonRouter = Router();
 
@@ -25,6 +28,10 @@ skeletonRouter.post('/spaces/:id/skeleton/file', (req, res) => {
     return res.status(400).json({ error: 'text is required' });
   }
   res.status(201).json(fileLineInLane(req.params.id, laneKey, text.trim()));
+});
+
+skeletonRouter.get('/spaces/:id/skeleton/current', (req, res) => {
+  res.json(getSkeletonSnapshot(req.params.id));
 });
 
 skeletonRouter.post('/spaces/:id/skeleton/tensions', (req, res) => {

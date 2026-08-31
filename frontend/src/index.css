@@ -25,6 +25,9 @@
   --maroon-bright: #c14a5d;
   --maroon-deep: #3a141a;
   --maroon-wash: rgba(138, 44, 59, 0.12);
+  --accent: #c9973b; /* Visual Identity's manual accent layer -- deliberately a
+                         warm gold, not a shade of maroon, so a hand-picked mark
+                         always reads as separate from the glyph's computed base */
 
   --display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --body: 'Source Serif 4', Georgia, serif;
@@ -1330,6 +1333,43 @@ label {
   padding: 12px 14px;
   margin-top: 8px;
   font-size: 13px;
+}
+
+/* Rewind's Now-vs-As-of comparison: two of the same reading side by
+   side, so the difference is legible at a glance rather than requiring
+   the person to hold one state in memory while looking at the other. */
+.rewind-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+.rewind-column {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 3px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+.rewind-column h5 {
+  margin: 0 0 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+}
+@media (max-width: 720px) {
+  .rewind-compare { grid-template-columns: 1fr; }
+}
+
+/* An auto Trail entry's optional attached "why", or a manual entry's
+   own editable note -- set apart from the entry's summary line above it
+   so it reads as commentary added on top, not the entry's original text. */
+.trail-why {
+  font-style: italic;
+  color: var(--ink-dim);
 }
 
 /* ---------- plain card lists (Templates page) ---------- */

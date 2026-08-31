@@ -18,7 +18,7 @@ import {
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
-import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
+import SpaceGlyph, { SPACE_STATUSES, SPACE_ACCENTS } from '../glyph/SpaceGlyph.jsx';
 import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 
@@ -105,6 +105,37 @@ function StatusPill({ space, onChanged }) {
     >
       {space.status}
     </span>
+  );
+}
+
+// Visual Identity's manual layer: a small fixed set of hand-picked
+// marks (star/underline/triangle/dot), layered on top of SpaceGlyph's
+// computed base -- never replacing it, and never more than one at a
+// time, since this is a single accent field on the Space, not a
+// freely-named set like tags or Categories. Reuses the same
+// chip-toggle pattern TextWorkshop's tag/lane popovers already use.
+function AccentPicker({ space, onChanged }) {
+  async function setAccent(accent) {
+    await updateSpace(space.id, { accent: space.accent === accent ? null : accent });
+    onChanged();
+  }
+
+  return (
+    <p className="category-row">
+      <span className="category-row-label">Accent:</span>
+      {SPACE_ACCENTS.map((accent) => (
+        <span
+          key={accent}
+          className={`category-chip category-chip-toggle${
+            space.accent === accent ? ' category-chip-active' : ''
+          }`}
+          onClick={() => setAccent(accent)}
+          title={space.accent === accent ? `Remove ${accent} accent` : `Set ${accent} accent`}
+        >
+          {accent}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -496,6 +527,7 @@ function SpacePage() {
             <p className="space-meta">
               <StatusPill space={space} onChanged={refetchAll} />
             </p>
+            <AccentPicker space={space} onChanged={refetchAll} />
 
             <WorkingToward space={space} onChanged={refetchAll} />
             <TagEditor space={space} onChanged={refetchAll} />

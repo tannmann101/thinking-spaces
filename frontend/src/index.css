@@ -2188,6 +2188,12 @@ label {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+/* A section with more than one row of columns (Time is the first) --
+   each .insight-columns is its own grid, so two in a row need their
+   own separation rather than sitting flush against each other. */
+.insight-columns + .insight-columns {
+  margin-top: 20px;
+}
 @media (max-width: 700px) {
   .insight-columns {
     grid-template-columns: 1fr;

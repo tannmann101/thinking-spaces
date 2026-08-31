@@ -10,6 +10,7 @@ import {
   getThemeInsights,
   getActivityTrendInsights,
   getProvenanceInsights,
+  getTimeInsights,
 } from '../db/queries.js';
 
 export const insightsRouter = Router();
@@ -20,5 +21,6 @@ insightsRouter.get('/insights', (req, res) => {
     themes: getThemeInsights(),
     activity: getActivityTrendInsights(),
     provenance: getProvenanceInsights(),
+    time: getTimeInsights(),
   });
 });

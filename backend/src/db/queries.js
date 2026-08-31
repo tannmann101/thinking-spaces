@@ -1378,6 +1378,76 @@ export function getProvenanceInsights() {
   return { byOrigin, synthesisCount, promotedCount, workItemCount };
 }
 
+// The Time arc's own facet of Insights -- the arc's final, cross-
+// cutting layer, added now that due dates, Milestones, Sessions, and
+// Review all exist to have something worth summing up: what's coming
+// up, what's overdue, how much time has actually been logged, and
+// which Spaces have gone quiet on reflection even if they haven't
+// gone quiet on activity. The Test Space is excluded, same reasoning
+// as every other Insights query.
+export function getTimeInsights() {
+  const today = todayString();
+
+  const dueDateRows = db
+    .prepare(`SELECT id, title, due_date FROM spaces WHERE id != ? AND due_date IS NOT NULL ORDER BY due_date ASC`)
+    .all(TEST_SPACE_ID);
+  const overdueSpaces = dueDateRows.filter((row) => row.due_date < today);
+  const upcomingSpaces = dueDateRows.filter((row) => row.due_date >= today);
+
+  const milestoneRows = db
+    .prepare(
+      `SELECT blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
+       FROM blocks JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
+    )
+    .all(TEST_SPACE_ID);
+  const milestones = milestoneRows.map((row) => ({
+    ...JSON.parse(row.content),
+    spaceId: row.space_id,
+    spaceTitle: row.space_title,
+  }));
+  const reachedCount = milestones.filter((milestone) => milestone.reached).length;
+  const overdueMilestones = milestones.filter(
+    (milestone) => !milestone.reached && milestone.targetDate && milestone.targetDate < today
+  );
+
+  const sessionRows = db.prepare(`SELECT content FROM blocks WHERE type = 'session' AND space_id != ?`).all(TEST_SPACE_ID);
+  const sessions = sessionRows.map((row) => JSON.parse(row.content));
+  const completedSessions = sessions.filter((session) => session.endedAt);
+  const totalMinutesLogged = completedSessions.reduce((sum, session) => sum + (session.durationMinutes || 0), 0);
+  const runningCount = sessions.filter((session) => session.startedAt && !session.endedAt).length;
+
+  // A Space can be full of recent activity (Insights' own staleness
+  // check already covers that) while never once being deliberately
+  // reflected on -- this is a different question, answered the same
+  // "days since the most recent matching event" way that staleness is.
+  const reviewStaleThresholdDays = 14;
+  const reviewedRows = db
+    .prepare(
+      `SELECT trail_entries.space_id AS id, spaces.title AS title,
+              MAX(trail_entries.created_at) AS last_reviewed,
+              CAST(julianday('now') - julianday(MAX(trail_entries.created_at)) AS INTEGER) AS days_since
+       FROM trail_entries
+       JOIN spaces ON spaces.id = trail_entries.space_id
+       WHERE trail_entries.kind = 'review' AND spaces.id != ?
+       GROUP BY trail_entries.space_id`
+    )
+    .all(TEST_SPACE_ID);
+  const reviewedSpaceIds = new Set(reviewedRows.map((row) => row.id));
+  const neverReviewed = db
+    .prepare(`SELECT id, title FROM spaces WHERE id != ?`)
+    .all(TEST_SPACE_ID)
+    .filter((space) => !reviewedSpaceIds.has(space.id));
+  const staleReviews = reviewedRows.filter((row) => row.days_since > reviewStaleThresholdDays).sort((a, b) => b.days_since - a.days_since);
+
+  return {
+    dueDates: { overdue: overdueSpaces, upcoming: upcomingSpaces.slice(0, 5) },
+    milestones: { total: milestones.length, reachedCount, overdueMilestones },
+    sessions: { completedCount: completedSessions.length, totalMinutesLogged, runningCount },
+    review: { neverReviewed, staleReviews, reviewStaleThresholdDays },
+  };
+}
+
 // --- Reports ----------------------------------------------------------
 // Every page in the app -- a Space, a Workspace, a single Tool/Work
 // item -- can produce a report: a structured snapshot of its current

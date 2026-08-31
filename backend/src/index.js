@@ -6,6 +6,7 @@ import { healthRouter } from './routes/health.js';
 import { spacesRouter } from './routes/spaces.js';
 import { templatesRouter } from './routes/templates.js';
 import { blocksRouter } from './routes/blocks.js';
+import { dashboardRouter } from './routes/dashboard.js';
 import { ensureTestSpaceExists } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
 import { seedTemplates } from './db/seedTemplates.js';
@@ -24,6 +25,7 @@ app.use('/api', healthRouter);
 app.use('/api', spacesRouter);
 app.use('/api', templatesRouter);
 app.use('/api', blocksRouter);
+app.use('/api', dashboardRouter);
 
 app.listen(PORT, () => {
   console.log(`Thinking Spaces backend listening on http://localhost:${PORT}`);

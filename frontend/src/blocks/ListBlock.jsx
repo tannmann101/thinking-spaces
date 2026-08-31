@@ -1,8 +1,11 @@
-// Renders one List block: an ordered set of items. Text, number, and
-// date are click-to-edit like Text blocks; checkbox toggles instantly;
-// confidence cycles solid -> tentative -> questioned on click, with no
-// separate edit mode -- per the Tools & Resources doc: "a single tap
-// on the marker cycles through the three states in place, no dialog."
+// Renders one List block: an ordered set of items. Text, number, date,
+// and reviewBy are click-to-edit like Text blocks; checkbox toggles
+// instantly; confidence cycles solid -> tentative -> questioned on
+// click, with no separate edit mode -- per the Tools & Resources doc:
+// "a single tap on the marker cycles through the three states in
+// place, no dialog." flagged (load-bearing) toggles like a checkbox.
+// Move-up/down buttons reorder items -- position in the array doubles
+// as priority order, so no separate rank number is needed.
 //
 // Only properties an item already carries are editable here. Adding a
 // *new* property to an existing item is still out of scope -- but "+
@@ -27,6 +30,8 @@ function buildNewItem(text, items, isSkeletonLane) {
   if (sample && typeof sample.checkbox === 'boolean') item.checkbox = false;
   if (sample && typeof sample.number === 'number') item.number = 0;
   if (sample?.date) item.date = new Date().toISOString().slice(0, 10);
+  if (sample?.reviewBy) item.reviewBy = new Date().toISOString().slice(0, 10);
+  if (sample && typeof sample.flagged === 'boolean') item.flagged = false;
   return item;
 }
 
@@ -57,6 +62,14 @@ function ListBlock({ block, onBlocksChanged }) {
     setNewItemText('');
   }
 
+  function moveItem(index, direction) {
+    const target = index + direction;
+    if (target < 0 || target >= items.length) return;
+    const newItems = [...items];
+    [newItems[index], newItems[target]] = [newItems[target], newItems[index]];
+    saveItems(newItems);
+  }
+
   function startEditingField(item, field, initialValue) {
     if (!editable) return;
     setDraft(initialValue);
@@ -81,6 +94,11 @@ function ListBlock({ block, onBlocksChanged }) {
   function toggleCheckbox(item) {
     if (!editable) return;
     saveItems(items.map((it) => (it.id === item.id ? { ...it, checkbox: !it.checkbox } : it)));
+  }
+
+  function toggleFlagged(item) {
+    if (!editable) return;
+    saveItems(items.map((it) => (it.id === item.id ? { ...it, flagged: !it.flagged } : it)));
   }
 
   function cycleConfidence(item) {
@@ -122,8 +140,37 @@ function ListBlock({ block, onBlocksChanged }) {
       {laneLabel && <h4>{laneLabel}</h4>}
       {laneLabel && items.length === 0 && <p>(empty)</p>}
       <ol>
-        {items.map((item) => (
+        {items.map((item, index) => (
           <li key={item.id}>
+            {editable && (
+              <span style={{ fontFamily: 'monospace' }}>
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => moveItem(index, -1)}
+                  title="Move up (higher priority)"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  disabled={index === items.length - 1}
+                  onClick={() => moveItem(index, 1)}
+                  title="Move down (lower priority)"
+                >
+                  ▼
+                </button>
+              </span>
+            )}{' '}
+            {typeof item.flagged === 'boolean' && (
+              <span
+                className={editable ? 'editable-toggle' : undefined}
+                onClick={() => toggleFlagged(item)}
+                title={editable ? 'Load-bearing: if this is wrong, a lot else changes' : undefined}
+              >
+                {item.flagged ? '⚑' : '⚐'}
+              </span>
+            )}{' '}
             {typeof item.checkbox === 'boolean' && (
               <input
                 type="checkbox"
@@ -137,6 +184,9 @@ function ListBlock({ block, onBlocksChanged }) {
               <> — number: {editableField(item, 'number', item.number, 'number')}</>
             )}
             {item.date && <> — date: {editableField(item, 'date', item.date, 'date')}</>}
+            {item.reviewBy && (
+              <> — review by: {editableField(item, 'reviewBy', item.reviewBy, 'date')}</>
+            )}
             {item.confidence && (
               <>
                 {' — confidence: '}

@@ -28,11 +28,13 @@ spacesRouter.get('/spaces', (req, res) => {
 // Creation Mode: a Template (applied once, not a live link -- see
 // applyTemplate in queries.js), any extra Tools chosen on top of it,
 // any Resources pulled in (each becomes an ordinary Reference block),
-// and initial tags/goal, all composed by createSpaceWithSetup. Every
-// field but title is optional, so this is still just as capable of
-// "start blank" as it always was.
+// and initial tags/goal/categories, all composed by createSpaceWithSetup.
+// Every field but title is optional, so this is still just as capable of
+// "start blank" as it always was. categories exists here for guided
+// creation flows (Resource creation) that already know which facets a
+// Space's content should be organized under before any block exists.
 spacesRouter.post('/spaces', (req, res) => {
-  const { title, templateId, extraBlocks, resourceSpaceIds, tags, goal } = req.body;
+  const { title, templateId, extraBlocks, resourceSpaceIds, tags, categories, goal } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
@@ -42,6 +44,7 @@ spacesRouter.post('/spaces', (req, res) => {
     extraBlocks: extraBlocks || [],
     resourceSpaceIds: resourceSpaceIds || [],
     tags: tags || [],
+    categories: categories || [],
     goal: goal || null,
   });
   res.status(201).json(space);

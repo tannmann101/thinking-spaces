@@ -271,6 +271,29 @@ button {
   color: var(--ink);
 }
 
+.dashboard-create-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* Resource creation deliberately reads a little differently from
+   "+ New Space" -- not a second identical button, a visibly distinct
+   entry point for a visibly distinct flow. */
+.new-resource-btn {
+  border-color: var(--maroon);
+  color: var(--maroon-bright);
+}
+.new-resource-btn:hover {
+  background: var(--maroon-wash);
+}
+
+.resource-type-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 16px;
+}
+
 /* Dashboard digest sections (overdue reviews, recent Trail activity,
    resurface suggestion) -- small surface cards, same family as a
    view-card on a Space page, so the Dashboard doesn't read as one

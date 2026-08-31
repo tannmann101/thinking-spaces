@@ -2,7 +2,14 @@
 // send the result. No SQL lives here -- see db/queries.js.
 
 import { Router } from 'express';
-import { listSpaces, getSpaceById, createSpace, listBacklinksForSpace } from '../db/queries.js';
+import {
+  listSpaces,
+  getSpaceById,
+  createSpace,
+  listBacklinksForSpace,
+  listTrailEntries,
+  addManualTrailEntry,
+} from '../db/queries.js';
 
 export const spacesRouter = Router();
 
@@ -29,4 +36,16 @@ spacesRouter.get('/spaces/:id', (req, res) => {
 
 spacesRouter.get('/spaces/:id/backlinks', (req, res) => {
   res.json(listBacklinksForSpace(req.params.id));
+});
+
+spacesRouter.get('/spaces/:id/trail', (req, res) => {
+  res.json(listTrailEntries(req.params.id));
+});
+
+spacesRouter.post('/spaces/:id/trail', (req, res) => {
+  const { note } = req.body;
+  if (!note || !note.trim()) {
+    return res.status(400).json({ error: 'note is required' });
+  }
+  res.status(201).json(addManualTrailEntry(req.params.id, note.trim()));
 });

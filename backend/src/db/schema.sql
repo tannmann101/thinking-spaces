@@ -39,3 +39,21 @@ CREATE INDEX IF NOT EXISTS idx_blocks_space_id ON blocks(space_id);
 CREATE INDEX IF NOT EXISTS idx_blocks_reference_target
   ON blocks(json_extract(content, '$.target_space_id'))
   WHERE type = 'reference';
+
+-- Trail: the history layer (see Tools & Resources doc). "auto" entries
+-- are written automatically on a Skeleton structural change (an item
+-- promoted into a lane, the Current Best Articulation edited); "manual"
+-- entries are a narrative "why" the person adds directly. Every entry
+-- carries a full snapshot of the Skeleton's state at that moment, since
+-- that's what Rewind reconstructs from -- simpler than diffing, and
+-- this app's data volumes don't make the extra storage a real cost.
+CREATE TABLE IF NOT EXISTS trail_entries (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  kind TEXT NOT NULL, -- 'auto' | 'manual'
+  summary TEXT NOT NULL,
+  note TEXT,
+  skeleton_snapshot TEXT NOT NULL, -- JSON
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_trail_entries_space_id ON trail_entries(space_id);

@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { getSpace, getBlocksForSpace, getBacklinksForSpace } from '../api.js';
+import { getSpace, getBlocksForSpace, getBacklinksForSpace, getTrailEntries } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
+import TrailSpine from '../trail/TrailSpine.jsx';
 
 function BackLink() {
   const [searchParams] = useSearchParams();
@@ -58,16 +59,23 @@ function SpacePage() {
   const [space, setSpace] = useState(null);
   const [blocks, setBlocks] = useState(null);
   const [backlinks, setBacklinks] = useState(null);
+  const [trail, setTrail] = useState(null);
   const [error, setError] = useState(null);
+
+  const refetchTrail = useCallback(() => {
+    getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
+  }, [id]);
 
   // Refetches both blocks and the Space itself: a block change can
   // also change a computed field on the Space (e.g. promoting a line
   // into the Tensions lane changes openTensionCount, which the corner
-  // glyph below reads), so both need to stay in sync together.
+  // glyph below reads), so both need to stay in sync together. A
+  // promotion also writes a Trail entry, so refresh that too.
   const refetchAll = useCallback(() => {
     getSpace(id).then(setSpace).catch((err) => setError(err.message));
     getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
-  }, [id]);
+    refetchTrail();
+  }, [id, refetchTrail]);
 
   useEffect(() => {
     refetchAll();
@@ -130,6 +138,8 @@ function SpacePage() {
                 </div>
               );
             })}
+
+          {trail && <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />}
         </>
       )}
     </main>

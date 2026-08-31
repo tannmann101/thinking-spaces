@@ -24,6 +24,7 @@
 import TextBlock from '../blocks/TextBlock.jsx';
 import TextWorkshop from '../blocks/TextWorkshop.jsx';
 import ListBlock from '../blocks/ListBlock.jsx';
+import ListWorkshop from '../blocks/ListWorkshop.jsx';
 import ReferenceBlock from '../blocks/ReferenceBlock.jsx';
 import MediaBlock from '../blocks/MediaBlock.jsx';
 import ComparisonBlock from '../blocks/ComparisonBlock.jsx';
@@ -75,6 +76,7 @@ export const blockRegistry = {
     description:
       'An ordered set of items. Each item can optionally carry a checkbox, a number, a date, or a confidence marker.',
     component: ListBlock,
+    workshopComponent: ListWorkshop,
     worksWith: ['timeline', 'progress', 'streak', 'ledger'],
     demoBlock: {
       type: 'list',

@@ -14,26 +14,7 @@
 
 import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
-
-const CONFIDENCE_CYCLE = ['solid', 'tentative', 'questioned'];
-
-// A new item matches whatever shape this list's items already use: a
-// Ledger's items all carry `number`, so a new line should too. A
-// Skeleton lane (Premises/Evidence/Open Questions/Tensions) always
-// gets `confidence`, matching what shorthand promotion already gives
-// promoted items, even before this list has any items yet. Otherwise
-// (a plain, empty list) a new item is just text.
-function buildNewItem(text, items, isSkeletonLane) {
-  const item = { id: crypto.randomUUID(), text };
-  const sample = items[0];
-  if (isSkeletonLane || sample?.confidence) item.confidence = 'tentative';
-  if (sample && typeof sample.checkbox === 'boolean') item.checkbox = false;
-  if (sample && typeof sample.number === 'number') item.number = 0;
-  if (sample?.date) item.date = new Date().toISOString().slice(0, 10);
-  if (sample?.reviewBy) item.reviewBy = new Date().toISOString().slice(0, 10);
-  if (sample && typeof sample.flagged === 'boolean') item.flagged = false;
-  return item;
-}
+import { CONFIDENCE_CYCLE, buildNewItem } from './listItems.js';
 
 function ListBlock({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);

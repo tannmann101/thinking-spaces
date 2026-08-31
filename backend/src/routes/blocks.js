@@ -4,11 +4,33 @@ import {
   getBlockById,
   updateBlockContent,
   saveTextBlockWithPromotion,
+  addBlockToSpace,
+  deleteBlock,
+  moveBlockInSpace,
 } from '../db/queries.js';
 
 export const blocksRouter = Router();
 
 blocksRouter.get('/spaces/:spaceId/blocks', (req, res) => {
+  res.json(listBlocksForSpace(req.params.spaceId));
+});
+
+// Adding a block to an already-live Space -- the same ordinary action
+// as adding one via a Template, just one at a time and later.
+blocksRouter.post('/spaces/:spaceId/blocks', (req, res) => {
+  const { type, content, properties } = req.body;
+  if (!type) {
+    return res.status(400).json({ error: 'type is required' });
+  }
+  res.status(201).json(addBlockToSpace(req.params.spaceId, { type, content, properties }));
+});
+
+blocksRouter.post('/spaces/:spaceId/blocks/:blockId/move', (req, res) => {
+  const { direction } = req.body;
+  if (direction !== -1 && direction !== 1) {
+    return res.status(400).json({ error: 'direction must be -1 or 1' });
+  }
+  moveBlockInSpace(req.params.spaceId, req.params.blockId, direction);
   res.json(listBlocksForSpace(req.params.spaceId));
 });
 
@@ -22,6 +44,11 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
     return res.status(400).json({ error: 'content is required' });
   }
   res.json(updateBlockContent(req.params.id, content));
+});
+
+blocksRouter.delete('/blocks/:id', (req, res) => {
+  deleteBlock(req.params.id);
+  res.status(204).end();
 });
 
 // Text blocks go through their own route, not the generic PATCH above,

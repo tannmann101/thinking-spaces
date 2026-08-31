@@ -1,11 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { getSpace, getBlocksForSpace, getBacklinksForSpace, getTrailEntries } from '../api.js';
+import {
+  getSpace,
+  getBlocksForSpace,
+  getBacklinksForSpace,
+  getTrailEntries,
+  addBlockToSpace,
+  deleteBlockApi,
+  moveBlockInSpace,
+} from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 import TrailSpine from '../trail/TrailSpine.jsx';
+import NewBlockForm from '../blocks/NewBlockForm.jsx';
 
 function BackLink() {
   const [searchParams] = useSearchParams();
@@ -91,6 +100,29 @@ function SpacePage() {
     getBacklinksForSpace(id).then(setBacklinks).catch((err) => setError(err.message));
   }, [id, refetchAll]);
 
+  // Adding/removing/reordering blocks on a live Space -- the same
+  // ordinary edit whether the Space was created a minute ago or a year
+  // ago, not a separate "mode". All three just refetch afterward, same
+  // as any other block edit on this page (see refetchAll above): every
+  // Dashboard-facing computed field (relationDensity, openTensionCount,
+  // the Skeleton strip, backlinks, Views) is read fresh from current
+  // block state on every fetch, so nothing else needs to change here.
+  async function handleAddBlock(spec) {
+    await addBlockToSpace(id, spec);
+    refetchAll();
+  }
+
+  async function handleRemoveBlock(blockId) {
+    if (!window.confirm('Remove this block? This cannot be undone.')) return;
+    await deleteBlockApi(blockId);
+    refetchAll();
+  }
+
+  async function handleMoveBlock(blockId, direction) {
+    await moveBlockInSpace(id, blockId, direction);
+    refetchAll();
+  }
+
   return (
     <main>
       <BackLink />
@@ -124,7 +156,7 @@ function SpacePage() {
 
           {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
           {blocks &&
-            blocks.map((block) => {
+            blocks.map((block, index) => {
               const entry = blockRegistry[block.type];
               const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
                 view.appliesTo(block)
@@ -135,7 +167,10 @@ function SpacePage() {
                 // gaining an item via a different block's shorthand
                 // promotion) -- otherwise this component's own local
                 // edit state, set once at mount, would never notice.
-                <div key={`${block.id}-${block.updated_at}`}>
+                <div
+                  key={`${block.id}-${block.updated_at}`}
+                  style={{ border: '1px solid #eee', padding: '8px', marginBottom: '8px' }}
+                >
                   {entry ? (
                     <entry.component block={block} onBlocksChanged={refetchAll} />
                   ) : (
@@ -144,9 +179,30 @@ function SpacePage() {
                   {applicableViews.map(([key, view]) => (
                     <view.component key={key} block={block} />
                   ))}
+                  <p>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveBlock(block.id, -1)}
+                      disabled={index === 0}
+                    >
+                      Move up
+                    </button>{' '}
+                    <button
+                      type="button"
+                      onClick={() => handleMoveBlock(block.id, 1)}
+                      disabled={index === blocks.length - 1}
+                    >
+                      Move down
+                    </button>{' '}
+                    <button type="button" onClick={() => handleRemoveBlock(block.id)}>
+                      Remove block
+                    </button>
+                  </p>
                 </div>
               );
             })}
+
+          {blocks && <NewBlockForm onAdd={handleAddBlock} />}
 
           {trail && <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />}
         </>

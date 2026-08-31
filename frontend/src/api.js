@@ -11,6 +11,8 @@ async function request(path, options) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request to ${path} failed (${res.status})`);
   }
+  // A 204 (e.g. DELETE) has no body -- calling .json() on it throws.
+  if (res.status === 204) return null;
   return res.json();
 }
 
@@ -47,3 +49,30 @@ export const addTrailNote = (spaceId, note) =>
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getRecentTrail = () => request('/dashboard/recent-trail');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
+
+// Template management (Pass 4 / "Dev Mode").
+export const getTemplate = (id) => request(`/templates/${id}`);
+export const createTemplate = ({ name, blockArrangement }) =>
+  request('/templates', {
+    method: 'POST',
+    body: JSON.stringify({ name, blockArrangement }),
+  });
+export const updateTemplate = (id, { name, blockArrangement }) =>
+  request(`/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name, blockArrangement }),
+  });
+export const deleteTemplate = (id) => request(`/templates/${id}`, { method: 'DELETE' });
+
+// Adding/removing/reordering blocks on an already-live Space.
+export const addBlockToSpace = (spaceId, { type, content, properties }) =>
+  request(`/spaces/${spaceId}/blocks`, {
+    method: 'POST',
+    body: JSON.stringify({ type, content, properties }),
+  });
+export const deleteBlockApi = (blockId) => request(`/blocks/${blockId}`, { method: 'DELETE' });
+export const moveBlockInSpace = (spaceId, blockId, direction) =>
+  request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
+    method: 'POST',
+    body: JSON.stringify({ direction }),
+  });

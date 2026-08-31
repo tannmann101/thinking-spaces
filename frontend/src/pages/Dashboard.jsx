@@ -72,7 +72,7 @@ function Dashboard() {
     <main>
       <h1>Thinking Spaces</h1>
       <p>
-        <Link to="/spaces/new">+ New Space</Link>
+        <Link to="/spaces/new">+ New Space</Link> · <Link to="/templates">Manage Templates</Link>
       </p>
 
       <OverdueReviews items={overdue} />

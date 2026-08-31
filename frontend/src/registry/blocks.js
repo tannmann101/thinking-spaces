@@ -26,8 +26,11 @@ import TextWorkshop from '../blocks/TextWorkshop.jsx';
 import ListBlock from '../blocks/ListBlock.jsx';
 import ListWorkshop from '../blocks/ListWorkshop.jsx';
 import ReferenceBlock from '../blocks/ReferenceBlock.jsx';
+import ReferenceWorkshop from '../blocks/ReferenceWorkshop.jsx';
 import MediaBlock from '../blocks/MediaBlock.jsx';
+import MediaWorkshop from '../blocks/MediaWorkshop.jsx';
 import ComparisonBlock from '../blocks/ComparisonBlock.jsx';
+import ComparisonWorkshop from '../blocks/ComparisonWorkshop.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -94,6 +97,7 @@ export const blockRegistry = {
     label: 'Reference',
     description: 'A link to another Space, with an optional note.',
     component: ReferenceBlock,
+    workshopComponent: ReferenceWorkshop,
     worksWith: ['comparison', 'graph'],
     // Points at the real Test Space so clicking the demo is harmless
     // (and even a little useful) rather than a dead link.
@@ -111,6 +115,7 @@ export const blockRegistry = {
     label: 'Media',
     description: 'An image, audio clip, or embedded sketch. Only images render for now.',
     component: MediaBlock,
+    workshopComponent: MediaWorkshop,
     worksWith: [],
     demoBlock: {
       type: 'media',
@@ -123,6 +128,7 @@ export const blockRegistry = {
     description:
       'Two Text or Reference blocks shown side by side, optionally marked as a contrast.',
     component: ComparisonBlock,
+    workshopComponent: ComparisonWorkshop,
     worksWith: ['text', 'reference'],
     demoBlock: {
       type: 'comparison',

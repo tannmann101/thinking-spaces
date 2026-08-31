@@ -9,6 +9,7 @@ import {
   deleteSpace,
 } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
+import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 
 function formatDate(isoLikeString) {
   // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
@@ -25,8 +26,10 @@ function formatDate(isoLikeString) {
 function OverdueReviews({ items }) {
   if (items.length === 0) return null;
   return (
-    <details className="digest" open>
-      <summary>Overdue for review</summary>
+    <details className="digest" data-digest="overdue" open>
+      <summary>
+        <span className="digest-icon">!</span>Overdue for review
+      </summary>
       <ul>
         {items.map(({ spaceId, spaceTitle, item }) => (
           <li key={item.id}>
@@ -41,8 +44,10 @@ function OverdueReviews({ items }) {
 function RecentTrailDigest({ entries }) {
   if (entries.length === 0) return null;
   return (
-    <details className="digest" open>
-      <summary>This week, across your Spaces</summary>
+    <details className="digest" data-digest="recent" open>
+      <summary>
+        <span className="digest-icon">◷</span>This week, across your Spaces
+      </summary>
       <ul>
         {entries.map((entry) => (
           <li key={entry.id}>
@@ -57,8 +62,10 @@ function RecentTrailDigest({ entries }) {
 function ResurfaceSuggestion({ space }) {
   if (!space) return null;
   return (
-    <details className="digest" open>
-      <summary>Maybe revisit...</summary>
+    <details className="digest" data-digest="resurface" open>
+      <summary>
+        <span className="digest-icon">↺</span>Maybe revisit...
+      </summary>
       <p>
         <Link to={`/spaces/${space.id}`}>{space.title}</Link> ({space.status}, last touched{' '}
         {formatDate(space.updated_at)})
@@ -73,8 +80,10 @@ function ResurfaceSuggestion({ space }) {
 function ResourcesDigest({ spaces }) {
   if (spaces.length === 0) return null;
   return (
-    <details className="digest" open>
-      <summary>Resources</summary>
+    <details className="digest" data-digest="resources" open>
+      <summary>
+        <span className="digest-icon">⇣</span>Resources
+      </summary>
       <ul>
         {spaces.map((space) => (
           <li key={space.id}>
@@ -101,8 +110,10 @@ function ResourcesDigest({ spaces }) {
 function SynthesesDigest({ spaces }) {
   if (spaces.length === 0) return null;
   return (
-    <details className="digest" open>
-      <summary>Syntheses</summary>
+    <details className="digest" data-digest="syntheses" open>
+      <summary>
+        <span className="digest-icon">⇡</span>Syntheses
+      </summary>
       <ul>
         {spaces.map((space) => (
           <li key={space.id}>
@@ -120,6 +131,7 @@ function SynthesesDigest({ spaces }) {
 }
 
 function Dashboard() {
+  const { promptToMatch } = useConfirmDialog();
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
   const [recentTrail, setRecentTrail] = useState([]);
@@ -151,10 +163,11 @@ function Dashboard() {
   // the Space page itself -- this is the one place a Space can vanish
   // for good, so it should never be a single misclick away.
   async function handleDeleteSpace(space) {
-    const typed = window.prompt(
-      `Delete "${space.title}" and everything in it? This cannot be undone.\n\nType the Space's name to confirm:`
+    const confirmed = await promptToMatch(
+      `Delete "${space.title}" and everything in it? This cannot be undone.`,
+      space.title
     );
-    if (typed !== space.title) return;
+    if (!confirmed) return;
     await deleteSpace(space.id);
     refetchSpaces();
   }

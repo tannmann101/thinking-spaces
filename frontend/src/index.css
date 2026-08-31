@@ -70,6 +70,43 @@ button {
   color: #fff;
 }
 
+/* Interaction polish: every hover/focus state in this file (27 :hover
+   rules, a handful of :focus ones) previously snapped instantly --
+   this app had zero CSS transitions anywhere. One shared rule rather
+   than adding `transition` to each one individually, so anything
+   interactive added later picks this up automatically. Respects
+   prefers-reduced-motion since none of this is meant to be load-
+   bearing, only a smoothing touch. */
+a,
+button,
+input,
+textarea,
+select,
+[class*='-chip'],
+[class*='-tab'],
+[class*='-toggle'],
+.editable {
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* A visible keyboard-focus ring, distinct from :hover, on every
+   interactive element -- :focus-visible skips it for a mouse click so
+   this only ever appears for keyboard/assistive navigation. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--maroon-bright);
+  outline-offset: 2px;
+}
+
 #root {
   max-width: 900px;
   margin: 0 auto;
@@ -337,13 +374,26 @@ button {
 /* Dashboard digest sections (overdue reviews, recent Trail activity,
    resurface suggestion) -- small surface cards, same family as a
    view-card on a Space page, so the Dashboard doesn't read as one
-   polished list plus three unstyled afterthoughts. */
+   polished list plus three unstyled afterthoughts. Each one also gets
+   its own small personality -- a left accent and an icon -- rather
+   than reading as five identical boxes distinguished only by their
+   heading text. Overdue borrows the same maroon `.overdue-badge`
+   already uses elsewhere (this is the same "overdue" concept);
+   Syntheses borrows the gold Provenance already uses for "produced by
+   the app itself"; the rest stay neutral. */
 .digest {
   background: var(--surface);
   border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--border-soft);
   border-radius: 3px;
   padding: 14px 18px;
   margin-bottom: 16px;
+}
+.digest[data-digest='overdue'] {
+  border-left-color: var(--maroon);
+}
+.digest[data-digest='syntheses'] {
+  border-left-color: var(--accent);
 }
 .digest summary {
   font-size: 13px;
@@ -353,6 +403,12 @@ button {
   color: var(--ink-dim);
   font-weight: 500;
   cursor: pointer;
+}
+.digest-icon {
+  display: inline-block;
+  width: 1.4em;
+  text-align: center;
+  color: var(--ink-faint);
 }
 .digest[open] summary {
   margin-bottom: 10px;
@@ -539,6 +595,40 @@ label {
 
 .block-row {
   position: relative;
+  border-left: 3px solid var(--border-soft);
+  padding-left: 14px;
+}
+/* The same coarse family personality as .tool-card in the Tools
+   catalog, carried down into the actual feed -- a long Space used to
+   read as one undifferentiated wall of identical boxes regardless of
+   what was actually in it. General stays neutral (the foundational,
+   unmarked family); Work gets the app's own primary maroon; Time gets
+   the gold already reserved for Visual Identity's manual accent. */
+.block-row[data-family='work'] {
+  border-left-color: var(--maroon);
+}
+.block-row[data-family='time'] {
+  border-left-color: var(--accent);
+}
+
+/* The per-Tool identity on top of the coarse family color -- which
+   kind of Work (or Time, or General) Tool this actually is, shown
+   plainly rather than only inferable from reading the block's own
+   content (a real gap: a Work block's own kind was previously never
+   rendered anywhere, only used as internal placeholder-text hinting). */
+.block-type-tag {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.block-type-icon {
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+  margin-right: 2px;
 }
 
 .block-controls {
@@ -1894,22 +1984,41 @@ label {
 .tool-card {
   background: var(--surface);
   border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--border-soft);
   border-radius: 3px;
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+/* The coarse "family" personality -- General/Work/Time each get their
+   own left-edge color, same two accents already used elsewhere in the
+   app (Work's maroon is the app's own primary color; Time's gold is
+   already Visual Identity's manual-accent hue) rather than inventing a
+   third. General stays neutral -- the foundational, unmarked family. */
+.tool-card[data-family='work'] {
+  border-left-color: var(--maroon);
+}
+.tool-card[data-family='time'] {
+  border-left-color: var(--accent);
+}
 
 .tool-card-head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: 8px;
 }
 .tool-card-head h4 {
   font-size: 17px;
   margin: 0;
+  flex: 1;
+}
+.tool-card-icon {
+  flex: none;
+  font-size: 15px;
+  color: var(--ink-dim);
+  width: 1.4em;
+  text-align: center;
 }
 
 .tool-kind-tag {
@@ -2357,6 +2466,47 @@ label {
 .session-note {
   font-size: 13px;
   color: var(--ink-dim);
+  margin: 0;
+}
+
+/* ---------- Confirm dialog (replaces window.confirm/window.prompt) ---------- */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+}
+/* The one deliberate box-shadow in the whole app -- a true overlay
+   needs to read as elevated above the page behind it, which a flat
+   border alone doesn't achieve; everything else stays shadow-free by
+   design (see Visual direction in CLAUDE.md). */
+.confirm-dialog {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px 24px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.confirm-message {
+  margin: 0 0 14px;
+  white-space: pre-wrap;
+  color: var(--ink);
+}
+.confirm-dialog input[type='text'] {
+  width: 100%;
+  margin-bottom: 14px;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
   margin: 0;
 }
 

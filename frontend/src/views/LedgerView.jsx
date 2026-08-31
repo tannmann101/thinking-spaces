@@ -4,11 +4,15 @@
 function LedgerView({ block }) {
   const items = block.content.items.filter((item) => typeof item.number === 'number');
 
-  let runningTotal = 0;
-  const rows = items.map((item) => {
-    runningTotal += item.number;
-    return { ...item, runningTotal };
-  });
+  // Built functionally (no mutated accumulator variable) so each
+  // render computes the same rows from the same items with nothing
+  // carried over between renders -- oxlint flagged the previous
+  // let-and-reassign version as a variable reassigned after render,
+  // since it couldn't tell the reassignment was fully render-scoped.
+  const rows = items.reduce((acc, item) => {
+    const previousTotal = acc.length > 0 ? acc[acc.length - 1].runningTotal : 0;
+    return [...acc, { ...item, runningTotal: previousTotal + item.number }];
+  }, []);
 
   return (
     <div className="view-card">

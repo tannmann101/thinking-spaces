@@ -33,6 +33,18 @@
 // those screens had become hard to scan; adding a new Work (or Time)
 // Type only ever needs its `family` set here, nothing else touches
 // those UIs.
+//
+// `icon` is a single restrained text glyph (no emoji) giving each Tool
+// its own small visual identity -- a real gap found by auditing the
+// Tools catalog and a live Space: every Block type rendered as an
+// identical box, and a Work block's own kind (e.g. "Assessment" vs
+// "Question") was never actually shown anywhere, only used as
+// placeholder-text hinting. `family` still carries the coarse grouping
+// (a colored left border on a block row/tool card, via `data-family`);
+// `icon` adds the finer, per-type distinction on top of it. Both are
+// read centrally -- ToolsPage.jsx's ToolCard, and the block-feed row
+// wrapper in SpacePage.jsx/WorkspacePage.jsx -- rather than duplicated
+// into every individual Block component.
 
 import TextBlock from '../blocks/TextBlock.jsx';
 import TextWorkshop from '../blocks/TextWorkshop.jsx';
@@ -96,6 +108,7 @@ export const blockRegistry = {
     description:
       'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.',
     family: 'general',
+    icon: '¶',
     component: TextBlock,
     workshopComponent: TextWorkshop,
     worksWith: ['comparison'],
@@ -110,6 +123,7 @@ export const blockRegistry = {
     description:
       'An ordered set of items. Each item can optionally carry a checkbox, a number, a date, or a confidence marker.',
     family: 'general',
+    icon: '☰',
     component: ListBlock,
     workshopComponent: ListWorkshop,
     worksWith: ['timeline', 'progress', 'streak', 'ledger'],
@@ -129,6 +143,7 @@ export const blockRegistry = {
     label: 'Reference',
     description: 'A link to another Space, with an optional note.',
     family: 'general',
+    icon: '→',
     component: ReferenceBlock,
     workshopComponent: ReferenceWorkshop,
     worksWith: ['comparison', 'graph'],
@@ -148,6 +163,7 @@ export const blockRegistry = {
     label: 'Media',
     description: 'An image, audio clip, or embedded sketch. Only images render for now.',
     family: 'general',
+    icon: '▣',
     component: MediaBlock,
     workshopComponent: MediaWorkshop,
     worksWith: [],
@@ -162,6 +178,7 @@ export const blockRegistry = {
     description:
       'Two Text or Reference blocks shown side by side, optionally marked as a contrast.',
     family: 'general',
+    icon: '⇄',
     component: ComparisonBlock,
     workshopComponent: ComparisonWorkshop,
     worksWith: ['text', 'reference'],
@@ -194,6 +211,7 @@ export const blockRegistry = {
     label: 'Assessment',
     description: 'A judgment on something, with supporting points and a confidence marker.',
     family: 'work',
+    icon: '⚖',
     component: AssessmentBlock,
     worksWith: ['question', 'analysis', 'deduction', 'objection'],
     demoBlock: {
@@ -211,6 +229,7 @@ export const blockRegistry = {
     description:
       'An open question worth holding onto, with why it matters and a confidence marker for how central it feels.',
     family: 'work',
+    icon: '?',
     component: QuestionBlock,
     worksWith: ['assessment', 'definition'],
     demoBlock: {
@@ -227,6 +246,7 @@ export const blockRegistry = {
     label: 'Analysis',
     description: 'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
     family: 'work',
+    icon: '⊞',
     component: AnalysisBlock,
     worksWith: ['assessment', 'deduction', 'insight'],
     demoBlock: {
@@ -249,6 +269,7 @@ export const blockRegistry = {
     description:
       'A conclusion reached by explicit reasoning from other claims, with that reasoning and a confidence marker.',
     family: 'work',
+    icon: '∴',
     component: DeductionBlock,
     worksWith: ['analysis', 'demonstration', 'implication', 'objection'],
     demoBlock: {
@@ -270,6 +291,7 @@ export const blockRegistry = {
     label: 'Definition',
     description: "A term and its meaning, with a confidence marker for how settled the definition feels.",
     family: 'work',
+    icon: '≡',
     component: DefinitionBlock,
     worksWith: ['question'],
     demoBlock: {
@@ -291,6 +313,7 @@ export const blockRegistry = {
     label: 'Demonstration',
     description: 'A concrete worked example showing a claim to be true, with the walkthrough and a confidence marker.',
     family: 'work',
+    icon: '▶',
     component: DemonstrationBlock,
     worksWith: ['deduction', 'implication', 'hypothesis'],
     demoBlock: {
@@ -316,6 +339,7 @@ export const blockRegistry = {
     label: 'Insight',
     description: 'An unplanned realization, with what led to it and a confidence marker.',
     family: 'work',
+    icon: '✦',
     component: InsightBlock,
     worksWith: ['analysis', 'implication'],
     demoBlock: {
@@ -335,6 +359,7 @@ export const blockRegistry = {
     description:
       'What seems to follow from something, short of proof -- a softer sibling to Deduction -- with what suggests it and a confidence marker.',
     family: 'work',
+    icon: '⇒',
     component: ImplicationBlock,
     worksWith: ['deduction', 'insight'],
     demoBlock: {
@@ -359,6 +384,7 @@ export const blockRegistry = {
     label: 'Hypothesis',
     description: 'A claim proposed to test, not yet believed, with what would test it and a confidence marker.',
     family: 'work',
+    icon: '∼',
     component: HypothesisBlock,
     worksWith: ['assessment', 'demonstration'],
     demoBlock: {
@@ -376,6 +402,7 @@ export const blockRegistry = {
     description:
       'A specific challenge to another existing claim, with what it challenges (typically a linked claim) and a confidence marker.',
     family: 'work',
+    icon: '✕',
     component: ObjectionBlock,
     worksWith: ['assessment', 'deduction'],
     demoBlock: {
@@ -398,6 +425,7 @@ export const blockRegistry = {
     label: 'Milestone',
     description: 'A checkpoint with a target date and a reached/not-yet-reached state.',
     family: 'time',
+    icon: '◆',
     component: MilestoneBlock,
     worksWith: ['list', 'assessment'],
     demoBlock: {
@@ -424,6 +452,7 @@ export const blockRegistry = {
     label: 'Session',
     description: 'A timed sitting of work -- start it, stop it, and the elapsed time is logged.',
     family: 'time',
+    icon: '◷',
     component: SessionBlock,
     worksWith: ['milestone'],
     demoBlock: {

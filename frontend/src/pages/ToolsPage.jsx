@@ -24,8 +24,9 @@ function labelFor(key) {
 function ToolCard({ entry, kind }) {
   const Demo = entry.component;
   return (
-    <div className="tool-card">
+    <div className="tool-card" data-family={entry.family}>
       <div className="tool-card-head">
+        {entry.icon && <span className="tool-card-icon">{entry.icon}</span>}
         <h4>{entry.label}</h4>
         <span className="tool-kind-tag">{kind}</span>
       </div>

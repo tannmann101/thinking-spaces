@@ -88,14 +88,45 @@ export function createSpace({ id = randomUUID(), title, templateId = null, statu
   return getSpaceById(id);
 }
 
+function parseTemplateRow(row) {
+  if (!row) return row;
+  return { ...row, block_arrangement: JSON.parse(row.block_arrangement) };
+}
+
 export function listTemplates() {
-  return db
+  const rows = db
     .prepare(
       `SELECT id, name, block_arrangement, created_at, updated_at
        FROM templates
        ORDER BY name ASC`
     )
     .all();
+  return rows.map(parseTemplateRow);
+}
+
+export function getTemplateById(id) {
+  const row = db.prepare(`SELECT * FROM templates WHERE id = ?`).get(id);
+  return parseTemplateRow(row);
+}
+
+// id is optional, same reasoning as createSpace: a fixed id for the
+// built-in templates seeded at startup (see seedTemplates.js).
+export function createTemplate({ id = randomUUID(), name, blockArrangement }) {
+  db.prepare(
+    `INSERT INTO templates (id, name, block_arrangement) VALUES (?, ?, ?)`
+  ).run(id, name, JSON.stringify(blockArrangement));
+  return getTemplateById(id);
+}
+
+// Applying a Template is a one-time copy, per CLAUDE.md -- not a live
+// link back to the template. Each block spec in block_arrangement is
+// just the same shape createBlock already takes.
+export function applyTemplate(spaceId, templateId) {
+  const template = getTemplateById(templateId);
+  if (!template) return;
+  template.block_arrangement.forEach((blockSpec) => {
+    createBlock({ spaceId, ...blockSpec });
+  });
 }
 
 // Idempotent: creates the Test Space the first time the app runs, does

@@ -8,8 +8,10 @@ import { templatesRouter } from './routes/templates.js';
 import { blocksRouter } from './routes/blocks.js';
 import { ensureTestSpaceExists } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
+import { seedTemplates } from './db/seedTemplates.js';
 
 ensureTestSpaceExists();
+seedTemplates();
 seedTestSpaceBlocks();
 
 const app = express();

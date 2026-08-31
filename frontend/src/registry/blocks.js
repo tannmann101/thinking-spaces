@@ -37,6 +37,8 @@ import AnalysisBlock from '../blocks/AnalysisBlock.jsx';
 import DeductionBlock from '../blocks/DeductionBlock.jsx';
 import DefinitionBlock from '../blocks/DefinitionBlock.jsx';
 import DemonstrationBlock from '../blocks/DemonstrationBlock.jsx';
+import InsightBlock from '../blocks/InsightBlock.jsx';
+import ImplicationBlock from '../blocks/ImplicationBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -149,9 +151,9 @@ export const blockRegistry = {
   },
   // "Work": a new kind of Tool, one real, distinct Tool per kind of
   // thinking-act (assess, question, analyze, deduce, define,
-  // demonstrate, and whatever follows) rather than a generic block
-  // with a label. Every kind shares one underlying shape ({statement,
-  // rationale, confidence} -- see WorkBlock.jsx) so Synthesis can pull
+  // demonstrate, realize, imply, and whatever follows) rather than a
+  // generic block with a label. Every kind shares one underlying shape
+  // ({statement, rationale, confidence} -- see WorkBlock.jsx) so Synthesis can pull
   // from them uniformly, even though each one's two text fields are
   // relabeled for its own kind (Definition is the one exception to
   // "statement = the Tool's own name": its statement holds the term,
@@ -194,7 +196,7 @@ export const blockRegistry = {
     description:
       'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
     component: AnalysisBlock,
-    worksWith: ['assessment', 'deduction'],
+    worksWith: ['assessment', 'deduction', 'insight'],
     demoBlock: {
       type: 'analysis',
       content: {
@@ -211,7 +213,7 @@ export const blockRegistry = {
     description:
       'A conclusion reached by explicit reasoning from other claims, with that reasoning and a confidence marker.',
     component: DeductionBlock,
-    worksWith: ['analysis', 'demonstration'],
+    worksWith: ['analysis', 'demonstration', 'implication'],
     demoBlock: {
       type: 'deduction',
       content: {
@@ -243,13 +245,50 @@ export const blockRegistry = {
     label: 'Demonstration',
     description: 'A concrete worked example showing a claim to be true, with the walkthrough and a confidence marker.',
     component: DemonstrationBlock,
-    worksWith: ['deduction'],
+    worksWith: ['deduction', 'implication'],
     demoBlock: {
       type: 'demonstration',
       content: {
         statement: 'The two migration plans really do cost the same over three years.',
         rationale: 'Plan A: $400/mo x 36 = $14,400. Plan B: $9,000 upfront + $150/mo x 36 = $14,400.',
         confidence: 'solid',
+      },
+      properties: {},
+    },
+  },
+  // Insight and Implication are deliberately the softer, more
+  // provisional pair alongside the sharper Assessment/Deduction --
+  // most of the rest of the original thinking-verb list (derive, plan,
+  // outline, explain, ...) either already maps onto an existing Tool
+  // or is a near-duplicate of one of the six built so far; these two
+  // were the ones that actually stood on their own.
+  insight: {
+    label: 'Insight',
+    description: 'An unplanned realization, with what led to it and a confidence marker.',
+    component: InsightBlock,
+    worksWith: ['analysis', 'implication'],
+    demoBlock: {
+      type: 'insight',
+      content: {
+        statement: 'The complaints were never about the price at all.',
+        rationale: 'Re-reading the support thread, every escalation happened after a setup step, not a billing screen.',
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  implication: {
+    label: 'Implication',
+    description:
+      'What seems to follow from something, short of proof -- a softer sibling to Deduction -- with what suggests it and a confidence marker.',
+    component: ImplicationBlock,
+    worksWith: ['deduction', 'insight'],
+    demoBlock: {
+      type: 'implication',
+      content: {
+        statement: 'The team may be understaffed for onboarding, not just support.',
+        rationale: 'Onboarding drop-off and slow support responses both spike on the same weeks.',
+        confidence: 'tentative',
       },
       properties: {},
     },

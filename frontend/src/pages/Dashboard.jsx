@@ -9,6 +9,7 @@ import {
   deleteSpace,
 } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
+import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 
 function formatDate(isoLikeString) {
   // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
@@ -130,6 +131,7 @@ function SynthesesDigest({ spaces }) {
 }
 
 function Dashboard() {
+  const { promptToMatch } = useConfirmDialog();
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
   const [recentTrail, setRecentTrail] = useState([]);
@@ -161,10 +163,11 @@ function Dashboard() {
   // the Space page itself -- this is the one place a Space can vanish
   // for good, so it should never be a single misclick away.
   async function handleDeleteSpace(space) {
-    const typed = window.prompt(
-      `Delete "${space.title}" and everything in it? This cannot be undone.\n\nType the Space's name to confirm:`
+    const confirmed = await promptToMatch(
+      `Delete "${space.title}" and everything in it? This cannot be undone.`,
+      space.title
     );
-    if (typed !== space.title) return;
+    if (!confirmed) return;
     await deleteSpace(space.id);
     refetchSpaces();
   }

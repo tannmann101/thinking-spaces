@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTemplates, deleteTemplate } from '../api.js';
+import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 
 function TemplatesPage() {
   const [templates, setTemplates] = useState(null);
   const [error, setError] = useState(null);
+  const { confirm } = useConfirmDialog();
 
   function refetch() {
     getTemplates().then(setTemplates).catch((err) => setError(err.message));
@@ -15,7 +17,11 @@ function TemplatesPage() {
   }, []);
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this Template? Spaces already created from it keep their blocks -- deleting a Template never touches them.')) {
+    if (
+      !(await confirm(
+        'Delete this Template? Spaces already created from it keep their blocks -- deleting a Template never touches them.'
+      ))
+    ) {
       return;
     }
     await deleteTemplate(id);

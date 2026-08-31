@@ -29,6 +29,7 @@ import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
+import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import ReportButton from '../components/ReportButton.jsx';
 
 function EditableWorkspaceName({ workspace, onChanged }) {
@@ -72,6 +73,7 @@ function EditableWorkspaceName({ workspace, onChanged }) {
 function WorkspacePage() {
   const { spaceId, workspaceId } = useParams();
   const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
   const [space, setSpace] = useState(null);
   const [workspace, setWorkspace] = useState(null);
   const [blocks, setBlocks] = useState(null);
@@ -125,7 +127,7 @@ function WorkspacePage() {
   }
 
   async function handleDeleteBlock(blockId) {
-    if (!window.confirm('Remove this block entirely? This cannot be undone.')) return;
+    if (!(await confirm('Remove this block entirely? This cannot be undone.'))) return;
     await deleteBlockApi(blockId);
     refetchAll();
   }
@@ -134,7 +136,7 @@ function WorkspacePage() {
   // blocks stay exactly where they were on the ordinary Space page,
   // same as removing a Category never deletes the blocks filed under it.
   async function handleDeleteWorkspace() {
-    if (!window.confirm(`Delete the Workspace "${workspace.name}"? Its Tools stay on the Space.`)) {
+    if (!(await confirm(`Delete the Workspace "${workspace.name}"? Its Tools stay on the Space.`))) {
       return;
     }
     await deleteWorkspace(workspaceId);

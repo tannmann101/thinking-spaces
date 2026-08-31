@@ -24,6 +24,7 @@ import SpaceGlyph, { SPACE_STATUSES, SPACE_ACCENTS } from '../glyph/SpaceGlyph.j
 import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import ReportButton from '../components/ReportButton.jsx';
+import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 
 function BackLink() {
   const [searchParams] = useSearchParams();
@@ -511,6 +512,7 @@ function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
 
 function SpacePage() {
   const { id } = useParams();
+  const { confirm: confirmDialog, promptToMatch } = useConfirmDialog();
   const navigate = useNavigate();
   const [space, setSpace] = useState(null);
   const [blocks, setBlocks] = useState(null);
@@ -564,7 +566,7 @@ function SpacePage() {
   }
 
   async function handleRemoveBlock(blockId) {
-    if (!window.confirm('Remove this block? This cannot be undone.')) return;
+    if (!(await confirmDialog('Remove this block? This cannot be undone.'))) return;
     await deleteBlockApi(blockId);
     refetchAll();
   }
@@ -579,10 +581,11 @@ function SpacePage() {
   // the whole Trail with it -- a heavier action than any other delete
   // on this page, so it gets a heavier confirmation to match.
   async function handleDeleteSpace() {
-    const typed = window.prompt(
-      `Delete "${space.title}" and everything in it? This cannot be undone.\n\nType the Space's name to confirm:`
+    const confirmed = await promptToMatch(
+      `Delete "${space.title}" and everything in it? This cannot be undone.`,
+      space.title
     );
-    if (typed !== space.title) return;
+    if (!confirmed) return;
     await deleteSpace(id);
     navigate('/');
   }

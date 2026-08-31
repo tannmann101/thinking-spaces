@@ -78,6 +78,16 @@ export const addTrailNote = (spaceId, note) =>
     method: 'POST',
     body: JSON.stringify({ note }),
   });
+// Attaches a "why" to an existing (usually auto) entry, or edits a
+// manual entry's own note -- entries used to be write-once.
+export const updateTrailNote = (spaceId, entryId, note) =>
+  request(`/spaces/${spaceId}/trail/${entryId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  });
+// The live Skeleton state, in the same {lanes, articulation} shape a
+// stored Trail snapshot has -- Rewind's "Now" column reads this.
+export const getCurrentSkeleton = (spaceId) => request(`/spaces/${spaceId}/skeleton/current`);
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getRecentTrail = () => request('/dashboard/recent-trail');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');

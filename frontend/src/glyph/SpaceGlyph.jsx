@@ -11,10 +11,13 @@
 // the same branch count don't all look identical -- that's a rendering
 // choice, not a fourth data channel.
 //
-// Not implemented here: the manual accent layer the doc describes (a
-// small fixed set of hand-added marks on top of the computed base) --
-// that's a separate feature (a UI for picking and persisting one),
-// out of scope for "make the computed glyph real."
+// A fourth, deliberately different layer sits on top of those three
+// computed dimensions: a manual accent (star/underline/triangle/dot),
+// hand-picked on the Space page (see AccentPicker in SpacePage.jsx) and
+// persisted as `spaces.accent`. It never replaces the computed base --
+// it draws in a separate color (--accent, distinct from the maroon the
+// computed shape uses) so it always reads as an added mark, not a
+// change to what the glyph is actually reporting.
 
 const STATUS_STYLE = {
   nascent: { opacity: 0.4, strokeWidth: 1, tipFilled: false, grey: false },
@@ -31,6 +34,66 @@ export const SPACE_STATUSES = Object.keys(STATUS_STYLE);
 
 const MAX_BRANCHES = 6;
 const MAX_CRACK_SEGMENTS = 4;
+
+// The fixed set of manual accents -- exported so AccentPicker's chip
+// row (SpacePage.jsx) can't drift out of sync with what this component
+// actually knows how to draw.
+export const SPACE_ACCENTS = ['star', 'underline', 'triangle', 'dot'];
+
+// A standard 5-point star polygon, alternating outer/inner radius per
+// point -- the one non-trivial shape among the four accents.
+function starPoints(cx, cy, outerR, innerR) {
+  const points = [];
+  const step = Math.PI / 5;
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = i * step - Math.PI / 2;
+    points.push(`${(cx + Math.cos(angle) * r).toFixed(1)},${(cy + Math.sin(angle) * r).toFixed(1)}`);
+  }
+  return points.join(' ');
+}
+
+// Drawn in the top-right corner (star/triangle/dot) or under the whole
+// glyph (underline) at a size proportional to the glyph itself, so it
+// reads consistently whether this is a 30px Dashboard card or a 36px
+// Space-page glyph.
+function renderAccent(accent, size) {
+  if (!accent) return null;
+  const color = 'var(--accent)';
+  const markSize = size * 0.24;
+  const cx = size - markSize / 2 - 1;
+  const cy = markSize / 2 + 1;
+
+  switch (accent) {
+    case 'star':
+      return <polygon points={starPoints(cx, cy, markSize / 2, markSize / 4)} fill={color} />;
+    case 'triangle':
+      return (
+        <polygon
+          points={`${cx},${cy - markSize / 2} ${cx - markSize / 2},${cy + markSize / 2} ${
+            cx + markSize / 2
+          },${cy + markSize / 2}`}
+          fill={color}
+        />
+      );
+    case 'dot':
+      return <circle cx={cx} cy={cy} r={markSize / 2} fill={color} />;
+    case 'underline':
+      return (
+        <line
+          x1={size * 0.15}
+          y1={size - 0.5}
+          x2={size * 0.85}
+          y2={size - 0.5}
+          stroke={color}
+          strokeWidth={Math.max(1, size * 0.05)}
+          strokeLinecap="round"
+        />
+      );
+    default:
+      return null;
+  }
+}
 
 function hashString(text) {
   let hash = 0;
@@ -91,7 +154,9 @@ function SpaceGlyph({ space, size = 28 }) {
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       role="img"
-      aria-label={`Visual identity: ${status}, ${relationDensity} connections, ${openTensionCount} open tensions`}
+      aria-label={`Visual identity: ${status}, ${relationDensity} connections, ${openTensionCount} open tensions${
+        space.accent ? `, ${space.accent} accent` : ''
+      }`}
     >
       <line
         x1={cx}
@@ -138,6 +203,7 @@ function SpaceGlyph({ space, size = 28 }) {
           strokeWidth={1}
         />
       )}
+      {renderAccent(space.accent, size)}
     </svg>
   );
 }

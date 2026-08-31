@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS spaces (
                                           -- own topic (e.g. ["Financial Impact", "Risk Tolerance"]) --
                                           -- distinct from tags, which categorize the Space itself
                                           -- (e.g. "resource") among every other Space
+  accent TEXT,                     -- Visual Identity's manual accent layer: one of a small fixed set
+                                    -- ('star'/'underline'/'triangle'/'dot'), hand-picked on the Space
+                                    -- page and drawn on top of SpaceGlyph's computed base -- never
+                                    -- replacing it. Null means no accent picked; that's the default.
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

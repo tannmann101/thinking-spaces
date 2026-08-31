@@ -1,60 +1,69 @@
-# CLAUDE.md \u2014 Thinking Spaces
+# CLAUDE.md — Thinking Spaces
 
 ## What this is
-A personal, single-user thinking workshop app. Each train of thought (a concept, theory, plan, assessment) becomes a "Space" \u2014 a revisitable, evolving place, not a static note. Spaces can hold different kinds of content depending on what they're for, can reference each other, and the whole system should feel alive and buildable-on-itself over time. This is being built for one person's own use, not as a product.
+A personal, single-user thinking workshop app. Each train of thought (a concept, theory, plan, assessment) becomes a "Space" — a revisitable, evolving place, not a static note. Spaces can hold different kinds of content depending on what they're for, can reference each other, and the whole system should feel alive and buildable-on-itself over time. This is being built for one person's own use, not as a product.
 
 ## Non-negotiable working method
 This project has a specific failure mode to avoid: past attempts sent one big prompt, got a rough MVP back, then spent a long time fighting it in frustrating, unreviewable tinkering. That is not how this build happens. Instead:
 
 - **Work in small, reviewed slices.** Finish one coherent piece, then stop and explain in plain language what was built and why, before continuing.
 - **Confirm scope before starting any new pass or major piece of work.** Restate your understanding of what's being asked; don't assume and run.
-- **No black boxes.** The person directing this project is not writing the code themselves. Every feature needs to be legible to a non-implementer: centralize things that would otherwise be scattered (a single registry file for block types, a single registry file for views \u2014 see Architecture below), comment intent not just mechanics, and avoid clever abstractions that hide what's actually happening.
+- **No black boxes.** The person directing this project is not writing the code themselves. Every feature needs to be legible to a non-implementer: centralize things that would otherwise be scattered (a single registry file for Tools, a single registry file for Views — see below), comment intent not just mechanics, and avoid clever abstractions that hide what's actually happening.
 - **Favor boring, readable code over clever code.** This is a solo-maintained personal project, not a codebase optimized for a team.
-- **Don't build ahead of the current pass** (see Roadmap) without explicit go-ahead, even if the next piece seems obvious or easy.
-
-## Current phase
-**Pass 1: Dashboard, Creation Mode, Test Space.** Do not start Pass 2 work until this is confirmed done.
+- **Don't build ahead of the current priority** (see Roadmap) without explicit go-ahead, even if the next piece seems obvious or easy.
+- **Use the person's own vocabulary** (Dashboard, Creation Mode, Spaces, Tools, Resources, Dev Mode, Relational Map — see below), not implementation jargon, when discussing the app with them. If a term drifts from how they actually think about it, that's a signal to realign the language, not just push forward.
 
 ## Tech stack
-React + Vite (frontend), Node/Express + SQLite (backend). This matches the person's other personal apps (a household finance tracker, a household-management app called Secretary) \u2014 consistency across their own tools matters more than any particular technical advantage.
+React + Vite (frontend), Node/Express + SQLite (backend). This matches the person's other personal apps (a household finance tracker, a household-management app called Secretary) — consistency across their own tools matters more than any particular technical advantage.
 
-## Target architecture: the Substrate
+## The shape of the app, in plain language
 
-Earlier design exploration produced a much heavier architecture (separate registries for Space Types, a pluggable Tool Library with its own module contracts, a Resource layer with buildable facet schemas, a live-cascading Dev Mode, and a distinct Relational Space entity). **That heavier version is not what gets built.** It was deliberately collapsed into a simpler substrate that produces the same result with far less machinery:
+This is the vocabulary to use — it's the person's own mental model, and it should stay the primary way of talking about this project:
 
-- **Blocks** \u2014 the only content primitives: `Text` (paragraphs, with optional inline attribution tags: quote / paraphrase / reflection / inference), `List` (items, each optionally carrying a checkbox, a number, a date, or a confidence marker), `Reference` (a link to another Space, with an optional note), `Media` (image/audio/embedded sketch), `Comparison` (two Text or Reference blocks, paired side by side)
-- **Properties** \u2014 a few optional attributes: a Space has a `status` (nascent / developing / mature / dormant); List items can carry a checkbox, number, date, or confidence value
-- **Views** \u2014 generic renderers computed over blocks that share a property, not separate registered tools: `Timeline` (List items with a date), `Progress` (List items with a checkbox), `Streak` (a daily checkbox List, calendar-rendered), `Ledger` (List items with a number, running total), `Graph` (every Reference block across every Space \u2014 this is "the Map")
-- **Templates** replace "Space Types" \u2014 a Template is just a named, saved starting arrangement of blocks. Applying one is a one-time copy, not a live link. Editing an existing Space later is never a separate "mode" \u2014 it's the same block-editing gesture as any other edit.
-- **Backlinks** replace the "Relational Map" as a modeled entity \u2014 computed automatically from Reference blocks, not stored as a separate graph structure. A "Relational Space" is not a distinct schema; it's literally just a Space whose content references two or more other Spaces.
+- **Dashboard** — where you land: create Spaces, see Spaces, see trends/metrics/insights across them.
+- **Creation Mode** — the flow for starting a new Space: pulling in Tools and Resources for what this Space is for, with real room for customization/personalization so the Space feels like its own thing, not a generic form.
+- **Spaces** — one Space per train of thought. Every Space loosely falls into one of 5 starting clusters (see below), plus "Other" for anything that doesn't. A Space is never *just* its cluster, though — it gets tailored the way every train of thought is different.
+- **Tools** — the functions/features a Space can use to work toward its purpose (write a paragraph, keep a checklist, compare two things, chart progress, etc.). Tools are internal to the app, modular and general-purpose, expanded in dev sessions like this one rather than built by the person from inside the running app. They should be visible as a catalog (with a demo of what each one offers) and some should be markable as "groupable" with others they work well alongside.
+- **Resources** — anything that exists outside of (or alongside) the app that gets surfaced *within* it, in relation to a Space, a Relational Space, the Dashboard, or a Tool: a book, a computer, a phone, an account, a YouTuber or podcaster, a social media post, a discussion, a set of notes — anything worth having on hand while thinking something through.
+- **Dev Mode** — a distinct mode you enter on a Space specifically to make structural changes (which Tools/Resources it has, its format, order, sequence, personalization/customization) — separate from the normal mode of just working in the Space day to day.
+- **Relational Map** — where Spaces get connected: simply (checkboxes/text references) and visually, as an interactive node/link thought-map in the spirit of Obsidian's graph view, but livelier. This is also where Relational Spaces (a Space seeded from several others) get managed.
 
-If the person mentions specific names from earlier brainstorming (Skeleton, Trail, Tension Resolver, Argument Map, Habit Streak, etc.), map them onto this substrate rather than building them as separate systems:
-- Skeleton lanes \u2192 List blocks (one per lane), confidence as a per-item property
-- Trail \u2192 automatic block-edit timestamps, rendered via a Timeline view scoped to one Space
-- Tension Resolver \u2192 not a tool; two Text blocks (the conflicting statements) plus one more Text block (crux + synthesis) \u2014 at most a guided Template for assembling this fast
-- Argument Map \u2192 a Graph view scoped to one Space's Reference blocks
-- Citation Tracker \u2192 a List block whose items carry a Reference property
-- Milestone Tracker / Habit Streak / Ledger Snippet \u2192 Progress / Streak / Ledger views over a List block
+### Where the build actually stands against that vocabulary
 
-## Visual direction (later, not now)
-There's an intended eventual look \u2014 codenamed "The Herbarium": a vellum/ink color palette, a serif display face paired with a monospace utility face, and an organic branching glyph as the visual identity signature for each Space (computed from status, reference count, and resolved tensions \u2014 not decorative). **Do not implement this styling during the functional build passes.** Use plain, legible, unstyled-but-clean UI (system fonts, minimal color) until the functional skeleton works end to end across all five passes. Visual polish is its own future pass, not something to interleave now.
+Passes 1–5 of the original roadmap are done, plus a visual-polish pass and an editability pass. Mapped onto the language above:
 
-## Data model, starting point
-Keep this simple and indexable from the start \u2014 it's the foundation every later Dashboard metric queries against:
-- `spaces` \u2014 id, title, template_id (nullable), status, created_at, updated_at
-- `blocks` \u2014 id, space_id, type, content (JSON), properties (JSON), position, created_at, updated_at
-- `templates` \u2014 id, name, block_arrangement (JSON)
-- References are just blocks of type `reference` with a `target_space_id` in their content \u2014 index that column, since backlinks and the Graph view both query it constantly.
+- **Tools** = the **Block types** (Text, List, Reference, Media, Comparison) and **View types** (Timeline, Progress, Streak, Ledger, Graph), registered in `frontend/src/registry/blocks.js` and `frontend/src/registry/views.js`. Real and working, but **not yet browsable in-app** — there's no catalog page, and no demo shown when adding one. This is the current build priority (see Roadmap).
+- **Spaces' 5 clusters** = the 5 built-in Templates (Inquiry/Analytical, Technical/Practical, Life Management, Person-Reflection, Creative), each a named starting arrangement of Tools. "Start Blank" in Creation Mode already serves as the "Other" option.
+- **Resources** = a Space carrying `"resource"` in its `tags` array (a plain JSON array on `spaces` — see Data model). Extra tags (`"book"`, `"person"`, `"account"`, ...) already work for sub-typing with zero new code, just not surfaced in the UI yet beyond the Dashboard's Resources digest.
+- **Creation Mode**, as actually built = a name field and a Template radio picker. No pulling in of Tools/Resources during setup, no personalization. **This is a real gap** against the vision above, not just an unfinished detail.
+- **Dev Mode**, as actually built = there is no separate mode. Add/remove/reorder controls for a Space's Tools sit on the page at all times, deliberately not gated behind a mode switch (the original design reasoning: structural edits should feel ordinary, not risky). The vision above describes an actual mode toggle instead. **This is an open, unresolved design question** — the two are in real tension. Don't silently pick a side; confirm with the person first. Template editing (`/templates`) is the one thing today that is already a distinct, separate editing surface from a live Space.
+- **Relational Map** = the Graph page (`/graph`), computed live from Reference blocks (no separate graph structure is stored). Currently a static SVG with a fixed circle layout — no drag, no pan/zoom, not interactive. **A real gap** against "interactive thought map, livelier than Obsidian."
 
-Propose refinements to this if something better fits once real building starts \u2014 it's a starting point, not gospel.
+If the person mentions older brainstorming names (Skeleton, Trail, Tension Resolver, Argument Map, Citation Tracker, Milestone Tracker, Habit Streak), these are already built as Tools — Skeleton lanes and Trail have their own files (`registry/skeleton.js`, the Trail spine on each Space page); the rest map onto Views over List Tools. Check before assuming a familiar name means new work.
 
-## Build roadmap \u2014 five passes, in order
+## Visual direction
+Done, not a future pass anymore. The shipped look is a matte-black/oxblood dark theme — Fraunces (display serif), Source Serif 4 (body serif), JetBrains Mono (utility mono) — defined in `frontend/src/index.css`. This superseded an earlier "vellum/ink" plan after the person reviewed a mockup and preferred the darker direction. The Visual Identity glyph (an organic branching mark per Space, computed from status/reference count/open tensions — never decorative) is real and themed to match.
 
-1. **Dashboard, Creation Mode, Test Space** \u2014 a minimal Dashboard (list of Spaces + a way to create one), a Creation flow (name a Space, pick a Template or start blank), and one specific "Test Space" whose explicit purpose is being a scratch area for Pass 2 (not real content).
-2. **Tools & Resources** \u2014 implement each Block type and each View, one at a time, testing/demoing each directly inside the Test Space before moving to the next. This is also where the Resource concept gets proven out (a Resource is just a Space tagged accordingly, referenced from elsewhere via a Reference block).
-3. **Real Spaces, configured** \u2014 build actual Templates for the real Space types that came out of earlier design work (an inquiry/analytical type, a technical/practical type, a life-management type, a person-reflection type, a creative type), each just a named starter block arrangement using the tools proven out in Pass 2.
-4. **Dev Mode** \u2014 in this architecture, this means: a clean UI for creating/editing/saving Templates, and making sure adding/removing/rearranging blocks on an already-live Space feels safe and ordinary, never like a separate risky mode.
-5. **Relational Map** \u2014 the Graph view across all Spaces (computed from Reference blocks), plus the ability to select several Spaces and spin up a new Space seeded with References to all of them (a "Relational Space"), with a way to zoom into any one member Space and a clear way back.
+## Data model, current state
+- `spaces` — id, title, template_id (nullable), status, tags (JSON array — Resources and any future category), goal (nullable text — "what this Space is working toward," a property of the Space itself, not its content), created_at, updated_at
+- `blocks` — id, space_id, type, content (JSON), properties (JSON), position, created_at, updated_at
+- `templates` — id, name, block_arrangement (JSON)
+- `trail_entries` — id, space_id, kind (auto/manual), summary, note, skeleton_snapshot (JSON), created_at
+- References are blocks of type `reference` with a `target_space_id` in their content — indexed, since backlinks and the Relational Map query it constantly.
+- Tags are queried by membership (`listSpacesByTag` in `backend/src/db/queries.js`, `GET /api/spaces?tag=...`) — general-purpose, not written specifically for Resources.
+
+Propose refinements to this if something better fits once more building happens — it's a foundation, not gospel.
+
+## Roadmap
+
+Complete: Passes 1–5 of the original plan (Dashboard/Creation Mode/Test Space; Tools & Resources; the 5 Templates; Dev Mode as originally scoped; the Relational Map). Visual polish. An editability pass (Space title/status/tags/goal all editable in place; List items removable, not just addable).
+
+**Current priority:** a **Tools catalog page** — one place to browse every Tool (every Block + View type), see its description and a live demo of what it offers, and see which Tools are tagged as working well together ("groupable").
+
+**Open, not yet started or decided (in the order raised, not necessarily build order):**
+1. **Creation Mode overhaul** — a real guided setup flow (pulling in Tools/Resources, real personalization), replacing today's name-and-template-picker.
+2. **Dev Mode as an actual mode toggle** — needs a decision first, since it conflicts with the "always ordinary, no separate mode" design currently in place. Confirm before building either direction.
+3. **Relational Map overhaul** — a genuinely interactive node/link map (drag, pan/zoom, visual life), replacing the current static SVG.
 
 ## Transparency / indexability requirement
-Every Block type and every View must be registered in one single, readable file each (e.g. `src/registry/blocks.ts`, `src/registry/views.ts`) \u2014 never scattered across the codebase. The point is that the person can open one file and see the complete list of what exists. Keep all cross-Space queries (counts, status distribution, backlink lookups) going through a small, consistent set of query functions rather than ad hoc SQL sprinkled around \u2014 this is what will make Dashboard metrics buildable later without new plumbing.
+Every Tool — every Block type and every View type — must be registered in one single, readable file each (`frontend/src/registry/blocks.js`, `frontend/src/registry/views.js`) — never scattered across the codebase. The point is that the person can open one file and see the complete list of what exists; the planned Tools catalog page makes this visible *in the app itself*, not just in the source. Keep all cross-Space queries (counts, status distribution, backlink lookups, tag membership) going through a small, consistent set of query functions in `backend/src/db/queries.js` rather than ad hoc SQL sprinkled around — this is what makes Dashboard metrics and things like the Resources digest buildable without new plumbing.

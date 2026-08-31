@@ -102,6 +102,7 @@ function Dashboard() {
           Thinking Spaces<span className="dot">.</span>
         </span>
         <nav className="nav-links">
+          <Link to="/tools">Tools</Link>
           <Link to="/templates">Manage Templates</Link>
           <Link to="/graph">View the Map</Link>
         </nav>

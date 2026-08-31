@@ -335,5 +335,69 @@ export function saveTextBlockWithPromotion(blockId, newText) {
     });
   }
 
-  return updateBlockContent(blockId, { ...block.content, text: keptText });
+  const updated = updateBlockContent(blockId, { ...block.content, text: keptText });
+
+  // Log a Trail entry for whichever structural change just happened --
+  // items promoted into lanes, or (if this was the articulation block
+  // itself) its text changing. Both count as "a Skeleton structural
+  // change" per the doc; an edit that's neither doesn't get logged.
+  if (promotions.length > 0) {
+    const laneLabelByKey = new Map(SKELETON_LANES.map((lane) => [lane.key, lane.label]));
+    const counts = new Map();
+    promotions.forEach(({ laneKey }) => counts.set(laneKey, (counts.get(laneKey) || 0) + 1));
+    const summary = [...counts.entries()]
+      .map(([laneKey, count]) => `${count} ${laneLabelByKey.get(laneKey)}`)
+      .join(', ');
+    logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: `Promoted: ${summary}` });
+  } else if (block.properties.skeletonRole === 'current-best-articulation' && keptText !== block.content.text) {
+    logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: 'Updated Current Best Articulation' });
+  }
+
+  return updated;
+}
+
+// --- Trail --------------------------------------------------------
+// The history layer. Every entry snapshots the Skeleton's full state
+// at that moment (all four lanes' items + the articulation text)
+// rather than a diff -- simpler, and this app's data volumes make the
+// extra storage a non-issue. "auto" entries log themselves (see
+// saveTextBlockWithPromotion above); "manual" ones are the person
+// adding a narrative "why" directly.
+function getSkeletonSnapshot(spaceId) {
+  const blocks = listBlocksForSpace(spaceId);
+  const lanes = {};
+  SKELETON_LANES.forEach((lane) => {
+    const block = blocks.find((b) => b.type === 'list' && b.properties.skeletonLane === lane.key);
+    lanes[lane.key] = block ? block.content.items : [];
+  });
+  const articulationBlock = blocks.find(
+    (b) => b.type === 'text' && b.properties.skeletonRole === 'current-best-articulation'
+  );
+  return { lanes, articulation: articulationBlock ? articulationBlock.content.text : '' };
+}
+
+function parseTrailRow(row) {
+  return { ...row, skeleton_snapshot: JSON.parse(row.skeleton_snapshot) };
+}
+
+export function logTrailEntry({ spaceId, kind, summary, note = null }) {
+  const id = randomUUID();
+  const snapshot = getSkeletonSnapshot(spaceId);
+  db.prepare(
+    `INSERT INTO trail_entries (id, space_id, kind, summary, note, skeleton_snapshot)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, spaceId, kind, summary, note, JSON.stringify(snapshot));
+  return parseTrailRow(db.prepare(`SELECT * FROM trail_entries WHERE id = ?`).get(id));
+}
+
+export function addManualTrailEntry(spaceId, note) {
+  const summary = note.length > 60 ? `${note.slice(0, 57)}...` : note;
+  return logTrailEntry({ spaceId, kind: 'manual', summary, note });
+}
+
+export function listTrailEntries(spaceId) {
+  const rows = db
+    .prepare(`SELECT * FROM trail_entries WHERE space_id = ? ORDER BY created_at ASC`)
+    .all(spaceId);
+  return rows.map(parseTrailRow);
 }

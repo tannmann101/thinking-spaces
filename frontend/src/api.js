@@ -38,3 +38,9 @@ export const saveTextBlock = (blockId, text) =>
     method: 'PATCH',
     body: JSON.stringify({ text }),
   });
+export const getTrailEntries = (spaceId) => request(`/spaces/${spaceId}/trail`);
+export const addTrailNote = (spaceId, note) =>
+  request(`/spaces/${spaceId}/trail`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });

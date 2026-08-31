@@ -73,7 +73,7 @@ function EditableTitle({ space, onChanged }) {
         type="text"
         value={draft}
         autoFocus
-        style={{ fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', flex: 1 }}
+        className="inline-title-field"
         onChange={(event) => setDraft(event.target.value)}
         onBlur={finish}
         onKeyDown={(event) => event.key === 'Enter' && finish()}
@@ -307,7 +307,7 @@ function WorkingToward({ space, onChanged }) {
           type="text"
           value={draft}
           autoFocus
-          style={{ width: '60%' }}
+          className="field-width-60"
           onChange={(event) => setDraft(event.target.value)}
           onBlur={finish}
           onKeyDown={(event) => event.key === 'Enter' && finish()}

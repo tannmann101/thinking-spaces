@@ -104,7 +104,7 @@ function TensionBuilder({ spaceBlocks, onCreate }) {
             type="text"
             value={labelDraft}
             onChange={(event) => setLabelDraft(event.target.value)}
-            style={{ width: '100%' }}
+            className="field-full"
           />
         </p>
         <p>

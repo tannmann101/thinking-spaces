@@ -104,9 +104,9 @@ function TemplateEditor() {
 
         <h2>Blocks</h2>
         {blocks.length === 0 && <p>No blocks yet.</p>}
-        <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ol className="list-reset">
           {blocks.map((block, index) => (
-            <li key={index} className="block-row" style={{ marginBottom: '12px' }}>
+            <li key={index} className="block-row list-reset-row">
               <BlockPreview block={block} />
               <div className="block-controls">
                 <button

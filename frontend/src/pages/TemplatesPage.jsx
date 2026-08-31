@@ -49,9 +49,7 @@ function TemplatesPage() {
             <li key={template.id}>
               <span>
                 {template.name}{' '}
-                <span
-                  style={{ fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink-faint)' }}
-                >
+                <span className="mono-caption">
                   ({template.block_arrangement.length} block
                   {template.block_arrangement.length === 1 ? '' : 's'})
                 </span>

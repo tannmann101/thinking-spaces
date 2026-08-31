@@ -50,7 +50,7 @@ function EditableWorkspaceName({ workspace, onChanged }) {
         type="text"
         value={draft}
         autoFocus
-        style={{ fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', flex: 1 }}
+        className="inline-title-field"
         onChange={(event) => setDraft(event.target.value)}
         onBlur={finish}
         onKeyDown={(event) => event.key === 'Enter' && finish()}

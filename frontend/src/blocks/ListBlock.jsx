@@ -121,7 +121,7 @@ function ListBlock({ block, onBlocksChanged }) {
           type={inputType}
           value={draft}
           autoFocus
-          style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
+          className="field-inherit-font"
           onChange={(event) => setDraft(event.target.value)}
           onBlur={finishEditingField}
           onKeyDown={(event) => event.key === 'Enter' && finishEditingField()}
@@ -147,7 +147,7 @@ function ListBlock({ block, onBlocksChanged }) {
           type="text"
           value={labelDraft}
           autoFocus
-          style={{ fontFamily: 'inherit', fontWeight: 500 }}
+          className="field-inherit-heading"
           onChange={(event) => setLabelDraft(event.target.value)}
           onBlur={finishEditingLabel}
           onKeyDown={(event) => event.key === 'Enter' && finishEditingLabel()}

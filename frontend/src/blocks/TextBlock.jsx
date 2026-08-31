@@ -145,7 +145,7 @@ function TextBlock({ block, onSave, onBlocksChanged }) {
           value={draft}
           rows={3}
           autoFocus
-          style={{ width: '100%', fontFamily: 'inherit', fontSize: 'inherit' }}
+          className="field-full field-inherit-font"
           onChange={handleChange}
           onBlur={() => {
             if (!suggestion) finishEditing();

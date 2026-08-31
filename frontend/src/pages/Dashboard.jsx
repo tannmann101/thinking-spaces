@@ -126,9 +126,12 @@ function Dashboard() {
         </nav>
       </header>
 
-      <p>
+      <p className="dashboard-create-row">
         <Link to="/spaces/new" className="new-space-btn">
           + New Space
+        </Link>
+        <Link to="/resources/new" className="new-space-btn new-resource-btn">
+          + New Resource
         </Link>
       </p>
 

@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import CreateSpace from './pages/CreateSpace.jsx';
+import CreateResource from './pages/CreateResource.jsx';
 import SpacePage from './pages/SpacePage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
 import TemplateEditor from './pages/TemplateEditor.jsx';
@@ -13,6 +14,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Dashboard />} />
       <Route path="/spaces/new" element={<CreateSpace />} />
+      <Route path="/resources/new" element={<CreateResource />} />
       <Route path="/spaces/:id" element={<SpacePage />} />
       <Route path="/templates" element={<TemplatesPage />} />
       <Route path="/templates/new" element={<TemplateEditor />} />

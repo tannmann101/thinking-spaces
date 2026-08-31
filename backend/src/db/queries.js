@@ -111,11 +111,22 @@ export function getSpaceById(id) {
 // only really used by seed data (e.g. tagging the Resource demo Space
 // at creation) -- an ordinary new Space starts untagged and gets tagged
 // later through the same PATCH /spaces/:id every other edit uses.
-export function createSpace({ id = randomUUID(), title, templateId = null, status = 'nascent', tags = [] }) {
+// categories can be set at creation too -- unlike tags, a guided
+// creation flow (Resource creation is the first to do this) may already
+// know exactly which facets this Space's content should be filed under
+// before any block exists yet.
+export function createSpace({
+  id = randomUUID(),
+  title,
+  templateId = null,
+  status = 'nascent',
+  tags = [],
+  categories = [],
+}) {
   db.prepare(
-    `INSERT INTO spaces (id, title, template_id, status, tags)
-     VALUES (?, ?, ?, ?, ?)`
-  ).run(id, title, templateId, status, JSON.stringify(tags));
+    `INSERT INTO spaces (id, title, template_id, status, tags, categories)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories));
   logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
   return getSpaceById(id);
 }
@@ -264,9 +275,10 @@ export function createSpaceWithSetup({
   extraBlocks = [],
   resourceSpaceIds = [],
   tags = [],
+  categories = [],
   goal = null,
 }) {
-  const space = createSpace({ title, templateId, tags });
+  const space = createSpace({ title, templateId, tags, categories });
   if (templateId) {
     applyTemplate(space.id, templateId);
   }

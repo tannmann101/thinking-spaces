@@ -22,11 +22,14 @@ import {
   addBlockToSpace,
   deleteBlockApi,
   updateBlockWorkspaces,
+  getWorkspaceReport,
+  getBlockReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
+import ReportButton from '../components/ReportButton.jsx';
 
 function EditableWorkspaceName({ workspace, onChanged }) {
   const [editing, setEditing] = useState(false);
@@ -164,6 +167,9 @@ function WorkspacePage() {
                 <EditableWorkspaceName workspace={workspace} onChanged={refetchAll} />
               </h1>
               <p className="workspace-subtitle">A Workspace inside &ldquo;{space.title}&rdquo;</p>
+              <div className="report-row">
+                <ReportButton fetchReport={() => getWorkspaceReport(workspaceId)} label="Workspace Report" />
+              </div>
             </>
           )}
 
@@ -205,6 +211,11 @@ function WorkspacePage() {
                           {applicableViews.map(([key, view]) => (
                             <view.component key={key} block={block} />
                           ))}
+                        </div>
+                      )}
+                      {!focusedBlockId && (
+                        <div className="block-report-row">
+                          <ReportButton fetchReport={() => getBlockReport(block.id)} />
                         </div>
                       )}
                       {!focusedBlockId && (

@@ -9,7 +9,9 @@ import {
   addBlockToSpace,
   deleteBlock,
   moveBlockInSpace,
+  getBlockReport,
 } from '../db/queries.js';
+import { renderReportText } from '../reportFormat.js';
 
 export const blocksRouter = Router();
 
@@ -63,6 +65,17 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
 blocksRouter.delete('/blocks/:id', (req, res) => {
   deleteBlock(req.params.id);
   res.status(204).end();
+});
+
+// A structured + prose snapshot of this one Tool/Work item's current
+// state -- see getBlockReport in queries.js. Covers every Block type
+// uniformly, a Hypothesis included.
+blocksRouter.get('/blocks/:id/report', (req, res) => {
+  const report = getBlockReport(req.params.id);
+  if (!report) {
+    return res.status(404).json({ error: 'Block not found' });
+  }
+  res.json({ report, narrative: renderReportText(report) });
 });
 
 // Text blocks go through their own route, not the generic PATCH above,

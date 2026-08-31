@@ -14,6 +14,8 @@ import {
   getWorkspacesForSpace,
   createWorkspace,
   deleteSpace,
+  getSpaceReport,
+  getBlockReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
@@ -21,6 +23,7 @@ import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
 import SpaceGlyph, { SPACE_STATUSES, SPACE_ACCENTS } from '../glyph/SpaceGlyph.jsx';
 import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
+import ReportButton from '../components/ReportButton.jsx';
 
 function BackLink() {
   const [searchParams] = useSearchParams();
@@ -584,6 +587,9 @@ function SpacePage() {
               <StatusPill space={space} onChanged={refetchAll} />
               <OriginBadge space={space} />
             </p>
+            <div className="report-row">
+              <ReportButton fetchReport={() => getSpaceReport(space.id)} label="Space Report" />
+            </div>
             <AccentPicker space={space} onChanged={refetchAll} />
 
             <WorkingToward space={space} onChanged={refetchAll} />
@@ -717,6 +723,9 @@ function SpacePage() {
                         spaceWorkspaces={workspaces || []}
                         onChanged={refetchAll}
                       />
+                      <div className="block-report-row">
+                        <ReportButton fetchReport={() => getBlockReport(block.id)} />
+                      </div>
                       <div className="block-controls">
                         <button
                           type="button"

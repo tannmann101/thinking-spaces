@@ -62,6 +62,10 @@ export const deleteSpace = (id) => request(`/spaces/${id}`, { method: 'DELETE' }
 export const getTemplates = () => request('/templates');
 export const getBlocksForSpace = (spaceId) => request(`/spaces/${spaceId}/blocks`);
 export const getBacklinksForSpace = (spaceId) => request(`/spaces/${spaceId}/backlinks`);
+// A structured + prose snapshot of this Space's current state -- see
+// getSpaceReport in backend/src/db/queries.js. Fetched lazily, only
+// when a Report panel is actually opened (see ReportButton.jsx).
+export const getSpaceReport = (spaceId) => request(`/spaces/${spaceId}/report`);
 export const updateBlockContent = (blockId, content) =>
   request(`/blocks/${blockId}`, {
     method: 'PATCH',
@@ -126,6 +130,10 @@ export const addBlockToSpace = (spaceId, { type, content, properties }) =>
     body: JSON.stringify({ type, content, properties }),
   });
 export const deleteBlockApi = (blockId) => request(`/blocks/${blockId}`, { method: 'DELETE' });
+// A structured + prose snapshot of this one block's current state --
+// see getBlockReport in backend/src/db/queries.js. Works for every
+// Block type, a Work item (e.g. a Hypothesis) included.
+export const getBlockReport = (blockId) => request(`/blocks/${blockId}/report`);
 // Which of the Space's own Categories a block belongs to (many-to-many).
 export const updateBlockCategories = (blockId, categories) =>
   request(`/blocks/${blockId}`, {
@@ -159,6 +167,9 @@ export const renameWorkspace = (id, name) =>
     body: JSON.stringify({ name }),
   });
 export const deleteWorkspace = (id) => request(`/workspaces/${id}`, { method: 'DELETE' });
+// A structured + prose snapshot of this Workspace's current state --
+// see getWorkspaceReport in backend/src/db/queries.js.
+export const getWorkspaceReport = (workspaceId) => request(`/workspaces/${workspaceId}/report`);
 
 // The Skeleton's alternate capture path: copy an already-written line
 // into a lane, leaving the Writing Surface untouched (see fileLineInLane

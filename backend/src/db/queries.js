@@ -1272,6 +1272,272 @@ export function getProvenanceInsights() {
   return { byOrigin, synthesisCount, promotedCount, workItemCount };
 }
 
+// --- Reports ----------------------------------------------------------
+// Every page in the app -- a Space, a Workspace, a single Tool/Work
+// item -- can produce a report: a structured snapshot of its current
+// state. Insights (above) already draws trend-level aggregates across
+// every Space; a report is the other direction -- one Space/Workspace/
+// block's own state, detailed enough to hand to an external Claude
+// conversation that can give it closer attention than an in-app view
+// ever could. Purely computed on demand: no new table, nothing stored
+// or versioned, same "compute, don't persist" choice Insights made.
+//
+// Every report shares one shape: { level, id, label, generatedAt,
+// sections: [{ heading, lines: [string] }] }. Keeping that shape
+// identical across all three levels is what lets renderReportText
+// (see ../reportFormat.js) stay one small generic function instead of
+// three near-duplicates -- the same "structured data now, prose
+// rendered from it" split Insights' charts and this both use.
+//
+// A "Relational Space" and a "connection" don't get their own report
+// functions: a Relational Space is just an ordinary Space (see
+// createRelationalSpace above), so getSpaceReport already covers it,
+// and a connection between two Spaces is just a Reference block, so
+// getBlockReport already covers that too, under "Content". No new
+// abstraction was needed for either.
+
+// A short, human-recognizable label for a block, used both in its own
+// report and when it's listed inside its parent Space's/Workspace's
+// report -- whatever text actually identifies it to a person glancing
+// at a list, not its raw id.
+function labelForBlock(block) {
+  if (WORK_TYPES.includes(block.type)) return block.content.statement || `(untitled ${block.type})`;
+  if (block.type === 'text') {
+    const firstLine = (block.content.lines || []).map((line) => line.text).find((text) => text.trim());
+    return firstLine || '(empty Text)';
+  }
+  if (block.type === 'list') return block.content.laneLabel || '(untitled List)';
+  if (block.type === 'reference') return `Reference to ${block.content.targetSpaceTitle || block.content.target_space_id}`;
+  if (block.type === 'media') return block.content.caption || '(untitled Media)';
+  if (block.type === 'comparison') return `${block.content.left?.text || '?'} vs. ${block.content.right?.text || '?'}`;
+  return `${block.type} block`;
+}
+
+// The lines that make up a block's own "Content" section -- switched
+// by type, since what's worth reporting about a Text block (its lines,
+// its tags) is nothing like what's worth reporting about a Reference
+// (its target) or a Work item (its statement/support/confidence). A
+// plain if/else chain rather than a registry of formatter functions --
+// boring and easy to extend by hand when a new Block type is added,
+// consistent with how normalizeWorkContent/normalizeTextContent above
+// already switch on type directly rather than through a lookup table.
+function summarizeBlockContent(block) {
+  const { type, content } = block;
+  if (type === 'text') {
+    const lines = content.lines || [];
+    const words = lines.map((line) => line.text).join(' ').trim().split(/\s+/).filter(Boolean).length;
+    const tags = [...new Set(lines.map((line) => line.tag).filter(Boolean))];
+    return [
+      `${lines.length} line${lines.length === 1 ? '' : 's'}, ${words} word${words === 1 ? '' : 's'}`,
+      ...(tags.length > 0 ? [`Tagged: ${tags.join(', ')}`] : []),
+      ...lines.filter((line) => line.text.trim()).map((line) => line.text),
+    ];
+  }
+  if (type === 'list') {
+    const items = content.items || [];
+    const checkable = items.filter((item) => typeof item.checkbox === 'boolean');
+    return [
+      `${items.length} item${items.length === 1 ? '' : 's'}${
+        checkable.length > 0 ? ` (${checkable.filter((item) => item.checkbox).length}/${checkable.length} checked)` : ''
+      }`,
+      ...items.map(
+        (item) => `${typeof item.checkbox === 'boolean' ? (item.checkbox ? '[x] ' : '[ ] ') : ''}${item.text}`
+      ),
+    ];
+  }
+  if (type === 'reference') {
+    return [
+      `Links to: ${content.targetSpaceTitle || content.target_space_id}`,
+      ...(content.note ? [`Note: ${content.note}`] : []),
+    ];
+  }
+  if (type === 'media') {
+    return [`Media type: ${content.mediaType}`, ...(content.caption ? [`Caption: ${content.caption}`] : [])];
+  }
+  if (type === 'comparison') {
+    return [
+      `Left: ${content.left?.text || '(empty)'}`,
+      `Right: ${content.right?.text || '(empty)'}`,
+      ...(content.contrast ? [`Marked as a contrast${content.contrastNote ? `: ${content.contrastNote}` : ''}`] : []),
+    ];
+  }
+  if (WORK_TYPES.includes(type)) {
+    return [
+      `Statement: ${content.statement || '(no statement yet)'}`,
+      `Confidence: ${content.confidence || 'tentative'}`,
+      ...(content.support || []).map((point) => `Support: ${point.text || '(linked claim)'}`),
+    ];
+  }
+  return [`(no summary available for block type "${type}")`];
+}
+
+// A single Tool/Work item's own report -- covers every Block type
+// uniformly (a Text block, a List, a Reference, and a Work item like a
+// Hypothesis all go through this same function), since they're all
+// just rows in the same `blocks` table with a type-specific content
+// shape. See summarizeBlockContent above for the type-switched part.
+export function getBlockReport(blockId) {
+  const block = getBlockById(blockId);
+  if (!block) return null;
+  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(block.space_id);
+
+  const workspaceIds = block.properties?.workspaces || [];
+  const workspaceNames =
+    workspaceIds.length > 0
+      ? db
+          .prepare(`SELECT name FROM workspaces WHERE id IN (${workspaceIds.map(() => '?').join(', ')})`)
+          .all(...workspaceIds)
+          .map((row) => row.name)
+      : [];
+
+  const membershipLines = [
+    ...((block.properties?.categories || []).length > 0 ? [`Categories: ${block.properties.categories.join(', ')}`] : []),
+    ...(workspaceNames.length > 0 ? [`Workspaces: ${workspaceNames.join(', ')}`] : []),
+    ...(block.properties?.skeletonLane ? [`Skeleton lane: ${block.properties.skeletonLane}`] : []),
+    ...(block.properties?.skeletonRole ? [`Skeleton role: ${block.properties.skeletonRole}`] : []),
+  ];
+
+  const sections = [
+    {
+      heading: 'Identity',
+      lines: [
+        `Type: ${block.type}`,
+        `Space: ${space?.title || block.space_id}`,
+        `Created: ${block.created_at}`,
+        `Last updated: ${block.updated_at}`,
+      ],
+    },
+    { heading: 'Content', lines: summarizeBlockContent(block) },
+  ];
+  if (membershipLines.length > 0) {
+    sections.push({ heading: 'Membership', lines: membershipLines });
+  }
+
+  return { level: 'block', id: block.id, label: labelForBlock(block), generatedAt: new Date().toISOString(), sections };
+}
+
+// A Workspace's own report -- its identity plus every Tool currently
+// assembled into it, each summarized the same one-line way it would
+// appear in a list anywhere else in the app.
+export function getWorkspaceReport(workspaceId) {
+  const workspace = getWorkspaceById(workspaceId);
+  if (!workspace) return null;
+  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(workspace.space_id);
+  const memberBlocks = listBlocksForSpace(workspace.space_id).filter((block) =>
+    (block.properties?.workspaces || []).includes(workspaceId)
+  );
+
+  const sections = [
+    { heading: 'Identity', lines: [`Space: ${space?.title || workspace.space_id}`, `Created: ${workspace.created_at}`] },
+    {
+      heading: `Assembled Tools (${memberBlocks.length})`,
+      lines: memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)}`),
+    },
+  ];
+
+  return {
+    level: 'workspace',
+    id: workspace.id,
+    label: workspace.name,
+    generatedAt: new Date().toISOString(),
+    sections,
+  };
+}
+
+// A Space's own report -- the fullest of the three, since a Space is
+// where every other kind of state (its blocks, its Workspaces, its
+// Skeleton, its Trail, its relationships to other Spaces) actually
+// lives. Each section only appears once it has something to say --
+// a brand-new Space's report is still valid, just shorter.
+export function getSpaceReport(spaceId) {
+  const space = getSpaceById(spaceId);
+  if (!space) return null;
+  const blocks = listBlocksForSpace(spaceId);
+  const workspaces = listWorkspacesForSpace(spaceId);
+  const backlinks = listBacklinksForSpace(spaceId);
+  const trail = listTrailEntries(spaceId);
+  const skeleton = getSkeletonSnapshot(spaceId);
+
+  const typeCounts = {};
+  blocks.forEach((block) => {
+    typeCounts[block.type] = (typeCounts[block.type] || 0) + 1;
+  });
+
+  const workBlocks = blocks.filter((block) => WORK_TYPES.includes(block.type));
+  const workConfidenceCounts = {};
+  workBlocks.forEach((block) => {
+    const level = block.content.confidence || 'tentative';
+    workConfidenceCounts[level] = (workConfidenceCounts[level] || 0) + 1;
+  });
+
+  const sections = [
+    {
+      heading: 'Identity',
+      lines: [
+        `Status: ${space.status}`,
+        `Goal: ${space.goal || '(not set)'}`,
+        `Tags: ${space.tags.length > 0 ? space.tags.join(', ') : '(none)'}`,
+        `Categories: ${space.categories.length > 0 ? space.categories.join(', ') : '(none)'}`,
+        `Provenance: ${space.origin || '(not marked)'}`,
+        `Created: ${space.created_at}`,
+        `Last updated: ${space.updated_at}`,
+      ],
+    },
+    {
+      heading: `Structure (${blocks.length} block${blocks.length === 1 ? '' : 's'})`,
+      lines: [
+        ...Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`),
+        ...(workspaces.length > 0 ? [`Workspaces: ${workspaces.map((workspace) => workspace.name).join(', ')}`] : []),
+      ],
+    },
+  ];
+
+  if (workBlocks.length > 0) {
+    sections.push({
+      heading: `Work (${workBlocks.length} item${workBlocks.length === 1 ? '' : 's'})`,
+      lines: [
+        ...Object.entries(workConfidenceCounts).map(([level, count]) => `${count} at "${level}" confidence`),
+        ...workBlocks.map(
+          (block) => `${block.type}: ${block.content.statement || '(no statement yet)'} [${block.content.confidence || 'tentative'}]`
+        ),
+      ],
+    });
+  }
+
+  const relationalLines = [
+    ...blocks
+      .filter((block) => block.type === 'reference')
+      .map(
+        (block) =>
+          `-> ${block.content.targetSpaceTitle || block.content.target_space_id}${block.content.note ? ` (${block.content.note})` : ''}`
+      ),
+    ...backlinks.map((link) => `<- ${link.sourceSpaceTitle}${link.note ? ` (${link.note})` : ''}`),
+  ];
+  if (relationalLines.length > 0) {
+    sections.push({ heading: 'Relational', lines: relationalLines });
+  }
+
+  const skeletonLines = Object.values(skeleton.lanes).map(
+    (lane) => `${lane.label}: ${lane.items.length} item${lane.items.length === 1 ? '' : 's'}`
+  );
+  (skeleton.lanes.tensions?.items || []).forEach((item) => skeletonLines.push(`Tension: ${item.text}`));
+  if (skeletonLines.length > 0) {
+    sections.push({ heading: 'Skeleton', lines: skeletonLines });
+  }
+
+  if (trail.length > 0) {
+    sections.push({
+      heading: 'Recent Trail',
+      lines: trail
+        .slice(-5)
+        .reverse()
+        .map((entry) => `${entry.kind === 'manual' ? entry.note : entry.summary} (${entry.created_at})`),
+    });
+  }
+
+  return { level: 'space', id: space.id, label: space.title, generatedAt: new Date().toISOString(), sections };
+}
+
 // --- Dashboard aggregations -------------------------------------------
 // Cross-Space surfacing features. The Test Space is excluded from all
 // three -- it's scratch content, not something worth being reminded to

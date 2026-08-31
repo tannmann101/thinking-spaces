@@ -18,19 +18,37 @@
 // creation is what actually answers "picking Text/List feels like an
 // abstract dropdown" -- the new block is filed under a real facet of
 // the Space's topic from the moment it exists, not after the fact.
+//
+// `workspaceNames` is the equivalent for Workspaces, but holds plain
+// draft-time NAMES rather than the real ids Workspace membership
+// normally uses (`properties.workspaces`) -- Creation Mode's own
+// Workspaces step names Workspaces before the Space (and so the
+// Workspaces themselves) exist. The emitted spec carries
+// `properties.workspaceNames`; whoever ultimately creates the block
+// (createSpaceWithSetup, for Creation Mode) resolves those names to
+// real ids once the Workspaces are real rows, same division of labor as
+// everywhere else: this form only ever describes intent, never ids
+// it can't yet know.
 
 import { useState } from 'react';
 
-function NewBlockForm({ onAdd, categories = [] }) {
+function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
   const [type, setType] = useState('text');
   const [text, setText] = useState('');
   const [laneLabel, setLaneLabel] = useState('');
   const [itemLines, setItemLines] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedWorkspaceNames, setSelectedWorkspaceNames] = useState([]);
 
   function toggleCategory(category) {
     setSelectedCategories((current) =>
       current.includes(category) ? current.filter((c) => c !== category) : [...current, category]
+    );
+  }
+
+  function toggleWorkspaceName(name) {
+    setSelectedWorkspaceNames((current) =>
+      current.includes(name) ? current.filter((n) => n !== name) : [...current, name]
     );
   }
 
@@ -40,7 +58,10 @@ function NewBlockForm({ onAdd, categories = [] }) {
   // the inner submit button's click to the outer form instead. A plain
   // button + onClick sidesteps that entirely.
   function handleSubmit() {
-    const properties = selectedCategories.length > 0 ? { categories: selectedCategories } : {};
+    const properties = {
+      ...(selectedCategories.length > 0 ? { categories: selectedCategories } : {}),
+      ...(selectedWorkspaceNames.length > 0 ? { workspaceNames: selectedWorkspaceNames } : {}),
+    };
     if (type === 'text') {
       onAdd({ type: 'text', content: { tag: null, text }, properties });
     } else {
@@ -55,6 +76,7 @@ function NewBlockForm({ onAdd, categories = [] }) {
     setLaneLabel('');
     setItemLines('');
     setSelectedCategories([]);
+    setSelectedWorkspaceNames([]);
   }
 
   return (
@@ -105,6 +127,22 @@ function NewBlockForm({ onAdd, categories = [] }) {
               onClick={() => toggleCategory(category)}
             >
               {category}
+            </span>
+          ))}
+        </p>
+      )}
+      {workspaceNames.length > 0 && (
+        <p className="block-workspace-row">
+          Add to Workspace:{' '}
+          {workspaceNames.map((name) => (
+            <span
+              key={name}
+              className={`workspace-chip workspace-chip-toggle${
+                selectedWorkspaceNames.includes(name) ? ' workspace-chip-active' : ''
+              }`}
+              onClick={() => toggleWorkspaceName(name)}
+            >
+              {name}
             </span>
           ))}
         </p>

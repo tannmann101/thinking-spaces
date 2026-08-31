@@ -266,9 +266,19 @@ export function applyTemplate(spaceId, templateId) {
 // (applyTemplate), any extra Tools chosen on top of it
 // (addBlockToSpace), a Reference block per Resource pulled in
 // (addBlockToSpace again, same as createRelationalSpace does for its
-// selections), and the Space's own tags/goal (createSpace/updateSpace).
-// Nothing here is new machinery -- this just does all of it in one
-// request instead of asking the frontend to sequence several.
+// selections), and the Space's own tags/goal/categories
+// (createSpace/updateSpace). Nothing here is new machinery -- this just
+// does all of it in one request instead of asking the frontend to
+// sequence several.
+//
+// `workspaces` names Workspaces to assemble from the start (Creation
+// Mode's own "Workspaces" step). They're created before extraBlocks are
+// added specifically so a block can be filed into one immediately: a
+// block spec carrying `properties.workspaceNames` (draft-time names --
+// real ids don't exist yet when the frontend builds the request) gets
+// those names resolved against the freshly-created Workspaces here and
+// rewritten into `properties.workspaces` (real ids), the same field
+// BlockWorkspacePicker and the Workspace page both already read.
 export function createSpaceWithSetup({
   title,
   templateId = null,
@@ -276,14 +286,28 @@ export function createSpaceWithSetup({
   resourceSpaceIds = [],
   tags = [],
   categories = [],
+  workspaces = [],
   goal = null,
 }) {
   const space = createSpace({ title, templateId, tags, categories });
   if (templateId) {
     applyTemplate(space.id, templateId);
   }
-  extraBlocks.forEach((blockSpec) => {
-    addBlockToSpace(space.id, blockSpec);
+  const workspaceIdByName = new Map(
+    workspaces.map((name) => [name, createWorkspace({ spaceId: space.id, name }).id])
+  );
+  extraBlocks.forEach(({ properties = {}, ...blockSpec }) => {
+    const { workspaceNames, ...restProperties } = properties;
+    const resolvedWorkspaceIds = (workspaceNames || [])
+      .map((name) => workspaceIdByName.get(name))
+      .filter(Boolean);
+    addBlockToSpace(space.id, {
+      ...blockSpec,
+      properties:
+        resolvedWorkspaceIds.length > 0
+          ? { ...restProperties, workspaces: resolvedWorkspaceIds }
+          : restProperties,
+    });
   });
   resourceSpaceIds.forEach((targetSpaceId) => {
     addBlockToSpace(space.id, {
@@ -383,18 +407,31 @@ export function listBacklinksForSpace(spaceId) {
 }
 
 // The Graph view (Pass 5's "Map"): every Reference block across every
-// Space, as nodes (Spaces) and edges (References). This is a plain
-// query over the blocks table -- CLAUDE.md is explicit that no separate
-// graph structure gets modeled or cached, so this always reflects
-// whatever the blocks table currently holds. The Test Space is left out
-// for the same reason it's left out of every other cross-Space view:
-// it's scratch content, not part of the real Map.
+// Space, as nodes (Spaces) and edges (References), plus every Workspace
+// as its own node connected to its parent Space by a "contains" edge --
+// the Relational Map integration Workspaces originally deferred. Still
+// a plain query over existing tables -- CLAUDE.md is explicit that no
+// separate graph structure gets modeled or cached, so this always
+// reflects whatever the blocks/workspaces tables currently hold. The
+// Test Space (and anything inside it) is left out for the same reason
+// it's left out of every other cross-Space view: it's scratch content,
+// not part of the real Map.
 export function getGraphData() {
   const spaces = db
     .prepare(`SELECT id, title, status FROM spaces WHERE id != ? ORDER BY title ASC`)
     .all(TEST_SPACE_ID);
 
-  const edges = db
+  const workspaces = db
+    .prepare(
+      `SELECT workspaces.id, workspaces.space_id, workspaces.name
+       FROM workspaces
+       JOIN spaces ON spaces.id = workspaces.space_id
+       WHERE spaces.id != ?
+       ORDER BY workspaces.name ASC`
+    )
+    .all(TEST_SPACE_ID);
+
+  const referenceEdges = db
     .prepare(
       `SELECT blocks.id AS block_id, blocks.space_id AS source_space_id, blocks.content AS content
        FROM blocks
@@ -405,6 +442,7 @@ export function getGraphData() {
     .map((row) => {
       const content = JSON.parse(row.content);
       return {
+        kind: 'reference',
         blockId: row.block_id,
         sourceSpaceId: row.source_space_id,
         targetSpaceId: content.target_space_id,
@@ -413,7 +451,13 @@ export function getGraphData() {
     })
     .filter((edge) => edge.targetSpaceId && edge.targetSpaceId !== TEST_SPACE_ID);
 
-  return { spaces, edges };
+  const containmentEdges = workspaces.map((workspace) => ({
+    kind: 'contains',
+    spaceId: workspace.space_id,
+    workspaceId: workspace.id,
+  }));
+
+  return { spaces, workspaces, edges: [...referenceEdges, ...containmentEdges] };
 }
 
 export function getBlockById(id) {

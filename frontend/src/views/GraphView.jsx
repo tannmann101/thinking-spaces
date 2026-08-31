@@ -1,19 +1,30 @@
-// Renders every Reference block across every Space as an interactive
-// node/link map -- "the Relational Map" from CLAUDE.md. Still pure,
-// stateless-in, live-data-out: no graph structure is stored anywhere,
-// this just draws whatever getGraphData() (backend/src/db/queries.js)
-// returns each time it's fetched, straight from the blocks table. Only
-// the *positions* are local to this component (a lightweight,
-// hand-rolled force simulation, not a library -- this app deliberately
-// stays free of extra dependencies for something this small), and
-// those reset on reload rather than being saved, in the same spirit as
-// Obsidian's own graph view: dragging repositions a node for this
-// session, it doesn't rewrite a stored layout.
+// Renders every Reference block across every Space, plus every
+// Workspace inside those Spaces, as an interactive node/link map -- "the
+// Relational Map" from CLAUDE.md. Still pure, stateless-in, live-data-out:
+// no graph structure is stored anywhere, this just draws whatever
+// getGraphData() (backend/src/db/queries.js) returns each time it's
+// fetched, straight from the blocks/workspaces tables. Only the
+// *positions* are local to this component (a lightweight, hand-rolled
+// force simulation, not a library -- this app deliberately stays free of
+// extra dependencies for something this small), and those reset on
+// reload rather than being saved, in the same spirit as Obsidian's own
+// graph view: dragging repositions a node for this session, it doesn't
+// rewrite a stored layout.
+//
+// Two kinds of node (Space, Workspace) and two kinds of edge (a
+// "reference" edge between two Spaces; a "contains" edge from a Space to
+// one of its own Workspaces) share one graph: a Workspace is drawn
+// smaller, as a square rather than a circle, pulled in tight to its
+// parent Space by a short, unstyled "contains" spring, so it reads as
+// belonging to that Space rather than as a peer connection. Node ids are
+// namespaced (`space:<id>` / `workspace:<id>`) since Space ids and
+// Workspace ids come from different tables and could theoretically
+// collide.
 //
 // Interaction: drag a node to reposition it (it rejoins the simulation
-// on release), drag the background to pan, scroll to zoom, click a
-// node (without dragging it) to open that Space. Hovering a node
-// highlights its connections.
+// on release), drag the background to pan, scroll to zoom, click a node
+// (without dragging it) to open that Space or Workspace. Hovering a node
+// highlights its connections (a Space's Workspaces included).
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -25,9 +36,12 @@ const MAX_VB_WIDTH = 2200;
 const REPULSION = 2400;
 const SPRING_LENGTH = 110;
 const SPRING_STRENGTH = 0.02;
+const CONTAINS_SPRING_LENGTH = 40;
+const CONTAINS_SPRING_STRENGTH = 0.05;
 const CENTER_STRENGTH = 0.01;
 const DAMPING = 0.85;
 const CLICK_DRAG_THRESHOLD = 4; // px of screen movement before a node-press counts as a drag, not a click
+const WORKSPACE_RADIUS = 5;
 
 const STATUS_OPACITY = { nascent: 0.5, developing: 0.75, mature: 1, dormant: 0.35 };
 
@@ -41,35 +55,73 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function GraphView({ spaces, edges }) {
+// An edge's two endpoint node ids, namespaced to match node.id below --
+// the one place that translation happens, so nothing else needs to know
+// the two different field-naming conventions a "reference" vs a
+// "contains" edge use on the wire.
+function edgeEndpoints(edge) {
+  if (edge.kind === 'contains') {
+    return [`space:${edge.spaceId}`, `workspace:${edge.workspaceId}`];
+  }
+  return [`space:${edge.sourceSpaceId}`, `space:${edge.targetSpaceId}`];
+}
+
+function GraphView({ spaces, workspaces = [], edges }) {
   const navigate = useNavigate();
   const svgRef = useRef(null);
-  const nodesRef = useRef([]); // [{ id, title, status, x, y, vx, vy, dragging }]
+  const nodesRef = useRef([]); // [{ id, kind, rawId, parentSpaceId?, title, status?, x, y, vx, vy, dragging }]
   const gestureRef = useRef(null); // in-flight pan/drag gesture, see onNodeMouseDown/onBackgroundMouseDown
   const [, forceRender] = useState(0);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: WIDTH, h: HEIGHT });
   const [hoveredId, setHoveredId] = useState(null);
 
-  // Rebuilds the node list whenever the Spaces themselves change, but
-  // keeps each existing node's current position/velocity intact -- so
-  // an ordinary refetch (after creating a Reference elsewhere, say)
-  // doesn't reset the whole map back to its starting layout.
+  // Rebuilds the node list whenever the Spaces or Workspaces themselves
+  // change, but keeps each existing node's current position/velocity
+  // intact -- so an ordinary refetch (after creating a Reference or a
+  // Workspace elsewhere, say) doesn't reset the whole map back to its
+  // starting layout. A brand-new Workspace node seeds near its parent
+  // Space (when that Space's position is already known) rather than at
+  // a generic point on the outer circle, so it visually starts attached.
   useEffect(() => {
     const existing = new Map(nodesRef.current.map((node) => [node.id, node]));
-    nodesRef.current = spaces.map((space, index) => {
-      const prior = existing.get(space.id);
+    const spaceNodes = spaces.map((space, index) => {
+      const id = `space:${space.id}`;
+      const prior = existing.get(id);
       if (prior) return { ...prior, title: space.title, status: space.status };
       const seed = seededPosition(index, spaces.length);
-      return { id: space.id, title: space.title, status: space.status, ...seed, vx: 0, vy: 0 };
+      return { id, kind: 'space', rawId: space.id, title: space.title, status: space.status, ...seed, vx: 0, vy: 0 };
     });
-  }, [spaces]);
+    const spaceNodeById = new Map(spaceNodes.map((node) => [node.rawId, node]));
+    const workspaceNodes = workspaces.map((workspace, index) => {
+      const id = `workspace:${workspace.id}`;
+      const prior = existing.get(id);
+      if (prior) return { ...prior, title: workspace.name };
+      const parent = spaceNodeById.get(workspace.space_id);
+      const seed = parent
+        ? { x: parent.x + (Math.random() - 0.5) * 20, y: parent.y + (Math.random() - 0.5) * 20 }
+        : seededPosition(index, workspaces.length);
+      return {
+        id,
+        kind: 'workspace',
+        rawId: workspace.id,
+        parentSpaceId: workspace.space_id,
+        title: workspace.name,
+        ...seed,
+        vx: 0,
+        vy: 0,
+      };
+    });
+    nodesRef.current = [...spaceNodes, ...workspaceNodes];
+  }, [spaces, workspaces]);
 
   // The physics: repulsion between every pair of nodes, a spring along
-  // every edge pulling its two ends toward a natural resting distance,
-  // and a gentle pull toward center so the graph doesn't drift off
-  // screen. Runs continuously rather than settling once and stopping --
-  // simpler than deciding when it's "done", and it means the map keeps
-  // reacting if a node gets dragged later.
+  // every edge pulling its two ends toward a natural resting distance (a
+  // much shorter, stiffer one for a "contains" edge, so a Workspace
+  // stays visually tucked against its Space), and a gentle pull toward
+  // center so the graph doesn't drift off screen. Runs continuously
+  // rather than settling once and stopping -- simpler than deciding when
+  // it's "done", and it means the map keeps reacting if a node gets
+  // dragged later.
   useEffect(() => {
     let frame;
     function tick() {
@@ -95,14 +147,18 @@ function GraphView({ spaces, edges }) {
           }
         }
       }
+      const nodeById = new Map(nodes.map((node) => [node.id, node]));
       edges.forEach((edge) => {
-        const a = nodes.find((node) => node.id === edge.sourceSpaceId);
-        const b = nodes.find((node) => node.id === edge.targetSpaceId);
+        const [fromId, toId] = edgeEndpoints(edge);
+        const a = nodeById.get(fromId);
+        const b = nodeById.get(toId);
         if (!a || !b) return;
+        const length = edge.kind === 'contains' ? CONTAINS_SPRING_LENGTH : SPRING_LENGTH;
+        const strength = edge.kind === 'contains' ? CONTAINS_SPRING_STRENGTH : SPRING_STRENGTH;
         const dx = b.x - a.x || 0.01;
         const dy = b.y - a.y || 0.01;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const diff = (dist - SPRING_LENGTH) * SPRING_STRENGTH;
+        const diff = (dist - length) * strength;
         const fx = (dx / dist) * diff;
         const fy = (dy / dist) * diff;
         if (!a.dragging) {
@@ -212,7 +268,12 @@ function GraphView({ spaces, edges }) {
     if (gesture.kind === 'node') {
       gesture.node.dragging = false;
       if (!gesture.moved) {
-        navigate(`/spaces/${gesture.node.id}`);
+        const node = gesture.node;
+        if (node.kind === 'workspace') {
+          navigate(`/spaces/${node.parentSpaceId}/workspaces/${node.rawId}`);
+        } else {
+          navigate(`/spaces/${node.rawId}`);
+        }
       }
     }
     gestureRef.current = null;
@@ -224,11 +285,24 @@ function GraphView({ spaces, edges }) {
 
   const nodes = nodesRef.current;
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  // Only reference edges (Space-to-Space) inflate a Space's apparent
+  // size -- a Workspace it contains is a different kind of relationship
+  // and shouldn't visually read as "more referenced".
   const degreeById = new Map();
-  edges.forEach((edge) => {
-    degreeById.set(edge.sourceSpaceId, (degreeById.get(edge.sourceSpaceId) || 0) + 1);
-    degreeById.set(edge.targetSpaceId, (degreeById.get(edge.targetSpaceId) || 0) + 1);
-  });
+  edges
+    .filter((edge) => edge.kind === 'reference')
+    .forEach((edge) => {
+      degreeById.set(edge.sourceSpaceId, (degreeById.get(edge.sourceSpaceId) || 0) + 1);
+      degreeById.set(edge.targetSpaceId, (degreeById.get(edge.targetSpaceId) || 0) + 1);
+    });
+
+  function isConnectedToHover(nodeId) {
+    if (!hoveredId) return false;
+    return edges.some((edge) => {
+      const [fromId, toId] = edgeEndpoints(edge);
+      return (fromId === hoveredId && toId === nodeId) || (toId === hoveredId && fromId === nodeId);
+    });
+  }
 
   return (
     <svg
@@ -249,11 +323,27 @@ function GraphView({ spaces, edges }) {
         </marker>
       </defs>
       {edges.map((edge) => {
-        const from = nodeById.get(edge.sourceSpaceId);
-        const to = nodeById.get(edge.targetSpaceId);
+        const [fromId, toId] = edgeEndpoints(edge);
+        const from = nodeById.get(fromId);
+        const to = nodeById.get(toId);
         if (!from || !to) return null;
-        const connected = hoveredId && (edge.sourceSpaceId === hoveredId || edge.targetSpaceId === hoveredId);
+        const connected = hoveredId && (fromId === hoveredId || toId === hoveredId);
         const dimmed = hoveredId && !connected;
+        if (edge.kind === 'contains') {
+          return (
+            <line
+              key={`contains-${edge.workspaceId}`}
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              stroke="var(--ink-faint)"
+              strokeWidth={1}
+              strokeDasharray="2 3"
+              opacity={dimmed ? 0.2 : 0.7}
+            />
+          );
+        }
         return (
           <line
             key={edge.blockId}
@@ -269,13 +359,35 @@ function GraphView({ spaces, edges }) {
         );
       })}
       {nodes.map((node) => {
-        const degree = degreeById.get(node.id) || 0;
+        const dimmed = hoveredId && hoveredId !== node.id && !isConnectedToHover(node.id);
+        if (node.kind === 'workspace') {
+          const size = WORKSPACE_RADIUS * 2;
+          return (
+            <g
+              key={node.id}
+              onMouseDown={(event) => onNodeMouseDown(event, node)}
+              onMouseEnter={() => setHoveredId(node.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              style={{ cursor: 'pointer' }}
+              opacity={dimmed ? 0.35 : 1}
+            >
+              <rect
+                x={node.x - WORKSPACE_RADIUS}
+                y={node.y - WORKSPACE_RADIUS}
+                width={size}
+                height={size}
+                fill="var(--surface-3)"
+                stroke="var(--maroon-bright)"
+                strokeWidth={1.5}
+              />
+              <text x={node.x + WORKSPACE_RADIUS + 4} y={node.y + 4} fontSize="11" fill="var(--ink-dim)" fontFamily="var(--mono)">
+                {node.title}
+              </text>
+            </g>
+          );
+        }
+        const degree = degreeById.get(node.rawId) || 0;
         const radius = 7 + Math.min(degree, 6) * 1.3;
-        const dimmed = hoveredId && hoveredId !== node.id && !edges.some(
-          (edge) =>
-            (edge.sourceSpaceId === hoveredId && edge.targetSpaceId === node.id) ||
-            (edge.targetSpaceId === hoveredId && edge.sourceSpaceId === node.id)
-        );
         return (
           <g
             key={node.id}

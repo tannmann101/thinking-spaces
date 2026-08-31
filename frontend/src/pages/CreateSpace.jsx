@@ -5,6 +5,7 @@ import { createSpace, getTemplates } from '../api.js';
 function CreateSpace() {
   const [title, setTitle] = useState('');
   const [templates, setTemplates] = useState(null);
+  const [templateId, setTemplateId] = useState(null); // null = start blank
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ function CreateSpace() {
     setSubmitting(true);
     setError(null);
     try {
-      const space = await createSpace({ title: title.trim(), templateId: null });
+      const space = await createSpace({ title: title.trim(), templateId });
       navigate(`/spaces/${space.id}`);
     } catch (err) {
       setError(err.message);
@@ -48,17 +49,40 @@ function CreateSpace() {
           />
         </div>
 
-        <fieldset disabled>
+        <fieldset>
           <legend>Start from a Template</legend>
           {templates === null && <p>Loading templates...</p>}
-          {templates && templates.length === 0 && (
-            <p>No Templates exist yet. This option will be available in a later pass.</p>
+          {templates && templates.length === 0 && <p>No Templates exist yet.</p>}
+          {templates && templates.length > 0 && (
+            <>
+              <label>
+                <input
+                  type="radio"
+                  name="template"
+                  checked={templateId === null}
+                  onChange={() => setTemplateId(null)}
+                />{' '}
+                Start Blank
+              </label>
+              <br />
+              {templates.map((template) => (
+                <label key={template.id} style={{ display: 'block' }}>
+                  <input
+                    type="radio"
+                    name="template"
+                    checked={templateId === template.id}
+                    onChange={() => setTemplateId(template.id)}
+                  />{' '}
+                  {template.name}
+                </label>
+              ))}
+            </>
           )}
         </fieldset>
 
         <p>
           <button type="submit" disabled={submitting || !title.trim()}>
-            {submitting ? 'Creating...' : 'Start Blank'}
+            {submitting ? 'Creating...' : 'Create Space'}
           </button>
         </p>
 

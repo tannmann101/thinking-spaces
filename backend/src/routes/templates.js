@@ -3,8 +3,7 @@ import { listTemplates } from '../db/queries.js';
 
 export const templatesRouter = Router();
 
-// Returns an empty array until Pass 3 actually builds Templates.
-// The Creation flow uses this to know there's nothing to pick from yet.
+// The Creation flow lists these to offer as a starting point.
 templatesRouter.get('/templates', (req, res) => {
   res.json(listTemplates());
 });

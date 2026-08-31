@@ -9,6 +9,7 @@ import {
   listBacklinksForSpace,
   listTrailEntries,
   addManualTrailEntry,
+  applyTemplate,
 } from '../db/queries.js';
 
 export const spacesRouter = Router();
@@ -23,6 +24,11 @@ spacesRouter.post('/spaces', (req, res) => {
     return res.status(400).json({ error: 'title is required' });
   }
   const space = createSpace({ title: title.trim(), templateId: templateId || null });
+  // Applying a Template is a one-time copy of its blocks into the new
+  // Space, not a live link -- see applyTemplate in queries.js.
+  if (templateId) {
+    applyTemplate(space.id, templateId);
+  }
   res.status(201).json(space);
 });
 

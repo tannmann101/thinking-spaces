@@ -1325,6 +1325,7 @@ function labelForBlock(block) {
   if (block.type === 'media') return block.content.caption || '(untitled Media)';
   if (block.type === 'comparison') return `${block.content.left?.text || '?'} vs. ${block.content.right?.text || '?'}`;
   if (block.type === 'milestone') return block.content.label || '(untitled Milestone)';
+  if (block.type === 'session') return block.content.label || '(untitled Session)';
   return `${block.type} block`;
 }
 
@@ -1387,6 +1388,19 @@ function summarizeBlockContent(block) {
     return [
       `Target date: ${content.targetDate || '(not set)'}`,
       `Status: ${content.reached ? `Reached${content.reachedAt ? ` on ${content.reachedAt}` : ''}` : 'Not yet reached'}`,
+      ...(content.note ? [`Note: ${content.note}`] : []),
+    ];
+  }
+  if (type === 'session') {
+    const status = content.endedAt
+      ? `Completed, ${content.durationMinutes ?? '?'} minutes`
+      : content.startedAt
+      ? 'Currently running'
+      : 'Not started';
+    return [
+      `Status: ${status}`,
+      ...(content.startedAt ? [`Started: ${content.startedAt}`] : []),
+      ...(content.endedAt ? [`Ended: ${content.endedAt}`] : []),
       ...(content.note ? [`Note: ${content.note}`] : []),
     ];
   }
@@ -1535,6 +1549,19 @@ export function getSpaceReport(spaceId) {
       lines: milestoneBlocks.map((block) => {
         const { label, targetDate, reached, reachedAt } = block.content;
         const status = reached ? `reached${reachedAt ? ` ${reachedAt}` : ''}` : `target ${targetDate || '(not set)'}`;
+        return `${label || '(untitled)'} -- ${status}`;
+      }),
+    });
+  }
+
+  const sessionBlocks = blocks.filter((block) => block.type === 'session');
+  if (sessionBlocks.length > 0) {
+    const totalMinutes = sessionBlocks.reduce((sum, block) => sum + (block.content.durationMinutes || 0), 0);
+    sections.push({
+      heading: `Sessions (${sessionBlocks.length}, ${totalMinutes} min logged)`,
+      lines: sessionBlocks.map((block) => {
+        const { label, startedAt, endedAt, durationMinutes } = block.content;
+        const status = endedAt ? `${durationMinutes ?? '?'} min` : startedAt ? 'running' : 'not started';
         return `${label || '(untitled)'} -- ${status}`;
       }),
     });

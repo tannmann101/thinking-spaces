@@ -14,9 +14,9 @@
 // <optgroup>, not mixed flat with Text/List) rather than hardcoded
 // here, so a new Work or Time Type needs no edit to this file at all,
 // just its registry entry (though a Time Type whose shape isn't
-// {statement, support, confidence} -- Milestone included -- still
-// needs its own branch in handleSubmit below, same as Text and List
-// already have, since "Time" isn't one shared shape the way Work is).
+// {statement, support, confidence} -- Milestone and Session both --
+// still needs its own branch in handleSubmit below, same as Text and
+// List already have, since "Time" isn't one shared shape the way Work is).
 // List items created here are plain text only -- no checkbox/number/
 // date/confidence at creation -- matching the same scope line the
 // "+ Add item" control already draws; a Work block likewise starts
@@ -110,6 +110,14 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         content: { label: text.trim(), targetDate: null, reached: false, reachedAt: null, note: '' },
         properties,
       });
+    } else if (type === 'session') {
+      // Starts with just a label; Start/Stop and the note are both set
+      // afterward on the block itself.
+      onAdd({
+        type: 'session',
+        content: { label: text.trim(), startedAt: null, endedAt: null, durationMinutes: null, note: '' },
+        properties,
+      });
     } else {
       // Any Work Type -- all of them start with just a statement and
       // an empty support list; both are added to/set afterward on the
@@ -157,6 +165,8 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
               ? 'Starting text (can be left blank)'
               : type === 'milestone'
               ? 'Milestone label (can be left blank)'
+              : type === 'session'
+              ? 'Session label (can be left blank)'
               : `${workTypeStarterPrompt(type)} (can be left blank)`
           }
           rows={2}

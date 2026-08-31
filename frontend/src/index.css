@@ -2294,6 +2294,43 @@ label {
   margin: 0;
 }
 
+/* ---------- Session (a "Time"-family Block) ---------- */
+
+.session-block {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 10px 14px;
+}
+.session-block.session-running {
+  border-color: var(--accent);
+}
+.session-label-row {
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+.session-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin: 0 0 6px;
+}
+.session-elapsed {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+.session-completed {
+  font-family: var(--mono);
+  color: var(--ink-faint);
+}
+.session-note {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0;
+}
+
 /* ---------- Reports ---------- */
 
 /* A Report button appears at every level (Space, Workspace, and each

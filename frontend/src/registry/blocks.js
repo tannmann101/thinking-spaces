@@ -55,6 +55,7 @@ import ImplicationBlock from '../blocks/ImplicationBlock.jsx';
 import HypothesisBlock from '../blocks/HypothesisBlock.jsx';
 import ObjectionBlock from '../blocks/ObjectionBlock.jsx';
 import MilestoneBlock from '../blocks/MilestoneBlock.jsx';
+import SessionBlock from '../blocks/SessionBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -407,6 +408,32 @@ export const blockRegistry = {
         reached: false,
         reachedAt: null,
         note: 'Needs the intro section finished first.',
+      },
+      properties: {},
+    },
+  },
+  // A Session is one timed sitting of work -- start it, stop it, the
+  // elapsed time gets logged. Deliberately one Block per sitting
+  // (add another Session block for the next one) rather than a running
+  // log inside a single block, same granularity Milestone and Work
+  // items already use. startedAt/endedAt are the source of truth (not
+  // a client-side ticking number): SessionBlock.jsx derives "elapsed
+  // so far" from startedAt on every render, so a running session reads
+  // correctly even after the tab was closed and reopened.
+  session: {
+    label: 'Session',
+    description: 'A timed sitting of work -- start it, stop it, and the elapsed time is logged.',
+    family: 'time',
+    component: SessionBlock,
+    worksWith: ['milestone'],
+    demoBlock: {
+      type: 'session',
+      content: {
+        label: 'Drafting the intro',
+        startedAt: '2026-08-20T14:00:00.000Z',
+        endedAt: '2026-08-20T14:45:00.000Z',
+        durationMinutes: 45,
+        note: '',
       },
       properties: {},
     },

@@ -4,6 +4,7 @@ import CreateSpace from './pages/CreateSpace.jsx';
 import SpacePage from './pages/SpacePage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
 import TemplateEditor from './pages/TemplateEditor.jsx';
+import GraphPage from './pages/GraphPage.jsx';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Route path="/templates" element={<TemplatesPage />} />
       <Route path="/templates/new" element={<TemplateEditor />} />
       <Route path="/templates/:id/edit" element={<TemplateEditor />} />
+      <Route path="/graph" element={<GraphPage />} />
     </Routes>
   );
 }

@@ -10,6 +10,7 @@ import {
   listTrailEntries,
   addManualTrailEntry,
   applyTemplate,
+  createRelationalSpace,
 } from '../db/queries.js';
 
 export const spacesRouter = Router();
@@ -30,6 +31,20 @@ spacesRouter.post('/spaces', (req, res) => {
     applyTemplate(space.id, templateId);
   }
   res.status(201).json(space);
+});
+
+// A Relational Space is just an ordinary Space, pre-seeded with a
+// Reference block per selected Space plus a blank Text block for the
+// synthesis -- see createRelationalSpace in queries.js.
+spacesRouter.post('/spaces/relational', (req, res) => {
+  const { title, spaceIds } = req.body;
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!Array.isArray(spaceIds) || spaceIds.length < 2) {
+    return res.status(400).json({ error: 'select at least two Spaces' });
+  }
+  res.status(201).json(createRelationalSpace({ title: title.trim(), spaceIds }));
 });
 
 spacesRouter.get('/spaces/:id', (req, res) => {

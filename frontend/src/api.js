@@ -76,3 +76,11 @@ export const moveBlockInSpace = (spaceId, blockId, direction) =>
     method: 'POST',
     body: JSON.stringify({ direction }),
   });
+
+// The Graph view (Pass 5): every Reference block across every Space.
+export const getGraph = () => request('/graph');
+export const createRelationalSpace = ({ title, spaceIds }) =>
+  request('/spaces/relational', {
+    method: 'POST',
+    body: JSON.stringify({ title, spaceIds }),
+  });

@@ -15,6 +15,7 @@ import TimelineView from '../views/TimelineView.jsx';
 import ProgressView from '../views/ProgressView.jsx';
 import StreakView from '../views/StreakView.jsx';
 import LedgerView from '../views/LedgerView.jsx';
+import GraphView from '../views/GraphView.jsx';
 
 function isListBlock(block) {
   return block.type === 'list' && Array.isArray(block.content.items);
@@ -48,5 +49,17 @@ export const viewRegistry = {
     appliesTo: (block) =>
       isListBlock(block) && block.content.items.some((item) => typeof item.number === 'number'),
     component: LedgerView,
+  },
+  // Unlike every View above, Graph isn't computed over one block -- it's
+  // computed over every Reference block across every Space (CLAUDE.md's
+  // "the Map"), so it has no single block to attach to and appliesTo
+  // always returns false. It renders on its own page (GraphPage.jsx, at
+  // /graph) instead of inline in a Space's block feed. It's listed here
+  // anyway so this file stays the one place every View is documented.
+  graph: {
+    label: 'Graph',
+    description: 'Every Reference block across every Space, as nodes and edges.',
+    appliesTo: () => false,
+    component: GraphView,
   },
 };

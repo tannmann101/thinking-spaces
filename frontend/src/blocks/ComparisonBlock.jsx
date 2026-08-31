@@ -40,16 +40,17 @@ function ComparisonBlock({ block, onBlocksChanged }) {
   }
 
   return (
-    <div>
+    <div className="comparison-block">
       {contrast && (
-        <p>
-          <strong>⚡ Marked as a contrast</strong>
+        <p className="contrast-flag">
+          ⚡ Marked as a contrast
           {contrastNote && <>: {contrastNote}</>}
         </p>
       )}
-      <div style={{ display: 'flex', gap: '24px' }}>
-        <div style={{ flex: 1 }}>{renderSide('left')}</div>
-        <div style={{ flex: 1 }}>{renderSide('right')}</div>
+      <div className="comparison-grid">
+        <div>{renderSide('left')}</div>
+        <div className="seam" />
+        <div>{renderSide('right')}</div>
       </div>
     </div>
   );

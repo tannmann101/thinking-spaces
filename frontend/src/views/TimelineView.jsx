@@ -7,16 +7,17 @@ function TimelineView({ block }) {
   const sorted = [...items].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <section>
+    <div className="view-card">
       <h3>Timeline</h3>
-      <ul>
+      <ol className="timeline-spine">
         {sorted.map((item) => (
-          <li key={item.id}>
-            {item.date} — {item.text}
+          <li key={item.id} className="timeline-tick">
+            <span className="t-date">{item.date}</span>
+            {item.text}
           </li>
         ))}
-      </ul>
-    </section>
+      </ol>
+    </div>
   );
 }
 

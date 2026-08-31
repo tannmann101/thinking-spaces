@@ -24,27 +24,40 @@ function TemplatesPage() {
 
   return (
     <main>
-      <h1>Templates</h1>
-      <p>
-        <Link to="/">&larr; Back to Dashboard</Link>
-      </p>
-      <p>
-        <Link to="/templates/new">+ New Template</Link>
-      </p>
+      <Link to="/" className="back-link">
+        &larr; Back to Dashboard
+      </Link>
+      <div className="page-head">
+        <h1>Templates</h1>
+        <Link to="/templates/new" className="btn">
+          + New Template
+        </Link>
+      </div>
 
       {error && <p>Could not load templates: {error}</p>}
       {templates === null && !error && <p>Loading...</p>}
       {templates && templates.length === 0 && <p>No Templates yet.</p>}
       {templates && templates.length > 0 && (
-        <ul>
+        <ul className="plain-card-list">
           {templates.map((template) => (
             <li key={template.id}>
-              {template.name} ({template.block_arrangement.length} block
-              {template.block_arrangement.length === 1 ? '' : 's'}) —{' '}
-              <Link to={`/templates/${template.id}/edit`}>Edit</Link>{' '}
-              <button type="button" onClick={() => handleDelete(template.id)}>
-                Delete
-              </button>
+              <span>
+                {template.name}{' '}
+                <span
+                  style={{ fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink-faint)' }}
+                >
+                  ({template.block_arrangement.length} block
+                  {template.block_arrangement.length === 1 ? '' : 's'})
+                </span>
+              </span>
+              <span className="row-actions">
+                <Link to={`/templates/${template.id}/edit`} className="btn-ghost-small">
+                  Edit
+                </Link>
+                <button type="button" className="btn-ghost-small" onClick={() => handleDelete(template.id)}>
+                  Delete
+                </button>
+              </span>
             </li>
           ))}
         </ul>

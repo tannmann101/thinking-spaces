@@ -20,7 +20,7 @@ function RewindSnapshot({ entry }) {
   // Person-Reflection) shows the label it actually used, not a generic
   // default.
   return (
-    <div style={{ border: '1px solid #999', padding: '10px', marginTop: '6px' }}>
+    <div className="rewind-snapshot">
       <p>
         <em>Read-only Skeleton snapshot from {formatDate(entry.created_at)}</em>
       </p>
@@ -58,7 +58,7 @@ function TrailEntryRow({ entry }) {
       {expanded && (
         <div>
           <p>{entry.kind === 'manual' ? entry.note : entry.summary}</p>
-          <button type="button" onClick={() => setShowRewind(!showRewind)}>
+          <button type="button" className="btn-ghost-small" onClick={() => setShowRewind(!showRewind)}>
             {showRewind ? 'Hide' : 'View'} Skeleton state at this point
           </button>
           {showRewind && <RewindSnapshot entry={entry} />}
@@ -83,25 +83,24 @@ function TrailSpine({ spaceId, entries, onEntryAdded }) {
   }
 
   return (
-    <div>
+    <div className="trail-section">
       <h3>Trail</h3>
       {entries.length === 0 && <p>No history yet.</p>}
       {entries.length > 0 && (
-        <ul>
+        <ul className="trail-list">
           {entries.map((entry) => (
             <TrailEntryRow key={entry.id} entry={entry} />
           ))}
         </ul>
       )}
-      <form onSubmit={submitNote} style={{ display: 'flex', gap: '6px' }}>
+      <form onSubmit={submitNote} className="add-item-row">
         <input
           type="text"
           value={draft}
           placeholder="Add a note to the Trail..."
-          style={{ flex: 1 }}
           onChange={(event) => setDraft(event.target.value)}
         />
-        <button type="submit" disabled={submitting || !draft.trim()}>
+        <button type="submit" className="btn" disabled={submitting || !draft.trim()}>
           Add
         </button>
       </form>

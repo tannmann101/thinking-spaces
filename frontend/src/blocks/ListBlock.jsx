@@ -136,14 +136,14 @@ function ListBlock({ block, onBlocksChanged }) {
   const laneLabel = block.content.laneLabel;
 
   return (
-    <div>
+    <div className="list-block">
       {laneLabel && <h4>{laneLabel}</h4>}
       {laneLabel && items.length === 0 && <p>(empty)</p>}
       <ol>
         {items.map((item, index) => (
           <li key={item.id}>
             {editable && (
-              <span style={{ fontFamily: 'monospace' }}>
+              <span className="list-item-controls">
                 <button
                   type="button"
                   disabled={index === 0}
@@ -203,15 +203,14 @@ function ListBlock({ block, onBlocksChanged }) {
         ))}
       </ol>
       {editable && (
-        <form onSubmit={addItem} style={{ display: 'flex', gap: '6px' }}>
+        <form onSubmit={addItem} className="add-item-row">
           <input
             type="text"
             value={newItemText}
             placeholder="+ Add item"
-            style={{ flex: 1 }}
             onChange={(event) => setNewItemText(event.target.value)}
           />
-          <button type="submit" disabled={!newItemText.trim()}>
+          <button type="submit" className="btn" disabled={!newItemText.trim()}>
             Add
           </button>
         </form>

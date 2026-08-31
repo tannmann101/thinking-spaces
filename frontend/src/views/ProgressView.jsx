@@ -6,15 +6,18 @@ function ProgressView({ block }) {
   const items = block.content.items.filter((item) => typeof item.checkbox === 'boolean');
   const done = items.filter((item) => item.checkbox).length;
   const total = items.length;
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
 
   return (
-    <section>
+    <div className="view-card">
       <h3>Progress</h3>
-      <p>
+      <div className="progress-track">
+        <div className="progress-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="progress-stat">
         {done} of {total} complete
-      </p>
-      <progress value={done} max={total || 1} />
-    </section>
+      </div>
+    </div>
   );
 }
 

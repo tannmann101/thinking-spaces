@@ -52,10 +52,10 @@ function GraphPage() {
 
   return (
     <main>
+      <Link to="/" className="back-link">
+        &larr; Back to Dashboard
+      </Link>
       <h1>The Map</h1>
-      <p>
-        <Link to="/">&larr; Back to Dashboard</Link>
-      </p>
 
       {error && <p>Error: {error}</p>}
       {!graph && !error && <p>Loading...</p>}
@@ -68,7 +68,7 @@ function GraphPage() {
           <p>Select two or more Spaces below, name the new Space, and it will start with a Reference to each one plus a blank space for your synthesis.</p>
 
           {graph.spaces.length === 0 && <p>No Spaces yet.</p>}
-          <ul>
+          <ul className="checkbox-list">
             {graph.spaces.map((space) => (
               <li key={space.id}>
                 <label>
@@ -88,7 +88,7 @@ function GraphPage() {
               New Relational Space name:{' '}
               <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} />
             </label>{' '}
-            <button type="submit" disabled={creating || selected.size < 2 || !title.trim()}>
+            <button type="submit" className="btn btn-primary" disabled={creating || selected.size < 2 || !title.trim()}>
               {creating ? 'Creating...' : `Create Relational Space (${selected.size} selected)`}
             </button>
             {selected.size === 1 && <p>Select at least one more Space.</p>}

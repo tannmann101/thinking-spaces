@@ -2,13 +2,6 @@
 // checkbox), rendered as a calendar grid rather than a plain list, so
 // gaps in the streak are visible at a glance.
 
-const cellStyle = {
-  border: '1px solid #ccc',
-  padding: '4px',
-  textAlign: 'center',
-  minWidth: '32px',
-};
-
 function StreakView({ block }) {
   const items = block.content.items.filter(
     (item) => typeof item.checkbox === 'boolean' && item.date
@@ -38,9 +31,9 @@ function StreakView({ block }) {
   }
 
   return (
-    <section>
+    <div className="view-card">
       <h3>Streak</h3>
-      <table style={{ borderCollapse: 'collapse' }}>
+      <table className="streak-table">
         <tbody>
           {weeks.map((week, weekIndex) => (
             <tr key={weekIndex}>
@@ -48,15 +41,16 @@ function StreakView({ block }) {
                 const iso = day.toISOString().slice(0, 10);
                 const item = byDate.get(iso);
                 const inRange = day >= start && day <= end;
+                const cellClass = !inRange
+                  ? 'empty'
+                  : item
+                    ? item.checkbox
+                      ? 'done'
+                      : 'miss'
+                    : '';
                 return (
-                  <td key={iso} style={cellStyle}>
-                    {inRange && (
-                      <>
-                        {day.getUTCDate()}
-                        <br />
-                        {item ? (item.checkbox ? '✓' : '·') : ''}
-                      </>
-                    )}
+                  <td key={iso} className={`streak-cell ${cellClass}`}>
+                    {inRange && day.getUTCDate()}
                   </td>
                 );
               })}
@@ -64,7 +58,7 @@ function StreakView({ block }) {
           ))}
         </tbody>
       </table>
-    </section>
+    </div>
   );
 }
 

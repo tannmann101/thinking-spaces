@@ -7,7 +7,7 @@
 // is saved here only affects Spaces created from this Template from now on.
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTemplate, createTemplate, updateTemplate } from '../api.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 
@@ -109,6 +109,9 @@ function TemplateEditor() {
 
   return (
     <main>
+      <Link to="/templates" className="back-link">
+        &larr; Back to Templates
+      </Link>
       <h1>{isEditing ? 'Edit Template' : 'New Template'}</h1>
       {isEditing && (
         <p>
@@ -128,23 +131,31 @@ function TemplateEditor() {
 
         <h2>Blocks</h2>
         {blocks.length === 0 && <p>No blocks yet.</p>}
-        <ol>
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {blocks.map((block, index) => (
-            <li key={index} style={{ marginBottom: '8px' }}>
+            <li key={index} className="block-row" style={{ marginBottom: '12px' }}>
               <BlockPreview block={block} />
-              <button type="button" onClick={() => moveBlock(index, -1)} disabled={index === 0}>
-                Move up
-              </button>{' '}
-              <button
-                type="button"
-                onClick={() => moveBlock(index, 1)}
-                disabled={index === blocks.length - 1}
-              >
-                Move down
-              </button>{' '}
-              <button type="button" onClick={() => removeBlock(index)}>
-                Remove
-              </button>
+              <div className="block-controls">
+                <button
+                  type="button"
+                  className="btn-ghost-small"
+                  onClick={() => moveBlock(index, -1)}
+                  disabled={index === 0}
+                >
+                  Move up
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost-small"
+                  onClick={() => moveBlock(index, 1)}
+                  disabled={index === blocks.length - 1}
+                >
+                  Move down
+                </button>
+                <button type="button" className="btn-ghost-small" onClick={() => removeBlock(index)}>
+                  Remove
+                </button>
+              </div>
             </li>
           ))}
         </ol>
@@ -152,7 +163,7 @@ function TemplateEditor() {
         <NewBlockForm onAdd={addBlock} />
 
         <p>
-          <button type="submit" disabled={saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Saving...' : 'Save Template'}
           </button>
         </p>

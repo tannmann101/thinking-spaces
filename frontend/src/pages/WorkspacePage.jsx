@@ -164,13 +164,20 @@ function WorkspacePage() {
             <div className="block-feed workspace-block-feed">
               {memberBlocks.map((block) => {
                 const entry = blockRegistry[block.type];
+                // A Workspace is where a Tool gets its bespoke, more
+                // spacious environment -- workshopComponent, when the
+                // registry defines one for this Tool type, replaces the
+                // ordinary inline component just here. Falls back to the
+                // same component the flat feed uses for every Tool that
+                // hasn't gotten its own redesign yet.
+                const Component = entry?.workshopComponent || entry?.component;
                 const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
                   view.appliesTo(block)
                 );
                 return (
                   <div key={`${block.id}-${block.updated_at}`} className="block-row">
-                    {entry ? (
-                      <entry.component block={block} onBlocksChanged={refetchAll} />
+                    {Component ? (
+                      <Component block={block} onBlocksChanged={refetchAll} />
                     ) : (
                       <p>Unknown block type: {block.type}</p>
                     )}

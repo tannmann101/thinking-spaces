@@ -23,32 +23,8 @@
 // Surface, so it saves as plain text with no promotion.
 
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { getSpaces, saveTextBlock } from '../api.js';
-
-const LINK_PATTERN = /\[\[([a-zA-Z0-9-]+)\|([^\]]+)\]\]/g;
-
-function renderTextWithLinks(text, fromSpaceId) {
-  const parts = [];
-  let lastIndex = 0;
-  let match;
-  LINK_PATTERN.lastIndex = 0;
-  while ((match = LINK_PATTERN.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    const [full, spaceId, title] = match;
-    const to = fromSpaceId ? `/spaces/${spaceId}?from=${fromSpaceId}` : `/spaces/${spaceId}`;
-    parts.push(
-      // stopPropagation so clicking the link navigates instead of also
-      // triggering the paragraph's click-to-edit handler.
-      <Link key={match.index} to={to} onClick={(event) => event.stopPropagation()}>
-        {title}
-      </Link>
-    );
-    lastIndex = match.index + full.length;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
-}
+import { renderTextWithLinks } from './textLinks.jsx';
 
 // onSave lets a parent block (Comparison) override where an edit goes,
 // for a Text-shaped side that isn't a standalone row in the blocks

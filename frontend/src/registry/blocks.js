@@ -13,8 +13,16 @@
 // live Space uses -- not a separate mockup. An id-less block naturally
 // renders read-only (every Block component treats a missing `id` as
 // "not editable"), so the demo is inert without any special-casing.
+//
+// `workshopComponent` is optional: when present, a Workspace page (see
+// WorkspacePage.jsx) renders this instead of the ordinary `component`
+// for that Tool -- a bespoke, more spacious environment tailored to
+// that specific Tool, per the Workspaces feature. Most Tools don't have
+// one yet (each gets its own redesign pass, one at a time, per
+// CLAUDE.md's Open section) and just fall back to `component`.
 
 import TextBlock from '../blocks/TextBlock.jsx';
+import TextWorkshop from '../blocks/TextWorkshop.jsx';
 import ListBlock from '../blocks/ListBlock.jsx';
 import ReferenceBlock from '../blocks/ReferenceBlock.jsx';
 import MediaBlock from '../blocks/MediaBlock.jsx';
@@ -54,6 +62,7 @@ export const blockRegistry = {
     description:
       'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.',
     component: TextBlock,
+    workshopComponent: TextWorkshop,
     worksWith: ['comparison'],
     demoBlock: {
       type: 'text',

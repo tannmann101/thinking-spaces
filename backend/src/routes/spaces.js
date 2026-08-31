@@ -7,6 +7,7 @@ import {
   listSpacesByTag,
   getSpaceById,
   updateSpace,
+  deleteSpace,
   listBacklinksForSpace,
   listTrailEntries,
   addManualTrailEntry,
@@ -87,6 +88,23 @@ spacesRouter.patch('/spaces/:id', (req, res) => {
     return res.status(404).json({ error: 'Space not found' });
   }
   res.json(updated);
+});
+
+// The one thing that could be created but never removed. Deletes the
+// Space's blocks and Trail entries along with it -- see deleteSpace in
+// queries.js for why that's explicit rather than relying on the
+// database to cascade it.
+spacesRouter.delete('/spaces/:id', (req, res) => {
+  const existing = getSpaceById(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Space not found' });
+  }
+  try {
+    deleteSpace(req.params.id);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  res.status(204).end();
 });
 
 spacesRouter.get('/spaces/:id/backlinks', (req, res) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   getSpace,
   getBlocksForSpace,
@@ -9,6 +9,7 @@ import {
   deleteBlockApi,
   moveBlockInSpace,
   updateSpace,
+  deleteSpace,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
@@ -225,6 +226,7 @@ function SkeletonCompletenessStrip({ blocks }) {
 
 function SpacePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [space, setSpace] = useState(null);
   const [blocks, setBlocks] = useState(null);
   const [backlinks, setBacklinks] = useState(null);
@@ -272,6 +274,19 @@ function SpacePage() {
   async function handleMoveBlock(blockId, direction) {
     await moveBlockInSpace(id, blockId, direction);
     refetchAll();
+  }
+
+  // The one thing that could be created but never removed. Asks for
+  // the title back in the confirm, since this takes every block and
+  // the whole Trail with it -- a heavier action than any other delete
+  // on this page, so it gets a heavier confirmation to match.
+  async function handleDeleteSpace() {
+    const typed = window.prompt(
+      `Delete "${space.title}" and everything in it? This cannot be undone.\n\nType the Space's name to confirm:`
+    );
+    if (typed !== space.title) return;
+    await deleteSpace(id);
+    navigate('/');
   }
 
   return (
@@ -373,6 +388,14 @@ function SpacePage() {
           {blocks && <NewBlockForm onAdd={handleAddBlock} />}
 
           {trail && <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />}
+
+          {!space.isTestSpace && (
+            <p className="danger-zone">
+              <button type="button" className="btn-danger" onClick={handleDeleteSpace}>
+                Delete this Space
+              </button>
+            </p>
+          )}
         </>
       )}
     </main>

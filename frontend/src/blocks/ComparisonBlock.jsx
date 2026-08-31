@@ -16,7 +16,30 @@ import { updateBlockContent } from '../api.js';
 function ComparisonBlock({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);
   const [content, setContent] = useState(block.content);
-  const { left, right, contrast, contrastNote } = content;
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(content.contrastNote || '');
+  const { contrast, contrastNote } = content;
+
+  // The contrast flag and its note were set once at creation with no
+  // way to change them afterward -- a toggle here, an editable note
+  // there, same as every other small marker in this app.
+  async function persist(newContent) {
+    setContent(newContent);
+    await updateBlockContent(block.id, newContent);
+    onBlocksChanged?.();
+  }
+
+  function toggleContrast() {
+    if (!editable) return;
+    persist({ ...content, contrast: !contrast });
+  }
+
+  function finishEditingNote() {
+    setEditingNote(false);
+    if (!editable) return;
+    if (noteDraft === (contrastNote || '')) return;
+    persist({ ...content, contrastNote: noteDraft });
+  }
 
   function renderSide(sideKey) {
     const side = content[sideKey];
@@ -41,10 +64,42 @@ function ComparisonBlock({ block, onBlocksChanged }) {
 
   return (
     <div className="comparison-block">
-      {contrast && (
+      {(contrast || editable) && (
         <p className="contrast-flag">
-          ⚡ Marked as a contrast
-          {contrastNote && <>: {contrastNote}</>}
+          <span
+            className={editable ? 'editable-toggle' : undefined}
+            onClick={toggleContrast}
+            title={editable ? 'Click to toggle whether this pair is marked as a contrast' : undefined}
+          >
+            ⚡ {contrast ? 'Marked as a contrast' : '(not marked as a contrast)'}
+          </span>
+          {contrast && (
+            <>
+              {': '}
+              {editingNote ? (
+                <input
+                  type="text"
+                  value={noteDraft}
+                  autoFocus
+                  style={{ fontFamily: 'inherit', fontSize: 'inherit', width: '40%' }}
+                  onChange={(event) => setNoteDraft(event.target.value)}
+                  onBlur={finishEditingNote}
+                  onKeyDown={(event) => event.key === 'Enter' && finishEditingNote()}
+                />
+              ) : (
+                <span
+                  className={editable ? 'editable' : undefined}
+                  onClick={() => {
+                    if (!editable) return;
+                    setNoteDraft(contrastNote || '');
+                    setEditingNote(true);
+                  }}
+                >
+                  {contrastNote || (editable ? '(add a note)' : '')}
+                </span>
+              )}
+            </>
+          )}
         </p>
       )}
       <div className="comparison-grid">

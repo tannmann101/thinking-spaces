@@ -42,6 +42,8 @@ function ListBlock({ block, onBlocksChanged }) {
   const [editingField, setEditingField] = useState(null); // { itemId, field }
   const [draft, setDraft] = useState('');
   const [newItemText, setNewItemText] = useState('');
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState(block.content.laneLabel || '');
 
   // Any Views rendered alongside this block (Progress, Ledger, ...)
   // read the `block` prop SpacePage already fetched, not this
@@ -117,6 +119,18 @@ function ListBlock({ block, onBlocksChanged }) {
     saveItems(items.map((it) => (it.id === item.id ? { ...it, confidence: next } : it)));
   }
 
+  // The heading itself was the one thing on a List block with no edit
+  // surface at all -- items could be added/removed/reordered, but a
+  // Ledger you renamed in your head as "Budget" still said "Ledger"
+  // forever. Same click-to-edit pattern as everything else here.
+  async function finishEditingLabel() {
+    setEditingLabel(false);
+    if (labelDraft === (block.content.laneLabel || '')) return;
+    if (!editable) return;
+    await updateBlockContent(block.id, { ...block.content, laneLabel: labelDraft });
+    onBlocksChanged?.();
+  }
+
   function editableField(item, field, value, inputType = 'text') {
     const isEditingThis = editingField?.itemId === item.id && editingField.field === field;
     if (isEditingThis) {
@@ -146,7 +160,29 @@ function ListBlock({ block, onBlocksChanged }) {
 
   return (
     <div className="list-block">
-      {laneLabel && <h4>{laneLabel}</h4>}
+      {editingLabel && (
+        <input
+          type="text"
+          value={labelDraft}
+          autoFocus
+          style={{ fontFamily: 'inherit', fontWeight: 500 }}
+          onChange={(event) => setLabelDraft(event.target.value)}
+          onBlur={finishEditingLabel}
+          onKeyDown={(event) => event.key === 'Enter' && finishEditingLabel()}
+        />
+      )}
+      {!editingLabel && (laneLabel || editable) && (
+        <h4
+          className={editable ? 'editable' : undefined}
+          onClick={() => {
+            if (!editable) return;
+            setLabelDraft(laneLabel || '');
+            setEditingLabel(true);
+          }}
+        >
+          {laneLabel || '(add a heading)'}
+        </h4>
+      )}
       {laneLabel && items.length === 0 && <p>(empty)</p>}
       <ol>
         {items.map((item, index) => (

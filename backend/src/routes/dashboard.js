@@ -7,6 +7,8 @@ import {
   listRecentTrailEntries,
   suggestSpaceToResurface,
   getGraphData,
+  listGlobalActivity,
+  getActivityStats,
 } from '../db/queries.js';
 
 export const dashboardRouter = Router();
@@ -27,4 +29,10 @@ dashboardRouter.get('/dashboard/resurface', (req, res) => {
 // as nodes and edges. Cross-Space like everything else in this file.
 dashboardRouter.get('/graph', (req, res) => {
   res.json(getGraphData());
+});
+
+// The Log: every structural lifecycle event plus the Trail, merged
+// into one global feed, with a first, simple set of trend stats.
+dashboardRouter.get('/activity', (req, res) => {
+  res.json({ entries: listGlobalActivity(), stats: getActivityStats() });
 });

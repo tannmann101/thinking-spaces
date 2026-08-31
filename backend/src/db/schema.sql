@@ -59,3 +59,22 @@ CREATE TABLE IF NOT EXISTS trail_entries (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_trail_entries_space_id ON trail_entries(space_id);
+
+-- The Log: a global, cross-Space activity feed -- every structural
+-- lifecycle event (Spaces/Tools/Templates created, removed, or
+-- changing status), not the finer-grained Skeleton history Trail
+-- already covers (the Log page merges both). space_id deliberately
+-- has no foreign key and space_title is snapshotted at write time,
+-- since a "Space deleted" entry needs to survive the Space itself
+-- being gone -- joining against spaces for a title wouldn't work once
+-- the row is gone. space_id/space_title are both null for events not
+-- tied to a Space (Template changes).
+CREATE TABLE IF NOT EXISTS activity_log (
+  id TEXT PRIMARY KEY,
+  space_id TEXT,
+  space_title TEXT,
+  kind TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at);

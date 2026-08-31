@@ -1,6 +1,7 @@
 // Renders one List block: an ordered set of items. Text, number, date,
 // and reviewBy are click-to-edit like Text blocks; checkbox toggles
-// instantly; confidence cycles solid -> tentative -> questioned on
+// instantly; confidence cycles questioned -> tentative -> moderate ->
+// solid -> certain on
 // click, with no separate edit mode -- per the Tools & Resources doc:
 // "a single tap on the marker cycles through the three states in
 // place, no dialog." flagged (load-bearing) toggles like a checkbox.
@@ -222,7 +223,7 @@ function ListBlock({ block, onBlocksChanged }) {
                 <span
                   className={editable ? 'editable-toggle' : undefined}
                   onClick={() => cycleConfidence(item)}
-                  title={editable ? 'Click to cycle: solid -> tentative -> questioned' : undefined}
+                  title={editable ? 'Click to cycle: questioned -> tentative -> moderate -> solid -> certain' : undefined}
                 >
                   {item.confidence}
                 </span>

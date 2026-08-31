@@ -8,7 +8,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function DefinitionBlock(props) {
-  return <WorkBlock {...props} statementLabel="Term" rationaleLabel="Definition" />;
+  return <WorkBlock {...props} statementLabel="Term" supportLabel="Definition" />;
 }
 
 export default DefinitionBlock;

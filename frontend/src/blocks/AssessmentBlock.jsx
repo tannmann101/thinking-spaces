@@ -5,7 +5,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function AssessmentBlock(props) {
-  return <WorkBlock {...props} statementLabel="Assessment" rationaleLabel="Rationale" />;
+  return <WorkBlock {...props} statementLabel="Assessment" supportLabel="Rationale" />;
 }
 
 export default AssessmentBlock;

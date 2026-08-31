@@ -6,7 +6,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function QuestionBlock(props) {
-  return <WorkBlock {...props} statementLabel="Question" rationaleLabel="Why this matters" />;
+  return <WorkBlock {...props} statementLabel="Question" supportLabel="Why this matters" />;
 }
 
 export default QuestionBlock;

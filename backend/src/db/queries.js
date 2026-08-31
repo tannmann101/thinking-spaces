@@ -509,9 +509,23 @@ function normalizeTextContent(content) {
   return { lines: lines.length > 0 ? lines : [{ id: randomUUID(), text: '', tag: null }] };
 }
 
+// Every Work block (Assessment, Question, ...) is created through this
+// same createBlock function, so normalizing its content to the current
+// {statement, support, confidence} shape -- support being a list of
+// discrete points rather than one `rationale` blob -- happens exactly
+// once, here, same reasoning normalizeTextContent already established.
+// A caller can still hand this the old {rationale} shape and it lands
+// correctly shaped regardless.
+function normalizeWorkContent(content) {
+  if (content.support) return content;
+  const support = content.rationale ? [{ id: randomUUID(), text: content.rationale }] : [];
+  return { statement: content.statement || '', support, confidence: content.confidence || 'tentative' };
+}
+
 export function createBlock({ spaceId, type, content = {}, properties = {}, position = 0 }) {
   const id = randomUUID();
-  const normalizedContent = type === 'text' ? normalizeTextContent(content) : content;
+  const normalizedContent =
+    type === 'text' ? normalizeTextContent(content) : WORK_TYPES.includes(type) ? normalizeWorkContent(content) : content;
   db.prepare(
     `INSERT INTO blocks (id, space_id, type, content, properties, position)
      VALUES (?, ?, ?, ?, ?, ?)`
@@ -950,11 +964,14 @@ export function updateTrailEntry(id, note) {
 // "Work" is the umbrella for a new kind of Tool: not a generic Text/
 // List block with a label, but a real, distinct Tool per kind of
 // thinking-act (Assessment, Question, and whatever gets added later).
-// Every kind shares one underlying shape ({statement, rationale,
+// Every kind shares one underlying shape ({statement, support,
 // confidence} -- see WorkBlock.jsx on the frontend) so Synthesis (below)
 // can treat them uniformly, but each is still its own registered Block
 // type with its own component and catalog entry -- see
-// frontend/src/registry/blocks.js.
+// frontend/src/registry/blocks.js. `support` is a list of discrete
+// points (each free text, or a live pointer to another existing claim)
+// -- see normalizeWorkContent above for how an older {rationale} blob
+// upgrades into this shape.
 //
 // Adding a new kind of Work later means adding its block type here and
 // registering it on the frontend; nothing else needs to change --
@@ -968,7 +985,24 @@ export const WORK_TYPES = [
   'demonstration',
   'insight',
   'implication',
+  'hypothesis',
+  'objection',
 ];
+
+// One-time backfill mirroring migrateTextBlockLines(): upgrades any
+// pre-existing Work block still on the old {rationale} shape to the
+// current {support} shape. New rows self-normalize via createBlock
+// (normalizeWorkContent, above); this only matters for a database that
+// predates the support-point redesign.
+export function migrateWorkItemSupport() {
+  const placeholders = WORK_TYPES.map(() => '?').join(', ');
+  const rows = db.prepare(`SELECT id, content FROM blocks WHERE type IN (${placeholders})`).all(...WORK_TYPES);
+  rows.forEach((row) => {
+    const content = JSON.parse(row.content);
+    if (content.support) return;
+    db.prepare(`UPDATE blocks SET content = ? WHERE id = ?`).run(JSON.stringify(normalizeWorkContent(content)), row.id);
+  });
+}
 
 // Synthesis's picker needs to browse Work items across every Space,
 // not just the one you're in -- the same reason Resources are queried

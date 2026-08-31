@@ -6,7 +6,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function ImplicationBlock(props) {
-  return <WorkBlock {...props} statementLabel="Implication" rationaleLabel="What suggests it" />;
+  return <WorkBlock {...props} statementLabel="Implication" supportLabel="What suggests it" />;
 }
 
 export default ImplicationBlock;

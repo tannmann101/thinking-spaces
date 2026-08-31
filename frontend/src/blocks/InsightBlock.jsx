@@ -5,7 +5,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function InsightBlock(props) {
-  return <WorkBlock {...props} statementLabel="Insight" rationaleLabel="What led to it" />;
+  return <WorkBlock {...props} statementLabel="Insight" supportLabel="What led to it" />;
 }
 
 export default InsightBlock;

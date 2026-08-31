@@ -390,7 +390,7 @@ function ListWorkshop({ block, onBlocksChanged }) {
                   <span
                     className="list-workshop-meta-field list-workshop-confidence"
                     onClick={() => cycleConfidence(item)}
-                    title={editable ? 'Click to cycle: solid -> tentative -> questioned' : undefined}
+                    title={editable ? 'Click to cycle: questioned -> tentative -> moderate -> solid -> certain' : undefined}
                   >
                     {item.confidence}
                   </span>

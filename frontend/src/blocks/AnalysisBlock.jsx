@@ -5,7 +5,7 @@
 import WorkBlock from './WorkBlock.jsx';
 
 function AnalysisBlock(props) {
-  return <WorkBlock {...props} statementLabel="Analysis" rationaleLabel="Breakdown" />;
+  return <WorkBlock {...props} statementLabel="Analysis" supportLabel="Breakdown" />;
 }
 
 export default AnalysisBlock;

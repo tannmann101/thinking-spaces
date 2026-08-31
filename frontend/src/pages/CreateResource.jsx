@@ -192,7 +192,7 @@ function CreateResource() {
         <textarea
           value={whatItIs}
           rows={3}
-          style={{ width: '100%' }}
+          className="field-full"
           placeholder="(optional -- can be filled in later)"
           onChange={(event) => setWhatItIs(event.target.value)}
         />
@@ -202,7 +202,7 @@ function CreateResource() {
         <textarea
           value={whatItAffords}
           rows={3}
-          style={{ width: '100%' }}
+          className="field-full"
           placeholder="(optional -- can be filled in later)"
           onChange={(event) => setWhatItAffords(event.target.value)}
         />
@@ -228,7 +228,7 @@ function CreateResource() {
                     type="text"
                     value={selectedRelations[space.id]}
                     placeholder="how does it relate? (optional)"
-                    style={{ width: '60%', marginLeft: '8px' }}
+                    className="field-width-60 field-spaced"
                     onChange={(event) => setRelationNote(space.id, event.target.value)}
                   />
                 )}
@@ -242,7 +242,7 @@ function CreateResource() {
         <textarea
           value={whatItOffers}
           rows={3}
-          style={{ width: '100%' }}
+          className="field-full"
           placeholder="(optional -- can be filled in later)"
           onChange={(event) => setWhatItOffers(event.target.value)}
         />

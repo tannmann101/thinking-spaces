@@ -90,7 +90,7 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
             type="text"
             value={labelDraft}
             autoFocus
-            style={{ fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', flex: 1 }}
+            className="inline-title-field"
             onChange={(event) => setLabelDraft(event.target.value)}
             onBlur={finishLabel}
             onKeyDown={(event) => event.key === 'Enter' && finishLabel()}
@@ -136,7 +136,7 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
           value={noteDraft}
           autoFocus
           rows={2}
-          style={{ width: '100%' }}
+          className="field-full"
           onChange={(event) => setNoteDraft(event.target.value)}
           onBlur={finishNote}
         />

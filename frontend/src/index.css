@@ -2550,3 +2550,88 @@ label {
   max-height: 420px;
   overflow-y: auto;
 }
+
+/* ---------- Shared field utilities ---------- */
+/* The organization pass's second half: 31 one-off `style={{}}` props
+   were scattered across the block/page components, most of them the
+   same handful of small input-sizing rules repeated verbatim at every
+   call site. Pulling them into named classes here means a change to
+   "how wide is an inline-edit field" happens in one place, and a
+   className is legible in the markup the way an inline style object
+   isn't. Left alone (still inline) anywhere the value is genuinely
+   computed at render time -- a progress bar's fill percentage, the
+   Graph's pan-vs-grab cursor -- since there's no fixed value to name a
+   class after there. Combine these with a space-separated className,
+   e.g. "field-full field-inherit-font", the same way any two utility
+   classes combine. */
+
+.field-full {
+  width: 100%;
+}
+.field-inherit-font {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* An inline-editable title/label that should read as part of the
+   surrounding heading it sits in -- a Space's title, a Session's or
+   Milestone's label, a Workspace's name -- rather than as an obviously
+   separate form field. */
+.inline-title-field {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  flex: 1;
+}
+
+/* A "+ Add Block" starter-text field, stacked under its own label. */
+.stacked-field {
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* Side-by-side inline-edit fields sized to leave room for a label or a
+   second field next to them, rather than taking the block's full width. */
+.field-width-40 {
+  width: 40%;
+}
+.field-width-55 {
+  width: 55%;
+}
+.field-width-60 {
+  width: 60%;
+}
+.field-width-60.field-spaced {
+  margin-left: 8px;
+}
+
+/* A List block's own heading, edited inline -- reads slightly bolder
+   than an ordinary item so it still looks like a heading while editable. */
+.field-inherit-heading {
+  font-family: inherit;
+  font-weight: 500;
+}
+
+/* A plain reset for a hand-laid-out <ol>/<li> list (Template Editor's
+   block-arrangement preview), where the browser's own list markers and
+   spacing would fight the custom row styling already applied. */
+.list-reset {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.list-reset-row {
+  margin-bottom: 12px;
+}
+
+/* A small monospace caption, e.g. a Template's block-type summary line. */
+.mono-caption {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* A clickable Graph node/label that isn't a real <button> or <a>. */
+.cursor-pointer {
+  cursor: pointer;
+}

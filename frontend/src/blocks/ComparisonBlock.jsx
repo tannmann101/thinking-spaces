@@ -81,7 +81,7 @@ function ComparisonBlock({ block, onBlocksChanged }) {
                   type="text"
                   value={noteDraft}
                   autoFocus
-                  style={{ fontFamily: 'inherit', fontSize: 'inherit', width: '40%' }}
+                  className="field-width-40 field-inherit-font"
                   onChange={(event) => setNoteDraft(event.target.value)}
                   onBlur={finishEditingNote}
                   onKeyDown={(event) => event.key === 'Enter' && finishEditingNote()}

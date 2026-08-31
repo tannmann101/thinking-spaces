@@ -275,7 +275,7 @@ function CreateSpace() {
             type="text"
             value={goal}
             placeholder="(optional)"
-            style={{ width: '60%' }}
+            className="field-width-60"
             onChange={(event) => setGoal(event.target.value)}
           />
         </p>

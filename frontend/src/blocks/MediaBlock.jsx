@@ -28,7 +28,7 @@ function MediaBlock({ block, onBlocksChanged }) {
       type="text"
       value={draft}
       autoFocus
-      style={{ width: '100%', fontFamily: 'inherit', fontSize: 'inherit' }}
+      className="field-full field-inherit-font"
       onChange={(event) => setDraft(event.target.value)}
       onBlur={finishEditing}
       onKeyDown={(event) => event.key === 'Enter' && finishEditing()}

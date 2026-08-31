@@ -90,7 +90,7 @@ function EditableField({ editable, value, placeholder, multiline = false, onSave
         {...(multiline ? { rows: 3 } : { type: 'text' })}
         value={draft}
         autoFocus
-        style={{ width: '100%', fontFamily: 'inherit', fontSize: 'inherit' }}
+        className="field-full field-inherit-font"
         onChange={(event) => setDraft(event.target.value)}
         onBlur={finish}
         onKeyDown={(event) => !multiline && event.key === 'Enter' && finish()}

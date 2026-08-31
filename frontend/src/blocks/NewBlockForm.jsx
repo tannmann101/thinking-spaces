@@ -170,7 +170,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
               : `${workTypeStarterPrompt(type)} (can be left blank)`
           }
           rows={2}
-          style={{ width: '100%', marginTop: '6px' }}
+          className="stacked-field"
           onChange={(event) => setText(event.target.value)}
         />
       ) : (
@@ -179,14 +179,14 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
             type="text"
             value={laneLabel}
             placeholder="List heading (optional)"
-            style={{ width: '100%', marginTop: '6px' }}
+            className="stacked-field"
             onChange={(event) => setLaneLabel(event.target.value)}
           />
           <textarea
             value={itemLines}
             placeholder={'Starting items, one per line (optional)'}
             rows={3}
-            style={{ width: '100%', marginTop: '6px' }}
+            className="stacked-field"
             onChange={(event) => setItemLines(event.target.value)}
           />
         </>

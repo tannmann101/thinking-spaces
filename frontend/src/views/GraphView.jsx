@@ -379,7 +379,7 @@ function GraphView({ spaces, workspaces = [], edges }) {
               onMouseDown={(event) => onNodeMouseDown(event, node)}
               onMouseEnter={() => setHoveredId(node.id)}
               onMouseLeave={() => setHoveredId(null)}
-              style={{ cursor: 'pointer' }}
+              className="cursor-pointer"
               opacity={dimmed ? 0.35 : 1}
             >
               <rect
@@ -405,7 +405,7 @@ function GraphView({ spaces, workspaces = [], edges }) {
             onMouseDown={(event) => onNodeMouseDown(event, node)}
             onMouseEnter={() => setHoveredId(node.id)}
             onMouseLeave={() => setHoveredId(null)}
-            style={{ cursor: 'pointer' }}
+            className="cursor-pointer"
             opacity={dimmed ? 0.35 : 1}
           >
             <circle

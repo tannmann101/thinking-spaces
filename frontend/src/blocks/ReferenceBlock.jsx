@@ -66,7 +66,7 @@ function ReferenceBlock({ block, onSave, onBlocksChanged }) {
           type="text"
           value={draft}
           autoFocus
-          style={{ width: '55%', fontFamily: 'inherit', fontSize: 'inherit' }}
+          className="field-width-55 field-inherit-font"
           onChange={(event) => setDraft(event.target.value)}
           onBlur={finishEditing}
           onKeyDown={(event) => event.key === 'Enter' && finishEditing()}

@@ -492,12 +492,27 @@ export function blockExistsAtPosition(spaceId, position) {
   return !!row;
 }
 
+// Every Text block is created through this one function -- a live "+
+// Add Block", a Template's stored block spec, seed data, the Skeleton's
+// own Current Best Articulation, all of it -- so normalizing a Text
+// block's content to the current {lines} shape happens exactly once,
+// here, rather than needing every one of those call sites to know
+// about it. A caller can still hand this the old {tag, text} shape
+// (most do, unchanged) and it lands correctly shaped regardless.
+function normalizeTextContent(content) {
+  if (content.lines) return content;
+  const rawLines = (content.text || '').split('\n');
+  const lines = rawLines.map((text) => ({ id: randomUUID(), text, tag: content.tag || null }));
+  return { lines: lines.length > 0 ? lines : [{ id: randomUUID(), text: '', tag: null }] };
+}
+
 export function createBlock({ spaceId, type, content = {}, properties = {}, position = 0 }) {
   const id = randomUUID();
+  const normalizedContent = type === 'text' ? normalizeTextContent(content) : content;
   db.prepare(
     `INSERT INTO blocks (id, space_id, type, content, properties, position)
      VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, spaceId, type, JSON.stringify(content), JSON.stringify(properties), position);
+  ).run(id, spaceId, type, JSON.stringify(normalizedContent), JSON.stringify(properties), position);
   return getBlockById(id);
 }
 
@@ -728,14 +743,15 @@ const PROMOTION_TRIGGERS = new Map(
   SKELETON_LANES.filter((lane) => lane.trigger).map((lane) => [lane.trigger, lane.key])
 );
 
-// Splits raw Text block content into (a) the lines that stay as prose
-// and (b) any lines recognized as Skeleton shorthand, each tagged with
-// which lane it promotes to.
-function extractPromotions(text) {
+// Splits a Text block's lines into (a) the lines that stay as prose and
+// (b) any lines recognized as Skeleton shorthand, each tagged with
+// which lane it promotes to. Each surviving line keeps its own id and
+// tag intact -- this only ever removes whole lines, never rewrites one.
+function extractPromotions(lines) {
   const keptLines = [];
   const promotions = [];
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
+  for (const line of lines) {
+    const trimmed = line.text.trim();
     const trigger = trimmed.charAt(0);
     const laneKey = PROMOTION_TRIGGERS.get(trigger);
     if (laneKey && trimmed.slice(1).trim()) {
@@ -744,19 +760,21 @@ function extractPromotions(text) {
       keptLines.push(line);
     }
   }
-  return { keptText: keptLines.join('\n').trim(), promotions };
+  return { keptLines, promotions };
 }
 
-// Saves a Text block's new content, but first pulls out any
-// `=`/`?`/`!` shorthand lines and appends them as new items (default
-// confidence: tentative) in the matching Skeleton lane -- "parsed ...
-// promoted into the Skeleton without leaving the surface." Promotion
-// happens on save, not per keystroke; the end state is the same, this
-// is just simpler and doesn't risk editing text out from under someone
-// mid-keystroke.
-export function saveTextBlockWithPromotion(blockId, newText) {
+// Saves a Text block's new lines, but first pulls out any `=`/`?`/`!`
+// shorthand lines and appends them as new items (default confidence:
+// tentative) in the matching Skeleton lane -- "parsed ... promoted into
+// the Skeleton without leaving the surface." Promotion happens on save,
+// not per keystroke; the end state is the same, this is just simpler
+// and doesn't risk editing text out from under someone mid-keystroke.
+// Deliberately different from fileLineInLane below (the select-and-tap
+// capture path), which copies a line into a lane and leaves it in the
+// Writing Surface untouched -- shorthand is a promotion, this isn't.
+export function saveTextBlockWithPromotion(blockId, newLines) {
   const block = getBlockById(blockId);
-  const { keptText, promotions } = extractPromotions(newText);
+  const { keptLines, promotions } = extractPromotions(newLines);
 
   if (promotions.length > 0) {
     ensureSkeletonLanes(block.space_id);
@@ -767,7 +785,7 @@ export function saveTextBlockWithPromotion(blockId, newText) {
     });
   }
 
-  const updated = updateBlockContent(blockId, { ...block.content, text: keptText });
+  const updated = updateBlockContent(blockId, { lines: keptLines });
 
   // Log a Trail entry for whichever structural change just happened --
   // items promoted into lanes, or (if this was the articulation block
@@ -781,10 +799,71 @@ export function saveTextBlockWithPromotion(blockId, newText) {
       .map(([laneKey, count]) => `${count} ${laneLabelByKey.get(laneKey)}`)
       .join(', ');
     logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: `Promoted: ${summary}` });
-  } else if (block.properties.skeletonRole === 'current-best-articulation' && keptText !== block.content.text) {
-    logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: 'Updated Current Best Articulation' });
+  } else if (block.properties.skeletonRole === 'current-best-articulation') {
+    const oldText = (block.content.lines || []).map((line) => line.text).join('\n');
+    const newText = keptLines.map((line) => line.text).join('\n');
+    if (newText !== oldText) {
+      logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: 'Updated Current Best Articulation' });
+    }
   }
 
+  return updated;
+}
+
+// One-time content migration: a Text block used to carry one
+// `{tag, text}` for its whole self; per-line attribution (see
+// TextWorkshop.jsx) needs each line to carry its own tag and a stable
+// id, so this splits any block still on the old shape into `lines`,
+// one per newline-separated line, all initially carrying the block's
+// old tag (the closest available default -- there's no way to know
+// which specific line that tag was really about). A block already on
+// the new shape (has `content.lines`) is left untouched, so this is
+// safe to run on every startup. Comparison's embedded "text-kind" sides
+// are never touched -- they live inside a `comparison` block's own
+// content, not as their own `type = 'text'` row, and deliberately keep
+// the old single-tag shape (see TextBlock.jsx).
+export function migrateTextBlockLines() {
+  const rows = db.prepare(`SELECT id, content FROM blocks WHERE type = 'text'`).all();
+  rows.forEach((row) => {
+    const content = JSON.parse(row.content);
+    if (content.lines) return;
+    db.prepare(`UPDATE blocks SET content = ? WHERE id = ?`).run(
+      JSON.stringify(normalizeTextContent(content)),
+      row.id
+    );
+  });
+}
+
+// The Skeleton's alternate capture path: filing an already-written line
+// into a lane copies it in as a new tentative item and leaves the
+// Writing Surface's own line untouched -- "structuring something
+// already down," deliberately different from typed =/?/! shorthand
+// (saveTextBlockWithPromotion above), which promotes and removes.
+export function fileLineInLane(spaceId, laneKey, text) {
+  ensureSkeletonLanes(spaceId);
+  const lane = findSkeletonLaneBlock(spaceId, laneKey);
+  const newItem = { id: randomUUID(), text, confidence: 'tentative' };
+  const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  logTrailEntry({ spaceId, kind: 'auto', summary: `Filed into ${lane.content.laneLabel}` });
+  return updated;
+}
+
+// A Tension is created explicitly by pairing two specific existing
+// statements -- from any of the three claim-bearing lanes, never the
+// Tensions lane itself -- and never inferred automatically. The pair
+// lives on the Tensions-lane item itself (statementA/statementB, each a
+// {blockId, itemId} pointer resolved live by the frontend against
+// already-fetched block data) rather than a separate table, so a
+// Tension stays an ordinary Tensions-lane item everywhere else in the
+// app -- confidence cycling, removal, and so on all keep working
+// unchanged; it just carries two extra pointers this one lane's items
+// uniquely use.
+export function createTensionPair(spaceId, { label, statementA, statementB }) {
+  ensureSkeletonLanes(spaceId);
+  const lane = findSkeletonLaneBlock(spaceId, 'tensions');
+  const newItem = { id: randomUUID(), text: label, confidence: 'tentative', statementA, statementB };
+  const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  logTrailEntry({ spaceId, kind: 'auto', summary: `Tension created: "${label}"` });
   return updated;
 }
 

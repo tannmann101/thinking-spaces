@@ -9,8 +9,8 @@
 // already have one item with that shape -- a genuine gap, not a
 // deliberate restriction, on a list that starts empty).
 
-import { useState } from 'react';
-import { updateBlockContent } from '../api.js';
+import { useEffect, useState } from 'react';
+import { getBlocksForSpace, createTensionPair, updateBlockContent } from '../api.js';
 import { CONFIDENCE_CYCLE, buildNewItem } from './listItems.js';
 
 const SHAPE_FIELDS = [
@@ -21,10 +21,144 @@ const SHAPE_FIELDS = [
   { key: 'number', label: 'number' },
 ];
 
+// A Tension pairs two claims from the three claim-bearing lanes --
+// never itself, which wouldn't mean anything to pair against. Mirrors
+// the backend's own CLAIM_LANE_KEYS in routes/skeleton.js.
+const CLAIM_LANE_KEYS = ['premises', 'evidence', 'open-questions'];
+
+// Resolves a Tension's {blockId, itemId} pointer against the Space's
+// already-fetched blocks -- live, not snapshotted, so if the statement
+// itself is later edited, the Tension shows the current wording. A
+// pointer to a since-deleted block/item just resolves to null; the
+// Tension entry itself is untouched, same as a removed Category leaves
+// a stale chip reference elsewhere quietly unresolved.
+function resolveStatement(ref, spaceBlocks) {
+  if (!ref || !spaceBlocks) return null;
+  const block = spaceBlocks.find((b) => b.id === ref.blockId);
+  const item = block?.content?.items?.find((i) => i.id === ref.itemId);
+  return item ? { text: item.text } : null;
+}
+
+// The "+ New Tension" builder: pick one claim, then a second, from any
+// of the three claim-bearing lanes -- a Tension is always created
+// explicitly this way, never inferred or typed as free text.
+function TensionBuilder({ spaceBlocks, onCreate }) {
+  const [open, setOpen] = useState(false);
+  const [statementA, setStatementA] = useState(null);
+  const [statementB, setStatementB] = useState(null);
+  const [labelDraft, setLabelDraft] = useState('');
+
+  const claims = (spaceBlocks || [])
+    .filter((b) => CLAIM_LANE_KEYS.includes(b.properties?.skeletonLane))
+    .flatMap((b) =>
+      (b.content.items || []).map((item) => ({
+        blockId: b.id,
+        itemId: item.id,
+        text: item.text,
+        laneLabel: b.content.laneLabel,
+      }))
+    );
+
+  function reset() {
+    setOpen(false);
+    setStatementA(null);
+    setLabelDraft('');
+  }
+
+  function pick(statement) {
+    if (!statementA) {
+      setStatementA(statement);
+      return;
+    }
+    setLabelDraft(`"${statementA.text}" vs "${statement.text}"`);
+    setStatementB(statement);
+  }
+
+  async function confirm() {
+    if (!statementA || !statementB || !labelDraft.trim()) return;
+    await onCreate({
+      label: labelDraft.trim(),
+      statementA: { blockId: statementA.blockId, itemId: statementA.itemId },
+      statementB: { blockId: statementB.blockId, itemId: statementB.itemId },
+    });
+    reset();
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="btn" onClick={() => setOpen(true)}>
+        + New Tension
+      </button>
+    );
+  }
+
+  if (claims.length === 0) {
+    return <p className="list-workshop-empty">No claims yet in Premises, Evidence, or Open Questions to pair.</p>;
+  }
+
+  if (statementA && statementB) {
+    return (
+      <div className="tension-builder">
+        <p className="tension-builder-label">
+          <input
+            type="text"
+            value={labelDraft}
+            onChange={(event) => setLabelDraft(event.target.value)}
+            style={{ width: '100%' }}
+          />
+        </p>
+        <p>
+          <button type="button" className="btn" onClick={confirm} disabled={!labelDraft.trim()}>
+            Create Tension
+          </button>{' '}
+          <button type="button" className="btn-ghost-small" onClick={reset}>
+            Cancel
+          </button>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tension-builder">
+      <p className="tension-builder-label">
+        {statementA ? (
+          <>
+            Statement one: <em>&ldquo;{statementA.text}&rdquo;</em> &mdash; now pick the second.
+          </>
+        ) : (
+          'Pick the first statement:'
+        )}
+      </p>
+      <ul className="checkbox-list">
+        {claims
+          .filter((claim) => !statementA || claim.itemId !== statementA.itemId)
+          .map((claim) => (
+            <li key={claim.itemId}>
+              <button type="button" className="btn-ghost-small" onClick={() => pick(claim)}>
+                {claim.text}
+              </button>{' '}
+              <span className="tension-builder-lane">({claim.laneLabel})</span>
+            </li>
+          ))}
+      </ul>
+      <button type="button" className="btn-ghost-small" onClick={reset}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 function ListWorkshop({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);
   const isSkeletonLane = Boolean(block.properties?.skeletonLane);
+  const isTensionsLane = block.properties?.skeletonLane === 'tensions';
   const [items, setItems] = useState(block.content.items || []);
+  const [spaceBlocks, setSpaceBlocks] = useState(null);
+
+  useEffect(() => {
+    if (isTensionsLane) getBlocksForSpace(block.space_id).then(setSpaceBlocks);
+  }, [isTensionsLane, block.space_id]);
   const [editingField, setEditingField] = useState(null); // { itemId, field }
   const [draft, setDraft] = useState('');
   const [newItemText, setNewItemText] = useState('');
@@ -226,6 +360,17 @@ function ListWorkshop({ block, onBlocksChanged }) {
                 </button>
               )}
             </div>
+            {item.statementA && item.statementB && (
+              <div className="tension-pair">
+                <span className="tension-pair-statement">
+                  {resolveStatement(item.statementA, spaceBlocks)?.text || <em>(statement removed)</em>}
+                </span>
+                <span className="tension-pair-vs">vs</span>
+                <span className="tension-pair-statement">
+                  {resolveStatement(item.statementB, spaceBlocks)?.text || <em>(statement removed)</em>}
+                </span>
+              </div>
+            )}
             {(typeof item.number === 'number' || item.date || item.reviewBy || item.confidence) && (
               <div className="list-workshop-item-meta">
                 {typeof item.number === 'number' && (
@@ -256,7 +401,17 @@ function ListWorkshop({ block, onBlocksChanged }) {
         ))}
       </ul>
 
-      {editable && (
+      {editable && isTensionsLane && (
+        <TensionBuilder
+          spaceBlocks={spaceBlocks}
+          onCreate={async ({ label, statementA, statementB }) => {
+            await createTensionPair(block.space_id, { label, statementA, statementB });
+            onBlocksChanged?.();
+          }}
+        />
+      )}
+
+      {editable && !isTensionsLane && (
         <>
           {items.length === 0 && (
             <p className="list-workshop-shape-picker">

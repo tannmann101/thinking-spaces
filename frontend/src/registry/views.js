@@ -10,6 +10,12 @@
 // all at once, since it has both a date and a checkbox on every item.
 // That overlap is expected, not a bug: it's what "computed over shared
 // properties" means in practice.
+//
+// `worksWith` and `demoBlock`/`demoProps` exist purely for the Tools
+// catalog page (ToolsPage.jsx) -- see the matching comment in
+// registry/blocks.js. Every View here demos through a plain List
+// demoBlock except Graph, which takes {spaces, edges} directly rather
+// than a block, so it gets `demoProps` instead.
 
 import TimelineView from '../views/TimelineView.jsx';
 import ProgressView from '../views/ProgressView.jsx';
@@ -27,6 +33,16 @@ export const viewRegistry = {
     description: 'List items that carry a date, shown chronologically.',
     appliesTo: (block) => isListBlock(block) && block.content.items.some((item) => item.date),
     component: TimelineView,
+    worksWith: ['list'],
+    demoBlock: {
+      type: 'list',
+      content: {
+        items: [
+          { id: 'demo-1', text: 'Started sketching this out', date: '2026-08-01' },
+          { id: 'demo-2', text: 'Finished a first draft', date: '2026-08-20' },
+        ],
+      },
+    },
   },
   progress: {
     label: 'Progress',
@@ -34,6 +50,17 @@ export const viewRegistry = {
     appliesTo: (block) =>
       isListBlock(block) && block.content.items.some((item) => typeof item.checkbox === 'boolean'),
     component: ProgressView,
+    worksWith: ['list'],
+    demoBlock: {
+      type: 'list',
+      content: {
+        items: [
+          { id: 'demo-1', text: 'Step one', checkbox: true },
+          { id: 'demo-2', text: 'Step two', checkbox: false },
+          { id: 'demo-3', text: 'Step three', checkbox: false },
+        ],
+      },
+    },
   },
   streak: {
     label: 'Streak',
@@ -42,6 +69,18 @@ export const viewRegistry = {
       isListBlock(block) &&
       block.content.items.some((item) => typeof item.checkbox === 'boolean' && item.date),
     component: StreakView,
+    worksWith: ['list'],
+    demoBlock: {
+      type: 'list',
+      content: {
+        items: [
+          { id: 'demo-1', text: 'Day', date: '2026-08-01', checkbox: true },
+          { id: 'demo-2', text: 'Day', date: '2026-08-02', checkbox: true },
+          { id: 'demo-3', text: 'Day', date: '2026-08-03', checkbox: false },
+          { id: 'demo-4', text: 'Day', date: '2026-08-04', checkbox: true },
+        ],
+      },
+    },
   },
   ledger: {
     label: 'Ledger',
@@ -49,17 +88,40 @@ export const viewRegistry = {
     appliesTo: (block) =>
       isListBlock(block) && block.content.items.some((item) => typeof item.number === 'number'),
     component: LedgerView,
+    worksWith: ['list'],
+    demoBlock: {
+      type: 'list',
+      content: {
+        items: [
+          { id: 'demo-1', text: 'Starting balance', number: 100 },
+          { id: 'demo-2', text: 'Spent on research', number: -20 },
+        ],
+      },
+    },
   },
   // Unlike every View above, Graph isn't computed over one block -- it's
   // computed over every Reference block across every Space (CLAUDE.md's
-  // "the Map"), so it has no single block to attach to and appliesTo
-  // always returns false. It renders on its own page (GraphPage.jsx, at
-  // /graph) instead of inline in a Space's block feed. It's listed here
-  // anyway so this file stays the one place every View is documented.
+  // "Relational Map"), so it has no single block to attach to and
+  // appliesTo always returns false. It renders on its own page
+  // (GraphPage.jsx, at /graph) instead of inline in a Space's block
+  // feed. It's listed here anyway so this file stays the one place
+  // every View is documented.
   graph: {
     label: 'Graph',
     description: 'Every Reference block across every Space, as nodes and edges.',
     appliesTo: () => false,
     component: GraphView,
+    worksWith: ['reference'],
+    demoProps: {
+      spaces: [
+        { id: 'demo-a', title: 'Space A' },
+        { id: 'demo-b', title: 'Space B' },
+        { id: 'demo-c', title: 'Space C' },
+      ],
+      edges: [
+        { blockId: 'demo-edge-1', sourceSpaceId: 'demo-a', targetSpaceId: 'demo-b' },
+        { blockId: 'demo-edge-2', sourceSpaceId: 'demo-b', targetSpaceId: 'demo-c' },
+      ],
+    },
   },
 };

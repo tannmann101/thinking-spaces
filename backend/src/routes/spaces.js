@@ -69,12 +69,12 @@ spacesRouter.get('/spaces/:id', (req, res) => {
   res.json(space);
 });
 
-// Title, status, tags, and goal are all edited through this one route --
-// the same "ordinary edit, not a special mode" principle Pass 4 applied
-// to blocks now applies to the Space's own properties too. Any subset
-// of fields can be sent.
+// Title, status, tags, goal, and categories are all edited through
+// this one route -- the same "ordinary edit, not a special mode"
+// principle Pass 4 applied to blocks now applies to the Space's own
+// properties too. Any subset of fields can be sent.
 spacesRouter.patch('/spaces/:id', (req, res) => {
-  const { title, status, tags, goal } = req.body;
+  const { title, status, tags, goal, categories } = req.body;
   if (title !== undefined && !title.trim()) {
     return res.status(400).json({ error: 'title cannot be empty' });
   }
@@ -83,6 +83,7 @@ spacesRouter.patch('/spaces/:id', (req, res) => {
     status,
     tags,
     goal,
+    categories,
   });
   if (!updated) {
     return res.status(404).json({ error: 'Space not found' });

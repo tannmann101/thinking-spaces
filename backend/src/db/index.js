@@ -33,3 +33,4 @@ function ensureColumn(table, column, definition) {
 }
 ensureColumn('spaces', 'tags', `TEXT NOT NULL DEFAULT '[]'`);
 ensureColumn('spaces', 'goal', 'TEXT');
+ensureColumn('spaces', 'categories', `TEXT NOT NULL DEFAULT '[]'`);

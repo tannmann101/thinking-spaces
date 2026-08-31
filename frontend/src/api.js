@@ -83,6 +83,12 @@ export const addBlockToSpace = (spaceId, { type, content, properties }) =>
     body: JSON.stringify({ type, content, properties }),
   });
 export const deleteBlockApi = (blockId) => request(`/blocks/${blockId}`, { method: 'DELETE' });
+// Which of the Space's own Categories a block belongs to (many-to-many).
+export const updateBlockCategories = (blockId, categories) =>
+  request(`/blocks/${blockId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ categories }),
+  });
 export const moveBlockInSpace = (spaceId, blockId, direction) =>
   request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
     method: 'POST',

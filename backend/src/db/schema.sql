@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS spaces (
   status TEXT NOT NULL DEFAULT 'nascent',
   tags TEXT NOT NULL DEFAULT '[]', -- JSON array of strings, e.g. ["resource"]
   goal TEXT,                       -- what this Space is working towards; separate from its content
+  categories TEXT NOT NULL DEFAULT '[]', -- JSON array of freely-named facets specific to this Space's
+                                          -- own topic (e.g. ["Financial Impact", "Risk Tolerance"]) --
+                                          -- distinct from tags, which categorize the Space itself
+                                          -- (e.g. "resource") among every other Space
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

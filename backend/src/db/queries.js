@@ -62,13 +62,14 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
-const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, created_at, updated_at';
+const SPACE_COLUMNS = 'id, title, status, template_id, tags, goal, categories, created_at, updated_at';
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
   return {
     ...space,
     tags: JSON.parse(space.tags ?? '[]'),
+    categories: JSON.parse(space.categories ?? '[]'),
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: getRelationDensity(space.id),
     openTensionCount: getOpenTensionCount(space.id),
@@ -119,12 +120,14 @@ export function createSpace({ id = randomUUID(), title, templateId = null, statu
   return getSpaceById(id);
 }
 
-// A Space's title, status, tags, and goal ("what this Space is working
-// towards" -- a property of the Space itself, separate from any block
-// it contains) are all edited through this one function. Any subset of
-// fields can be given; the rest keep their current value, same pattern
-// as updateTemplate.
-export function updateSpace(id, { title, status, tags, goal } = {}) {
+// A Space's title, status, tags, goal, and categories are all edited
+// through this one function. Any subset of fields can be given; the
+// rest keep their current value, same pattern as updateTemplate.
+// categories are freely-named facets specific to this Space's own
+// topic (e.g. "Financial Impact") that its own blocks get filed
+// under -- not to be confused with tags, which categorize the Space
+// itself (e.g. "resource") among every other Space.
+export function updateSpace(id, { title, status, tags, goal, categories } = {}) {
   const existing = db.prepare(`SELECT * FROM spaces WHERE id = ?`).get(id);
   if (!existing) return null;
 
@@ -133,11 +136,12 @@ export function updateSpace(id, { title, status, tags, goal } = {}) {
     status: status !== undefined ? status : existing.status,
     tags: tags !== undefined ? JSON.stringify(tags) : existing.tags,
     goal: goal !== undefined ? goal : existing.goal,
+    categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
   };
   db.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, updated_at = datetime('now')
      WHERE id = ?`
-  ).run(next.title, next.status, next.tags, next.goal, id);
+  ).run(next.title, next.status, next.tags, next.goal, next.categories, id);
   // Only a status change gets logged, not every title/tag/goal edit --
   // status progression (nascent -> developing -> mature) is genuinely
   // trend-worthy; a renamed tag isn't.
@@ -515,6 +519,22 @@ export function updateBlockContent(id, content) {
   db.prepare(
     `UPDATE blocks SET content = ?, updated_at = datetime('now') WHERE id = ?`
   ).run(JSON.stringify(content), id);
+  return getBlockById(id);
+}
+
+// Which of a Space's own Categories (freely-named facets specific to
+// its topic, see updateSpace) this block belongs to -- a block can
+// belong to more than one at once, or none. This lives in `properties`
+// (it's an attribute of the block, not its content) alongside the
+// existing skeletonLane/skeletonRole markers, which is why it's a
+// dedicated function rather than going through updateBlockContent.
+export function updateBlockCategories(id, categories) {
+  const block = getBlockById(id);
+  if (!block) return null;
+  const properties = { ...block.properties, categories };
+  db.prepare(
+    `UPDATE blocks SET properties = ?, updated_at = datetime('now') WHERE id = ?`
+  ).run(JSON.stringify(properties), id);
   return getBlockById(id);
 }
 

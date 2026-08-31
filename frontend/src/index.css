@@ -1007,6 +1007,105 @@ label {
   background: var(--maroon-wash);
 }
 
+/* ---------- Workspaces: assembled, named Tool environments ---------- */
+/* Deliberately a different shape from a Category chip (solid ink fill,
+   square corners) rather than a new hue -- the palette stays the single
+   oxblood accent CLAUDE.md calls for, but Tags/Categories/Workspaces
+   still need to read apart from each other at a glance. */
+
+.workspace-section {
+  margin: 20px 0;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+}
+.workspace-section h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.workspace-section > p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.workspace-card {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 12px;
+}
+.workspace-card:hover {
+  border-color: var(--maroon);
+}
+.workspace-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.workspace-add-form {
+  display: flex;
+  gap: 6px;
+}
+.workspace-add-form input {
+  flex: 1;
+  max-width: 240px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.workspace-chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--ink-faint);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 0; /* square, vs. a Category chip's rounded corners */
+  padding: 2px 6px;
+}
+.block-workspace-row {
+  margin: 6px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.workspace-chip-toggle {
+  cursor: pointer;
+  opacity: 0.45;
+}
+.workspace-chip-toggle:hover {
+  opacity: 0.75;
+}
+.workspace-chip-toggle.workspace-chip-active {
+  opacity: 1;
+  color: var(--ink);
+  border-color: var(--maroon);
+}
+
+.workspace-title {
+  margin-bottom: 2px;
+}
+.workspace-subtitle {
+  margin-top: 0;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+.workspace-block-feed {
+  margin-bottom: 24px;
+}
+
 /* ---------- Tools catalog ---------- */
 
 .tool-grid {

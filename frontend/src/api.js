@@ -97,11 +97,33 @@ export const updateBlockCategories = (blockId, categories) =>
     method: 'PATCH',
     body: JSON.stringify({ categories }),
   });
+// Which Workspaces a block has been assembled into (many-to-many).
+export const updateBlockWorkspaces = (blockId, workspaces) =>
+  request(`/blocks/${blockId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ workspaces }),
+  });
 export const moveBlockInSpace = (spaceId, blockId, direction) =>
   request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
     method: 'POST',
     body: JSON.stringify({ direction }),
   });
+
+// Workspaces: a deliberately assembled, named environment inside one
+// Space (see backend/src/db/queries.js, "--- Workspaces ---").
+export const getWorkspacesForSpace = (spaceId) => request(`/spaces/${spaceId}/workspaces`);
+export const getWorkspace = (id) => request(`/workspaces/${id}`);
+export const createWorkspace = (spaceId, name) =>
+  request(`/spaces/${spaceId}/workspaces`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+export const renameWorkspace = (id, name) =>
+  request(`/workspaces/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+export const deleteWorkspace = (id) => request(`/workspaces/${id}`, { method: 'DELETE' });
 
 // The Graph view (Pass 5): every Reference block across every Space.
 export const getGraph = () => request('/graph');

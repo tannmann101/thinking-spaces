@@ -153,10 +153,18 @@ select:focus-visible,
   outline-offset: 2px;
 }
 
-#root {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 24px 24px 96px;
+/* #root itself no longer caps width or centers content -- that read as
+   a stretched mobile layout on a wide desktop screen (a narrow column
+   floating in empty space) rather than a real desktop app. Every page
+   now returns .app-shell as its own top-level element (a flex row
+   hosting the persistent sidebar and that page's own content pane --
+   see .sidebar/.app-content below, and Sidebar.jsx, formerly
+   TopNav.jsx, rebuilt as a fixed left rail in the same pass), so the
+   actual layout lives there rather than on this framework mount point. */
+.app-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
 }
 
 /* Functional affordance, not decoration: anything with this class is
@@ -185,17 +193,25 @@ select:focus-visible,
   background: var(--maroon-wash);
 }
 
-/* ---------- shared page chrome ---------- */
-
-.topbar {
+/* ---------- shared page chrome: a persistent left sidebar ---------- */
+/* Rebuilt from a horizontal top bar into a fixed left rail -- the
+   Slack/Notion/Obsidian pattern -- so the app reads as a real desktop
+   app (persistent chrome beside the content, not above it) rather than
+   a centered mobile-width column stretched onto a wide screen. Sticky
+   + its own scroll, so the sidebar stays fully visible regardless of
+   how long the page beside it gets. */
+.sidebar {
+  flex: none;
+  width: 220px;
+  padding: 24px 18px;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  padding-bottom: 18px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-soft);
+  flex-direction: column;
+  gap: 22px;
+  border-right: 1px solid var(--border-soft);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .wordmark {
@@ -211,7 +227,8 @@ select:focus-visible,
 
 .nav-links {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 10px;
   font-family: var(--mono);
   font-size: var(--fs-xs);
   letter-spacing: 0.5px;
@@ -226,32 +243,35 @@ select:focus-visible,
 }
 /* The nav entry for whatever page is actually on screen right now --
    "can I tell what page I'm on" answered at the chrome level, not just
-   by each page's own <h1>. */
+   by each page's own <h1>. A left border rather than the old
+   horizontal-bar's underline, since the rail's own natural "current
+   item" affordance runs along its long (vertical) edge. */
 .nav-links a.nav-link-current {
   color: var(--ink);
-  border-bottom: 1px solid var(--maroon-bright);
+  border-left: 2px solid var(--maroon-bright);
+  padding-left: 8px;
+  margin-left: -10px;
 }
 
-.topbar-right {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-/* TopNav's badge -- deliberately loud (filled, not outlined, in the
-   app's own primary maroon) since the whole point of "louder in-app
-   badge" was for it to actually catch the eye, unlike the quiet chip
-   style everything else in the nav uses. */
+/* The badge -- deliberately loud (filled, not outlined, in the app's
+   own primary maroon) since the whole point of "louder in-app badge"
+   was for it to actually catch the eye, unlike the quiet chip style
+   everything else in the sidebar uses. Pushed to the bottom of the
+   rail via the sidebar's own flex column + this element's auto
+   top-margin, so it reads as a standing status rather than competing
+   with ordinary navigation for attention at the top. */
 .needs-attention-badge {
+  display: block;
+  margin-top: auto;
   font-family: var(--mono);
   font-size: var(--fs-2xs);
   font-weight: 500;
   color: #fff;
   background: var(--maroon);
   border-radius: var(--radius-sm);
-  padding: 1px 6px;
+  padding: 6px 8px;
   text-decoration: none;
+  text-align: center;
 }
 .needs-attention-badge:hover {
   background: var(--maroon-bright);
@@ -266,8 +286,10 @@ select:focus-visible,
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 3px 8px;
+  padding: 6px 8px;
   cursor: pointer;
+  width: 100%;
+  text-align: left;
 }
 .quick-capture-toggle:hover {
   border-color: var(--maroon);
@@ -275,12 +297,57 @@ select:focus-visible,
 }
 .quick-capture-form {
   display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 .quick-capture-form input {
   font-size: var(--fs-xs);
-  padding: 3px 8px;
-  width: 220px;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+/* The routed page's own content pane, beside the sidebar rather than
+   below a top bar. Capped at a comfortable reading width by default
+   (wider than the app's old 900px, since the sidebar already claims
+   the space a top bar used to need) but deliberately not centered in
+   whatever's left over -- content hugs the sidebar's edge the way a
+   real desktop app's main pane does, rather than floating in the
+   middle of extra space. .app-content-wide drops the cap entirely, for
+   the one page (the Map) that actually needs the full remaining width. */
+.app-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 40px 96px;
+  max-width: 1100px;
+}
+.app-content-wide {
+  max-width: none;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: auto;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .nav-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .needs-attention-badge {
+    margin-top: 0;
+  }
+  .app-content {
+    padding: 24px 20px 72px;
+  }
 }
 
 /* A plain, secondary text link back to somewhere (Dashboard, a parent
@@ -928,24 +995,15 @@ label {
   background: transparent;
 }
 
-/* Breaks the graph canvas out of #root's centered 900px column via
-   the standard negative-viewport-margin technique -- the Map is the
-   one page where that width was an active bug (node labels clipping
-   against the canvas edge, see the WIDTH/HEIGHT comment in
-   GraphView.jsx), not just unused space, so it's the one page that
-   gets more room rather than widening every page uniformly. The
-   inner wrapper re-applies a cap and matches #root's own 24px side
-   padding, so the wide section's edges still line up with the rest
-   of the page's content on an ordinary-width screen. */
-.graph-frame {
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-}
-.graph-frame-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
+/* The Map used to need a viewport-relative "break out of the centered
+   column" hack to get the canvas more room than the app's old 900px
+   cap allowed (node labels were clipping against the canvas edge --
+   see the WIDTH/HEIGHT comment in GraphView.jsx for the real fix to
+   that). Now that .app-content sits beside a sidebar instead of being
+   centered in the viewport, that trick's math no longer applies -- the
+   Map's <main> just uses .app-content-wide (see above) to drop the
+   ordinary reading-width cap and let the canvas fill the remaining
+   space directly. */
 
 .graph-svg {
   border: 1px solid var(--border-soft);

@@ -25,12 +25,12 @@ import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import ReportButton from '../components/ReportButton.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 // Only renders when there's somewhere more specific to go back to than
 // the Dashboard -- arriving here via a Reference/backlink from another
-// Space (?from=<id>) -- since TopNav's wordmark already covers "back to
+// Space (?from=<id>) -- since the sidebar's wordmark already covers "back to
 // Dashboard" from every page; showing both here would just be two links
 // doing the same job.
 function BackLink() {
@@ -638,8 +638,9 @@ function SpacePage() {
   }
 
   return (
-    <main>
-      <TopNav />
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-content">
       <BackLink />
 
       {error && <p>Could not load Space: {error}</p>}
@@ -865,7 +866,8 @@ function SpacePage() {
           )}
         </>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

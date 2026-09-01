@@ -23,7 +23,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSpace, getSpaces } from '../api.js';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 // Deliberately says "app," not "tool" -- a sub-type suggestion here
@@ -134,8 +134,9 @@ function CreateResource() {
   }
 
   return (
-    <main>
-      <TopNav />
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-content">
       <h1>New Resource</h1>
       <p>
         A Resource is something outside (or alongside) your thinking that's worth having on hand --
@@ -264,7 +265,8 @@ function CreateResource() {
 
         {error && <p>Could not create Resource: {error}</p>}
       </form>
-    </main>
+      </main>
+    </div>
   );
 }
 

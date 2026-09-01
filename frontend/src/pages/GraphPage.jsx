@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGraph, createRelationalSpace } from '../api.js';
 import { viewRegistry } from '../registry/views.js';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const GraphView = viewRegistry.graph.component;
@@ -58,8 +58,12 @@ function GraphPage() {
   }
 
   return (
-    <main>
-      <TopNav current="graph" />
+    <div className="app-shell">
+      <Sidebar current="graph" />
+      {/* app-content-wide: the one page that genuinely needs the full
+          remaining width rather than the ordinary reading-width cap --
+          see the comment on .app-content-wide in index.css. */}
+      <main className="app-content app-content-wide">
       <h1>The Map</h1>
 
       {error && <p>Error: {error}</p>}
@@ -67,11 +71,7 @@ function GraphPage() {
 
       {graph && (
         <>
-          <div className="graph-frame">
-            <div className="graph-frame-inner">
-              <GraphView spaces={graph.spaces} workspaces={graph.workspaces} edges={graph.edges} />
-            </div>
-          </div>
+          <GraphView spaces={graph.spaces} workspaces={graph.workspaces} edges={graph.edges} />
 
           <h2>Combine Spaces into a Relational Space</h2>
           <p>Select two or more Spaces below, name the new Space, and it will start with a Reference to each one plus a blank space to write about the connection.</p>
@@ -104,7 +104,8 @@ function GraphPage() {
           </form>
         </>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

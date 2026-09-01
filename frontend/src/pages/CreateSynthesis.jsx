@@ -26,7 +26,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSpace, getWorkItems } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const SYNTHESIS_KIND_SUGGESTIONS = ['essay', 'story', 'definition', 'writing-entry'];
@@ -108,8 +108,9 @@ function CreateSynthesis() {
   });
 
   return (
-    <main>
-      <TopNav />
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-content">
       <h1>New Synthesis</h1>
       <p>
         Compile a few existing Work items -- Assessments, Questions, and the rest of the Work
@@ -205,7 +206,8 @@ function CreateSynthesis() {
 
         {error && <p>Could not create Synthesis: {error}</p>}
       </form>
-    </main>
+      </main>
+    </div>
   );
 }
 

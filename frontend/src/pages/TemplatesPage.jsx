@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTemplates, deleteTemplate } from '../api.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function TemplatesPage() {
@@ -32,8 +32,9 @@ function TemplatesPage() {
   }
 
   return (
-    <main>
-      <TopNav current="templates" />
+    <div className="app-shell">
+      <Sidebar current="templates" />
+      <main className="app-content">
       <div className="page-head">
         <h1>Templates</h1>
         <Link to="/templates/new" className="btn">
@@ -67,7 +68,8 @@ function TemplatesPage() {
           ))}
         </ul>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

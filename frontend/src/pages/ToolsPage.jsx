@@ -14,7 +14,7 @@
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const ALL_TOOLS = { ...blockRegistry, ...viewRegistry };
@@ -52,8 +52,9 @@ function ToolCard({ entry, kind }) {
 function ToolsPage() {
   usePageTitle('Tools');
   return (
-    <main>
-      <TopNav current="tools" />
+    <div className="app-shell">
+      <Sidebar current="tools" />
+      <main className="app-content">
       <h1>Tools</h1>
       <p>
         Every Tool a Space can use. Blocks hold content; Views compute a lens over it
@@ -144,7 +145,8 @@ function ToolsPage() {
         lane items too (see the Work Types above), the same live-resolution idea applied one
         level higher.
       </p>
-    </main>
+      </main>
+    </div>
   );
 }
 

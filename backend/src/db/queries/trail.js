@@ -19,8 +19,7 @@ import { getSkeletonSnapshot } from './skeleton.js';
 // third kind -- see review.js's getReviewDraft/createReview.
 
 // Exported (not just used internally) since dashboard.js's
-// listRecentTrailEntries also needs to parse a trail_entries row the
-// same way.
+// getWeekCalendar also needs to parse a trail_entries row the same way.
 export function parseTrailRow(row) {
   return { ...row, skeleton_snapshot: JSON.parse(row.skeleton_snapshot) };
 }

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../index.js';
-import { listOverdueReviews, listRecentTrailEntries, suggestSpaceToResurface, getNeedsAttentionCount } from '../dashboard.js';
+import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from '../dashboard.js';
 import { createSpace, updateSpace } from '../spaces.js';
 import { createBlock } from '../blocks.js';
 import { logTrailEntry } from '../trail.js';
-import { TEST_SPACE_ID } from '../constants.js';
+import { TEST_SPACE_ID, todayString } from '../constants.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
 describe('listOverdueReviews', () => {
@@ -44,37 +44,89 @@ describe('listOverdueReviews', () => {
   });
 });
 
-describe('listRecentTrailEntries', () => {
+describe('getWeekCalendar', () => {
   beforeEach(() => {
     resetDb();
   });
 
-  it('returns entries from within the requested window, newest first', () => {
-    const space = createSpace({ title: 'A Space' });
-    const older = logTrailEntry({ spaceId: space.id, kind: 'auto', summary: 'older' });
-    const newer = logTrailEntry({ spaceId: space.id, kind: 'auto', summary: 'newer' });
-    // Pin explicit, clearly-ordered timestamps rather than relying on
-    // two real-time calls landing in different SQLite datetime('now')
-    // seconds, which they aren't guaranteed to.
-    db.prepare(`UPDATE trail_entries SET created_at = datetime('now', '-2 minutes') WHERE id = ?`).run(older.id);
-    db.prepare(`UPDATE trail_entries SET created_at = datetime('now', '-1 minutes') WHERE id = ?`).run(newer.id);
-
-    const recent = listRecentTrailEntries(7);
-    expect(recent.map((e) => e.summary)).toEqual(['newer', 'older']);
-    expect(recent[0].spaceTitle).toBe('A Space');
+  it('returns exactly 7 days, Sunday through Saturday, with exactly one marked as today', () => {
+    const days = getWeekCalendar();
+    expect(days).toHaveLength(7);
+    expect(new Date(`${days[0].date}T00:00:00`).getDay()).toBe(0);
+    expect(new Date(`${days[6].date}T00:00:00`).getDay()).toBe(6);
+    const todayEntries = days.filter((d) => d.isToday);
+    expect(todayEntries).toHaveLength(1);
+    expect(todayEntries[0].date).toBe(todayString());
+    // Every day before today's slot is in the past; every day at or
+    // after it is not -- checked this way (rather than asserting a
+    // fixed day index) so the test passes no matter which day of the
+    // week it actually runs on.
+    const todayIndex = days.findIndex((d) => d.isToday);
+    days.forEach((day, index) => {
+      expect(day.isPast).toBe(index < todayIndex);
+    });
   });
 
-  it('excludes an entry older than the requested window', () => {
+  it('places a Trail entry logged today under today\'s date', () => {
+    const space = createSpace({ title: 'A Space' });
+    logTrailEntry({ spaceId: space.id, kind: 'auto', summary: 'did a thing' });
+    const days = getWeekCalendar();
+    const today = days.find((d) => d.isToday);
+    expect(today.trail.map((e) => e.summary)).toEqual(['did a thing']);
+    expect(today.trail[0].spaceTitle).toBe('A Space');
+  });
+
+  it('excludes a Trail entry from outside the current calendar week', () => {
     const space = createSpace({ title: 'A Space' });
     const entry = logTrailEntry({ spaceId: space.id, kind: 'auto', summary: 'ancient' });
     db.prepare(`UPDATE trail_entries SET created_at = datetime('now', '-30 days') WHERE id = ?`).run(entry.id);
-    expect(listRecentTrailEntries(7)).toEqual([]);
+    const days = getWeekCalendar();
+    expect(days.every((d) => d.trail.length === 0)).toBe(true);
   });
 
-  it('excludes the Test Space', () => {
+  it('places a Space due today under today\'s date', () => {
+    const space = createSpace({ title: 'Due today' });
+    updateSpace(space.id, { dueDate: todayString() });
+    const days = getWeekCalendar();
+    const today = days.find((d) => d.isToday);
+    expect(today.dueSpaces).toEqual([{ spaceId: space.id, spaceTitle: 'Due today' }]);
+  });
+
+  it('excludes a Space due outside the current calendar week', () => {
+    const space = createSpace({ title: 'Due someday' });
+    updateSpace(space.id, { dueDate: '2099-01-01' });
+    const days = getWeekCalendar();
+    expect(days.every((d) => d.dueSpaces.length === 0)).toBe(true);
+  });
+
+  it('places a Milestone targeted for today under today\'s date', () => {
+    const space = createSpace({ title: 'Has a Milestone' });
+    createBlock({
+      spaceId: space.id,
+      type: 'milestone',
+      content: { label: 'Ship it', targetDate: todayString(), reached: false, reachedAt: null, note: '' },
+    });
+    const days = getWeekCalendar();
+    const today = days.find((d) => d.isToday);
+    expect(today.milestones).toEqual([
+      { label: 'Ship it', reached: false, spaceId: space.id, spaceTitle: 'Has a Milestone' },
+    ]);
+  });
+
+  it('excludes the Test Space from Trail entries, due dates, and Milestones alike', () => {
     createSpace({ id: TEST_SPACE_ID, title: 'Test Space' });
     logTrailEntry({ spaceId: TEST_SPACE_ID, kind: 'auto', summary: 'scratch' });
-    expect(listRecentTrailEntries(7)).toEqual([]);
+    updateSpace(TEST_SPACE_ID, { dueDate: todayString() });
+    createBlock({
+      spaceId: TEST_SPACE_ID,
+      type: 'milestone',
+      content: { label: 'x', targetDate: todayString(), reached: false, reachedAt: null, note: '' },
+    });
+    const days = getWeekCalendar();
+    const today = days.find((d) => d.isToday);
+    expect(today.trail).toEqual([]);
+    expect(today.dueSpaces).toEqual([]);
+    expect(today.milestones).toEqual([]);
   });
 });
 

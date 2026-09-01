@@ -4,7 +4,7 @@ import {
   getSpaces,
   getSpacesByTag,
   getOverdueReviews,
-  getRecentTrail,
+  getWeekCalendar,
   getResurfaceSuggestion,
   deleteSpace,
 } from '../api.js';
@@ -43,20 +43,98 @@ function OverdueReviews({ items }) {
   );
 }
 
-function RecentTrailDigest({ entries }) {
-  if (entries.length === 0) return null;
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// getWeekCalendar's days are plain 'YYYY-MM-DD' strings -- parsed as
+// explicit local year/month/day components, not `new Date(isoString)`
+// (which reads a bare date as UTC midnight and can print the wrong
+// weekday/day-of-month depending on the viewer's own timezone).
+function parseLocalDate(isoDate) {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatShort(isoDate) {
+  return parseLocalDate(isoDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+// A real calendar grid, not a flat list -- the whole point is that
+// "what does 'this week' mean" is answered just by looking at the day
+// labels and the actual dates in the header, rather than being a fact
+// only the code knew. Each day mixes what already happened (Trail
+// entries, a reached Milestone) with what's coming up (a Space's own
+// due date, a Milestone's still-open target date) -- past days read as
+// a small log, days at or after today read as a small forecast.
+function WeekCalendarDigest({ days }) {
+  const hasAnything = days.some((day) => day.trail.length + day.dueSpaces.length + day.milestones.length > 0);
+  if (!hasAnything) return null;
+
   return (
-    <details className="digest" data-digest="recent" open>
+    <details className="digest digest-week" data-digest="week" open>
       <summary>
-        <span className="digest-icon">◷</span>This week, across your Spaces
+        <span className="digest-icon">◷</span>This week ({formatShort(days[0].date)} &ndash; {formatShort(days[6].date)})
       </summary>
-      <ul>
-        {entries.map((entry) => (
-          <li key={entry.id}>
-            <Link to={`/spaces/${entry.space_id}`}>{entry.spaceTitle}</Link>: {entry.summary}
-          </li>
-        ))}
-      </ul>
+      <div className="week-grid">
+        {days.map((day, index) => {
+          const pastItems = [
+            ...day.trail.map((entry) => ({
+              key: `trail-${entry.id}`,
+              spaceId: entry.space_id,
+              spaceTitle: entry.spaceTitle,
+              text: entry.summary,
+            })),
+            ...day.milestones
+              .filter((m) => m.reached)
+              .map((m, i) => ({
+                key: `reached-${index}-${i}`,
+                spaceId: m.spaceId,
+                spaceTitle: m.spaceTitle,
+                text: `reached: ${m.label}`,
+              })),
+          ];
+          const upcomingItems = [
+            ...day.dueSpaces.map((space) => ({
+              key: `due-${space.spaceId}`,
+              spaceId: space.spaceId,
+              spaceTitle: space.spaceTitle,
+              text: 'due',
+            })),
+            ...day.milestones
+              .filter((m) => !m.reached)
+              .map((m, i) => ({
+                key: `target-${index}-${i}`,
+                spaceId: m.spaceId,
+                spaceTitle: m.spaceTitle,
+                text: `target: ${m.label}`,
+              })),
+          ];
+          return (
+            <div key={day.date} className="week-day" data-today={day.isToday ? '' : undefined}>
+              <div className="week-day-header">
+                <span className="week-day-name">{DAY_LABELS[index]}</span>
+                <span className="week-day-num">{parseLocalDate(day.date).getDate()}</span>
+              </div>
+              {pastItems.length === 0 && upcomingItems.length === 0 && (
+                <p className="week-day-empty">&mdash;</p>
+              )}
+              {[...pastItems, ...upcomingItems].length > 0 && (
+                <ul>
+                  {pastItems.map((item) => (
+                    <li key={item.key} className="week-item week-item-past">
+                      <Link to={`/spaces/${item.spaceId}`}>{item.spaceTitle}</Link>: {item.text}
+                    </li>
+                  ))}
+                  {upcomingItems.map((item) => (
+                    <li key={item.key} className="week-item week-item-upcoming">
+                      <Link to={`/spaces/${item.spaceId}`}>{item.spaceTitle}</Link>: {item.text}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </details>
   );
 }
@@ -137,7 +215,7 @@ function Dashboard() {
   const { promptToMatch } = useConfirmDialog();
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
-  const [recentTrail, setRecentTrail] = useState([]);
+  const [weekDays, setWeekDays] = useState([]);
   const [resurface, setResurface] = useState(null);
   const [resources, setResources] = useState([]);
   const [syntheses, setSyntheses] = useState([]);
@@ -156,7 +234,7 @@ function Dashboard() {
   useEffect(() => {
     refetchSpaces();
     getOverdueReviews().then(setOverdue).catch(() => {});
-    getRecentTrail().then(setRecentTrail).catch(() => {});
+    getWeekCalendar().then(setWeekDays).catch(() => {});
     getResurfaceSuggestion().then(setResurface).catch(() => {});
     getSpacesByTag('resource').then(setResources).catch(() => {});
     getSpacesByTag('synthesis').then(setSyntheses).catch(() => {});
@@ -204,7 +282,7 @@ function Dashboard() {
       </Link>
 
       <OverdueReviews items={overdue} />
-      <RecentTrailDigest entries={recentTrail} />
+      <WeekCalendarDigest days={weekDays} />
       <ResurfaceSuggestion space={resurface} />
       <ResourcesDigest spaces={resources} />
       <SynthesesDigest spaces={syntheses} />

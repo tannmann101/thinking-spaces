@@ -125,7 +125,11 @@ export const getCurrentSkeleton = (spaceId) => request(`/spaces/${spaceId}/skele
 // Space, not just the current one.
 export const getWorkItems = () => request('/work-items');
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
-export const getRecentTrail = () => request('/dashboard/recent-trail');
+// The Dashboard's Week calendar: one entry per day of the current
+// calendar week (Sunday-Saturday), each carrying that day's Trail
+// activity and whatever is due that day (Space due dates, Milestone
+// target dates) -- see getWeekCalendar in backend/src/db/queries/dashboard.js.
+export const getWeekCalendar = () => request('/dashboard/week');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
 // The sidebar's "needs attention" badge -- fetched on every page.
 export const getNotificationCount = () => request('/notifications/count');

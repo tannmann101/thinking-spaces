@@ -4,7 +4,7 @@
 import { Router } from 'express';
 import {
   listOverdueReviews,
-  listRecentTrailEntries,
+  getWeekCalendar,
   suggestSpaceToResurface,
   getGraphData,
   listGlobalActivity,
@@ -25,8 +25,8 @@ dashboardRouter.get('/notifications/count', (req, res) => {
   res.json({ count: getNeedsAttentionCount() });
 });
 
-dashboardRouter.get('/dashboard/recent-trail', (req, res) => {
-  res.json(listRecentTrailEntries());
+dashboardRouter.get('/dashboard/week', (req, res) => {
+  res.json(getWeekCalendar());
 });
 
 dashboardRouter.get('/dashboard/resurface', (req, res) => {

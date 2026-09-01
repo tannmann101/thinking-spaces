@@ -592,6 +592,72 @@ select:focus-visible,
   margin: 0;
 }
 
+/* The Week digest's calendar grid -- seven day columns rather than a
+   flat list, so "what does 'this week' mean" is answered just by
+   reading the header dates instead of being a fact only the code
+   knows. Each column mixes past activity (Trail entries, a reached
+   Milestone) with what's still coming up (a due Space, an open
+   Milestone target) -- see week-item-past/upcoming below. */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+.week-day {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  min-height: 64px;
+}
+.week-day[data-today] {
+  border-color: var(--maroon-bright);
+}
+.week-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+}
+.week-day[data-today] .week-day-header {
+  color: var(--maroon-bright);
+}
+.week-day-num {
+  font-size: var(--fs-sm);
+}
+.week-day ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.week-item {
+  font-size: var(--fs-2xs);
+  line-height: 1.3;
+  border-left: 2px solid var(--ink-faint);
+  padding-left: 6px;
+}
+.week-item-upcoming {
+  border-left-color: var(--accent);
+}
+.week-day-empty {
+  color: var(--ink-faint);
+  font-size: var(--fs-2xs);
+}
+
+@media (max-width: 700px) {
+  .week-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Dashboard's Space-list search/status row -- same chip-toggle
    pattern the Category filter strip on the Space page already uses,
    so filtering reads consistently across the app. */

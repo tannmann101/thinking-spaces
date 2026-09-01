@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getHealth, getSpaces, createSpace, deleteSpace } from './api.js';
+import { getHealth, getSpaces, createSpace, deleteSpace, updateSpace, setMutationListener } from './api.js';
 
 // Every exported function in api.js funnels through one private
 // request() helper -- these tests exercise that helper's actual
@@ -69,5 +69,49 @@ describe('api.js request()', () => {
       json: () => Promise.reject(new Error('not json')),
     });
     await expect(getSpaces()).rejects.toThrow('Request to /spaces failed (500)');
+  });
+});
+
+describe('api.js mutation listener (drives Toast.jsx)', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    setMutationListener(null);
+    vi.restoreAllMocks();
+  });
+
+  it('notifies "saved" on a successful PATCH', async () => {
+    mockFetchOnce(jsonResponse({}));
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await updateSpace('some-id', { title: 'New title' });
+    expect(listener).toHaveBeenCalledWith('saved');
+  });
+
+  it('notifies "deleted" on a successful DELETE', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 204, json: vi.fn() });
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await deleteSpace('some-id');
+    expect(listener).toHaveBeenCalledWith('deleted');
+  });
+
+  it('does not notify on a GET or a POST -- only PATCH/DELETE have the "did that save?" gap', async () => {
+    mockFetchOnce(jsonResponse([]));
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await getSpaces();
+    mockFetchOnce(jsonResponse({ id: 'new-id' }));
+    await createSpace({ title: 'New Space' });
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('does not notify when the request fails', async () => {
+    mockFetchOnce(jsonResponse({ error: 'nope' }, { ok: false, status: 400 }));
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await expect(updateSpace('some-id', { title: 'x' })).rejects.toThrow();
+    expect(listener).not.toHaveBeenCalled();
   });
 });

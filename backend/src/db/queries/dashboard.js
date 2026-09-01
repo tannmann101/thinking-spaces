@@ -63,3 +63,33 @@ export function suggestSpaceToResurface() {
     .get(TEST_SPACE_ID);
   return row || null;
 }
+
+// The count behind TopNav's "needs attention" badge -- deliberately
+// narrow and already-actionable, not a raw activity count. Three
+// things: overdue List items (reviewBy), overdue Spaces (due_date),
+// and overdue Milestones (targetDate, not yet reached). Trail Review
+// staleness ("never reviewed"/"14+ days since last") is deliberately
+// left out -- it's true of nearly every Space nearly all the time (see
+// getTimeInsights), so counting it here would make the badge read as
+// permanently alarmed rather than a genuine signal worth glancing at.
+export function getNeedsAttentionCount() {
+  const overdueReviewItems = listOverdueReviews().length;
+
+  const overdueSpaces = db
+    .prepare(`SELECT COUNT(*) AS count FROM spaces WHERE id != ? AND due_date IS NOT NULL AND due_date < date('now')`)
+    .get(TEST_SPACE_ID).count;
+
+  const overdueMilestones = db
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM blocks
+       WHERE type = 'milestone'
+         AND space_id != ?
+         AND json_extract(content, '$.reached') = 0
+         AND json_extract(content, '$.targetDate') IS NOT NULL
+         AND json_extract(content, '$.targetDate') < date('now')`
+    )
+    .get(TEST_SPACE_ID).count;
+
+  return overdueReviewItems + overdueSpaces + overdueMilestones;
+}

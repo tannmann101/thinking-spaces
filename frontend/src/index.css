@@ -232,6 +232,57 @@ select:focus-visible,
   border-bottom: 1px solid var(--maroon-bright);
 }
 
+.topbar-right {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* TopNav's badge -- deliberately loud (filled, not outlined, in the
+   app's own primary maroon) since the whole point of "louder in-app
+   badge" was for it to actually catch the eye, unlike the quiet chip
+   style everything else in the nav uses. */
+.needs-attention-badge {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  font-weight: 500;
+  color: #fff;
+  background: var(--maroon);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  text-decoration: none;
+}
+.needs-attention-badge:hover {
+  background: var(--maroon-bright);
+}
+
+.quick-capture-toggle {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.quick-capture-toggle:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+.quick-capture-form {
+  display: flex;
+  gap: 6px;
+}
+.quick-capture-form input {
+  font-size: var(--fs-xs);
+  padding: 3px 8px;
+  width: 220px;
+}
+
 /* A plain, secondary text link back to somewhere (Dashboard, a parent
    Space) -- used above the page title on most pages. */
 .back-link {
@@ -666,11 +717,29 @@ label {
   padding: 4px 16px;
   margin: 14px 0;
 }
-.space-details-panel > p:first-child {
+/* :first-of-type/:last-of-type, not :first-child/:last-child -- the
+   panel's own <summary> (added for adaptive density -- see
+   spaceHasMetadata in SpacePage.jsx) is unconditionally the first
+   child now, so ":first-child" would never match a <p> at all. */
+.space-details-panel > p:first-of-type {
   margin-top: 6px;
 }
-.space-details-panel > p:last-child {
+.space-details-panel > p:last-of-type {
   margin-bottom: 6px;
+}
+.space-details-panel summary {
+  font-size: var(--fs-md);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--ink-dim);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 0;
+}
+.space-details-panel[open] summary {
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 4px;
 }
 .skeleton-strip {
   font-family: var(--mono);
@@ -2600,6 +2669,30 @@ label {
   font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 0;
+}
+
+/* ---------- Toast (a save/delete confirmation, see Toast.jsx) ---------- */
+
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 90;
+}
+.toast-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ---------- Confirm dialog (replaces window.confirm/window.prompt) ---------- */

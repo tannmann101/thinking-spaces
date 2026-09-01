@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   getSpace,
@@ -511,6 +511,28 @@ function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
   );
 }
 
+// Adaptive density: a quick scratch Space and a deep, months-long one
+// shouldn't carry the same visual weight. True once any of the fields
+// the details panel below holds has actually been set, or once
+// promotion is something to act on -- a genuinely "light" Space (just
+// a title, still nascent, nothing else touched) starts with that panel
+// collapsed instead of expanded, so capturing a fast thought doesn't
+// look and feel as heavy as a Space that's actually accumulated
+// metadata. Computed once, from the Space as first loaded -- see the
+// initialization effect in SpacePage below for why it isn't recomputed
+// on every render.
+function spaceHasMetadata(space) {
+  const isPromotable = space.origin === 'internal' && space.tags.includes('synthesis') && !space.tags.includes('resource');
+  return Boolean(
+    space.accent ||
+      space.goal ||
+      space.due_date ||
+      space.tags.length > 0 ||
+      space.categories.length > 0 ||
+      isPromotable
+  );
+}
+
 function SpacePage() {
   const { id } = useParams();
   const { confirm: confirmDialog, promptToMatch } = useConfirmDialog();
@@ -533,6 +555,12 @@ function SpacePage() {
   // after) still had no way to say "just show me the Questions." Both
   // filters can be active together (AND, not either/or).
   const [activeType, setActiveType] = useState(null);
+  // See spaceHasMetadata above. Initialized once, from the Space as
+  // first loaded, not recomputed on every later render -- otherwise
+  // React would fight a manual open/close toggle on the native
+  // <details> below every time anything else on the page changed.
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsInitialized = useRef(false);
 
   const refetchTrail = useCallback(() => {
     getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
@@ -554,6 +582,23 @@ function SpacePage() {
     refetchAll();
     getBacklinksForSpace(id).then(setBacklinks).catch((err) => setError(err.message));
   }, [id, refetchAll]);
+
+  // Navigating from one Space straight to another (e.g. clicking a
+  // Reference) reuses this same component instance rather than
+  // remounting it, so the "already initialized" guard has to reset per
+  // Space id, not just once ever -- otherwise every Space after the
+  // first one visited in a session would inherit whichever open/closed
+  // state happened to be set for that first one.
+  useEffect(() => {
+    detailsInitialized.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    if (space && !detailsInitialized.current) {
+      detailsInitialized.current = true;
+      setDetailsOpen(spaceHasMetadata(space));
+    }
+  }, [space]);
 
   // Adding/removing/reordering blocks on a live Space -- the same
   // ordinary edit whether the Space was created a minute ago or a year
@@ -621,15 +666,24 @@ function SpacePage() {
                 it reads as a considered section -- the same treatment
                 Workspaces/view-cards/digests already get elsewhere --
                 rather than six bare one-line rows stacked directly
-                under the title. */}
-            <div className="space-details-panel">
+                under the title. A native <details>, same as a
+                Dashboard digest, so a quick scratch Space (nothing set
+                yet) starts collapsed instead of carrying the same
+                visual weight as one that's actually accumulated
+                metadata -- see spaceHasMetadata/detailsOpen above. */}
+            <details
+              className="space-details-panel"
+              open={detailsOpen}
+              onToggle={(event) => setDetailsOpen(event.target.open)}
+            >
+              <summary>Details</summary>
               <AccentPicker space={space} onChanged={refetchAll} />
               <WorkingToward space={space} onChanged={refetchAll} />
               <DueDate space={space} onChanged={refetchAll} />
               <TagEditor space={space} onChanged={refetchAll} />
               <PromoteToResource space={space} onChanged={refetchAll} />
               <CategoryManager space={space} onChanged={refetchAll} />
-            </div>
+            </details>
 
             {backlinks && backlinks.length > 0 && (
               <p className="space-meta">

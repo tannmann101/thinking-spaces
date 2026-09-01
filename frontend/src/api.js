@@ -2,6 +2,16 @@
 // same reasoning as the backend's queries.js: one place to look, not
 // fetch() calls scattered through components.
 
+// A save/delete confirmation (see components/Toast.jsx) needs to react
+// to a successful mutation from inside this plain fetch wrapper, which
+// has no React context of its own -- ToastProvider registers itself
+// here on mount instead, the same "a plain module exposes a setter, a
+// component calls it" shape as any other event-bus-of-one.
+let onMutation = null;
+export function setMutationListener(fn) {
+  onMutation = fn;
+}
+
 async function request(path, options) {
   const res = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -11,6 +21,14 @@ async function request(path, options) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request to ${path} failed (${res.status})`);
   }
+  // PATCH and DELETE are the two cases with a real "did that actually
+  // save?" gap -- almost every edit in this app is click-to-edit-then-
+  // blur-to-save with no other feedback. POST is deliberately excluded:
+  // creating something is already followed by an obvious change (a new
+  // item appears, or the page navigates), so a toast on top would be
+  // redundant noise rather than reassurance.
+  if (options?.method === 'PATCH') onMutation?.('saved');
+  if (options?.method === 'DELETE') onMutation?.('deleted');
   // A 204 (e.g. DELETE) has no body -- calling .json() on it throws.
   if (res.status === 204) return null;
   return res.json();
@@ -109,6 +127,8 @@ export const getWorkItems = () => request('/work-items');
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getRecentTrail = () => request('/dashboard/recent-trail');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
+// TopNav's "needs attention" badge -- fetched on every page.
+export const getNotificationCount = () => request('/notifications/count');
 // Everything InsightsPage.jsx needs in one call -- work mix, themes/
 // tensions, activity trend, and provenance/synthesis yield, all
 // computed across every Space at once.

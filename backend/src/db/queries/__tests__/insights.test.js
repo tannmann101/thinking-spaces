@@ -41,6 +41,21 @@ describe('getWorkMixInsights', () => {
     createBlock({ spaceId: TEST_SPACE_ID, type: 'assessment', content: { statement: 'scratch' } });
     expect(getWorkMixInsights().total).toBe(0);
   });
+
+  it('reading names the most common type and confidence, and the settled share', () => {
+    const space = createSpace({ title: 'A Space' });
+    createBlock({ spaceId: space.id, type: 'assessment', content: { statement: 'a', confidence: 'solid' } });
+    createBlock({ spaceId: space.id, type: 'assessment', content: { statement: 'b', confidence: 'solid' } });
+    createBlock({ spaceId: space.id, type: 'question', content: { statement: 'c', confidence: 'questioned' } });
+    const reading = getWorkMixInsights().reading;
+    expect(reading).toContain('Assessment');
+    expect(reading).toContain('solid');
+    expect(reading).toContain('67%');
+  });
+
+  it('reading is null when there are no Work items', () => {
+    expect(getWorkMixInsights().reading).toBeNull();
+  });
 });
 
 describe('getThemeInsights', () => {
@@ -83,6 +98,26 @@ describe('getThemeInsights', () => {
     // Only one non-Test Space uses "Risk", so it should not recur.
     expect(getThemeInsights().recurringCategories).toEqual([]);
   });
+
+  it('reading names the most-recurring Category and the open Tension count', () => {
+    createSpace({ title: 'A', categories: ['Risk'] });
+    createSpace({ title: 'B', categories: ['Risk'] });
+    const space = createSpace({ title: 'Has tensions' });
+    createBlock({
+      spaceId: space.id,
+      type: 'list',
+      content: { items: [{ id: '1', text: 'x' }], laneLabel: 'Tensions' },
+      properties: { skeletonLane: 'tensions' },
+    });
+    const reading = getThemeInsights().reading;
+    expect(reading).toContain('Risk');
+    expect(reading).toContain('2 Spaces');
+    expect(reading).toContain('1 open Tension is');
+  });
+
+  it('reading is null when there is nothing recurring and no open Tensions', () => {
+    expect(getThemeInsights().reading).toBeNull();
+  });
 });
 
 describe('getActivityTrendInsights', () => {
@@ -115,6 +150,16 @@ describe('getActivityTrendInsights', () => {
     const insights = getActivityTrendInsights(8);
     const totalBucketed = insights.weeklyCounts.reduce((sum, w) => sum + w.count, 0);
     expect(totalBucketed).toBeGreaterThan(0);
+  });
+
+  it('reading names how many Spaces have gone stale', () => {
+    const space = createSpace({ title: 'Stale' });
+    db.prepare(`UPDATE spaces SET updated_at = datetime('now', '-45 days') WHERE id = ?`).run(space.id);
+    expect(getActivityTrendInsights().reading).toContain('1 Space has gone quiet for 30+ days');
+  });
+
+  it('reading is null with nothing stale and fewer than two weeks of data', () => {
+    expect(getActivityTrendInsights().reading).toBeNull();
   });
 });
 
@@ -151,6 +196,20 @@ describe('getProvenanceInsights', () => {
     const insights = getProvenanceInsights();
     expect(insights.byOrigin.internal).toBe(0);
     expect(insights.synthesisCount).toBe(0);
+  });
+
+  it('reading names the origin split and the distilled share', () => {
+    createSpace({ title: 'External', origin: 'external' });
+    createSpace({ title: 'Internal', origin: 'internal' });
+    const space = createSpace({ title: 'Has work' });
+    createBlock({ spaceId: space.id, type: 'assessment', content: { statement: 'x' } });
+    const reading = getProvenanceInsights().reading;
+    expect(reading).toContain('33%');
+    expect(reading).toContain('0% as many Syntheses');
+  });
+
+  it('reading is null when there are no Spaces at all', () => {
+    expect(getProvenanceInsights().reading).toBeNull();
   });
 });
 
@@ -224,5 +283,22 @@ describe('getTimeInsights', () => {
     const insights = getTimeInsights();
     expect(insights.dueDates.overdue).toEqual([]);
     expect(insights.review.neverReviewed.map((s) => s.id)).not.toContain(TEST_SPACE_ID);
+  });
+
+  it('reading names overdue counts, Milestone progress, and minutes logged', () => {
+    createSpace({ title: 'Overdue Space', dueDate: '2000-01-01' });
+    const space = createSpace({ title: 'Has Milestones and Sessions' });
+    createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Done', targetDate: '2020-01-01', reached: true, reachedAt: '2020-01-01', note: null } });
+    createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Overdue', targetDate: '2000-01-01', reached: false, reachedAt: null, note: null } });
+    createBlock({ spaceId: space.id, type: 'session', content: { label: 'Done', startedAt: 'x', endedAt: 'y', durationMinutes: 30, note: null } });
+
+    const reading = getTimeInsights().reading;
+    expect(reading).toContain('2 things are overdue (1 Space due date, 1 Milestone)');
+    expect(reading).toContain('1 of 2 Milestones reached');
+    expect(reading).toContain('30 minutes of focused work logged across 1 Session');
+  });
+
+  it('reading is null when there is nothing to report', () => {
+    expect(getTimeInsights().reading).toBeNull();
   });
 });

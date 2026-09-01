@@ -2642,6 +2642,23 @@ label {
   color: var(--ink-faint);
 }
 
+/* The one computed sentence per section naming what's actually notable
+   in its own numbers -- "interpretive framing" on top of the raw bars/
+   counts below it, not a replacement for them. --accent (not the
+   maroon the bars/counts use) marks it as an added reading, the same
+   "sits on top of, never replaces the base" role that color already
+   plays for Visual Identity's manual accent layer. */
+.insight-reading {
+  font-family: var(--body);
+  font-size: var(--fs-md);
+  color: var(--ink);
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin: 0 0 16px;
+}
+
 .insight-bar-row {
   display: flex;
   align-items: center;

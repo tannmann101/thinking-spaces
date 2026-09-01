@@ -53,6 +53,46 @@ describe('InsightsPage: loading and errors', () => {
   });
 });
 
+describe('InsightsPage: interpretive readings', () => {
+  it('renders each section\'s computed reading when present', async () => {
+    api.getInsights.mockResolvedValue(
+      makeInsights({
+        workMix: { total: 1, byType: [{ type: 'assessment', count: 1 }], byConfidence: [], reading: 'Assessment leads.' },
+        themes: { recurringCategories: [], openTensionCount: 0, openTensions: [], reading: 'Risk cuts across two Spaces.' },
+        activity: { weeklyCounts: [], staleThresholdDays: 30, staleSpaces: [], reading: 'Activity picked up this week.' },
+        provenance: {
+          byOrigin: { external: 1, internal: 0, none: 0 },
+          workItemCount: 0,
+          synthesisCount: 0,
+          promotedCount: 0,
+          reading: 'Most of what\'s here was brought in from outside.',
+        },
+        time: {
+          dueDates: { overdue: [], upcoming: [] },
+          milestones: { total: 0, reachedCount: 0, overdueMilestones: [] },
+          sessions: { completedCount: 0, totalMinutesLogged: 0, runningCount: 0 },
+          review: { reviewStaleThresholdDays: 14, neverReviewed: [], staleReviews: [] },
+          reading: '1 thing is overdue.',
+        },
+      })
+    );
+    renderPage();
+    expect(await screen.findByText('Assessment leads.')).toBeInTheDocument();
+    expect(screen.getByText('Risk cuts across two Spaces.')).toBeInTheDocument();
+    expect(screen.getByText('Activity picked up this week.')).toBeInTheDocument();
+    expect(screen.getByText('Most of what\'s here was brought in from outside.')).toBeInTheDocument();
+    expect(screen.getByText('1 thing is overdue.')).toBeInTheDocument();
+    expect(document.querySelectorAll('.insight-reading')).toHaveLength(5);
+  });
+
+  it('renders no reading callouts when every facet\'s reading is null', async () => {
+    api.getInsights.mockResolvedValue(makeInsights());
+    renderPage();
+    await screen.findByText('No Work items yet.');
+    expect(document.querySelectorAll('.insight-reading')).toHaveLength(0);
+  });
+});
+
 describe('InsightsPage: Work mix', () => {
   it('shows an empty state when there are no Work items', async () => {
     api.getInsights.mockResolvedValue(makeInsights());

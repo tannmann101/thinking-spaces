@@ -49,6 +49,17 @@ describe('CreateSynthesis: kind', () => {
     expect(screen.getByRole('button', { name: 'essay' })).not.toHaveClass('category-chip-active');
     expect(screen.getByRole('button', { name: 'story' })).toHaveClass('category-chip-active');
   });
+
+  it('accepts a custom kind typed by hand, beyond the suggestion list', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByPlaceholderText('+ custom kind'), 'manifesto{Enter}');
+    expect(screen.getByText('manifesto')).toBeInTheDocument();
+    // Typing a custom kind replaces a previously chosen suggestion, since Kind is single-valued.
+    await user.click(screen.getByRole('button', { name: 'essay' }));
+    expect(screen.queryByText('manifesto')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'essay' })).toHaveClass('category-chip-active');
+  });
 });
 
 describe('CreateSynthesis: source material picker', () => {
@@ -124,11 +135,21 @@ describe('CreateSynthesis: submitting', () => {
     expect(payload.title).toBe('My Essay');
     expect(payload.tags).toEqual(['synthesis', 'essay']);
     expect(payload.origin).toBe('internal');
-    expect(payload.extraBlocks[0]).toMatchObject({ type: 'reference', content: { target_space_id: 'src-space' } });
+    expect(payload.extraBlocks[0]).toMatchObject({
+      type: 'reference',
+      content: { target_space_id: 'src-space' },
+      properties: { categories: ['Drawn From'] },
+    });
     expect(payload.extraBlocks[1].content.text).toContain('The key claim');
     expect(payload.extraBlocks[1].content.text).toContain('Assessment');
+    expect(payload.extraBlocks[1].properties).toEqual({ categories: ['Source Material'] });
     // Always ends with one blank Text block to actually write the piece in.
-    expect(payload.extraBlocks[payload.extraBlocks.length - 1]).toMatchObject({ type: 'text', content: { text: '' } });
+    expect(payload.extraBlocks[payload.extraBlocks.length - 1]).toMatchObject({
+      type: 'text',
+      content: { text: '' },
+      properties: { categories: ['Draft'] },
+    });
+    expect(payload.categories).toEqual(['Drawn From', 'Source Material', 'Draft']);
     expect(mockNavigate).toHaveBeenCalledWith('/spaces/new-synthesis-id');
   });
 
@@ -142,7 +163,10 @@ describe('CreateSynthesis: submitting', () => {
     await waitFor(() => expect(api.createSpace).toHaveBeenCalled());
     const payload = api.createSpace.mock.calls[0][0];
     // Just the one blank Text block, no references, no source-material block.
-    expect(payload.extraBlocks).toEqual([{ type: 'text', content: { tag: null, text: '' }, properties: {} }]);
+    expect(payload.extraBlocks).toEqual([
+      { type: 'text', content: { tag: null, text: '' }, properties: { categories: ['Draft'] } },
+    ]);
+    expect(payload.categories).toEqual(['Draft']);
     expect(payload.tags).toEqual(['synthesis']);
   });
 

@@ -29,6 +29,7 @@ export const WORK_TYPES = [
   'implication',
   'hypothesis',
   'objection',
+  'formulation',
 ];
 
 // One-time backfill mirroring migrateTextBlockLines() (skeleton.js):

@@ -7,7 +7,7 @@ import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
 describe('WORK_TYPES', () => {
-  it('lists all ten current Work Types', () => {
+  it('lists all eleven current Work Types', () => {
     expect(WORK_TYPES).toEqual([
       'assessment',
       'question',
@@ -19,6 +19,7 @@ describe('WORK_TYPES', () => {
       'implication',
       'hypothesis',
       'objection',
+      'formulation',
     ]);
   });
 });

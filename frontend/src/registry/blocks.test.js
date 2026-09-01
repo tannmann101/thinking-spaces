@@ -30,13 +30,13 @@ describe('blockRegistry', () => {
     });
   });
 
-  it('assigns family "work" to exactly the ten current Work Types', () => {
+  it('assigns family "work" to exactly the eleven current Work Types', () => {
     const workKeys = Object.entries(blockRegistry)
       .filter(([, entry]) => entry.family === 'work')
       .map(([key]) => key)
       .sort();
     expect(workKeys).toEqual(
-      ['analysis', 'assessment', 'deduction', 'definition', 'demonstration', 'hypothesis', 'implication', 'insight', 'objection', 'question'].sort()
+      ['analysis', 'assessment', 'deduction', 'definition', 'demonstration', 'formulation', 'hypothesis', 'implication', 'insight', 'objection', 'question'].sort()
     );
   });
 

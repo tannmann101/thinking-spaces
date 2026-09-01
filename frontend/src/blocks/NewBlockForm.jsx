@@ -54,6 +54,7 @@ import { blockRegistry } from '../registry/blocks.js';
 // statement holds a term, not "the definition".
 const WORK_TYPE_STARTER_PROMPTS = {
   definition: 'The term',
+  formulation: 'This is fundamentally about',
 };
 
 const WORK_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'work');

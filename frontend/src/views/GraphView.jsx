@@ -29,8 +29,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const WIDTH = 640;
-const HEIGHT = 440;
+// Widened from an original 640x440 (keeping the same ~1.45 aspect
+// ratio) as part of the aesthetics-pass audit: node labels near the
+// canvas edge were getting clipped by the SVG's own default
+// `overflow: hidden`, since the physics loop has no reason to keep a
+// node (and the label extending past it) inside any particular
+// bound other than gently drifting back toward the center -- more
+// logical room lowers how often a label actually reaches the edge.
+// Paired with `.graph-frame` in index.css, which widens the page's
+// own container so the bigger canvas doesn't just render everything
+// smaller to compensate.
+const WIDTH = 900;
+const HEIGHT = 620;
 const MIN_VB_WIDTH = 160;
 const MAX_VB_WIDTH = 2200;
 const REPULSION = 2400;

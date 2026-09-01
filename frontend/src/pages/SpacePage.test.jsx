@@ -71,6 +71,19 @@ describe('SpacePage: loading and errors', () => {
   });
 });
 
+describe('SpacePage: details panel', () => {
+  it('groups the accent/working-toward/due-date/tags/categories fields into one panel', async () => {
+    renderPage();
+    await screen.findByText('My Space');
+    const panel = document.querySelector('.space-details-panel');
+    expect(panel).toBeInTheDocument();
+    expect(panel.querySelector('.category-row')).toBeInTheDocument(); // AccentPicker
+    expect(panel.querySelector('.working-toward')).toBeInTheDocument();
+    expect(panel.querySelector('.due-date-row')).toBeInTheDocument();
+    expect(panel.querySelector('.tag-row')).toBeInTheDocument();
+  });
+});
+
 describe('SpacePage: identity fields', () => {
   it('edits the title', async () => {
     const user = userEvent.setup();

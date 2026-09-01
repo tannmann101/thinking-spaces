@@ -615,13 +615,21 @@ function SpacePage() {
             <div className="report-row">
               <ReportButton fetchReport={() => getSpaceReport(space.id)} label="Space Report" />
             </div>
-            <AccentPicker space={space} onChanged={refetchAll} />
 
-            <WorkingToward space={space} onChanged={refetchAll} />
-            <DueDate space={space} onChanged={refetchAll} />
-            <TagEditor space={space} onChanged={refetchAll} />
-            <PromoteToResource space={space} onChanged={refetchAll} />
-            <CategoryManager space={space} onChanged={refetchAll} />
+            {/* Everything below is a property of the Space itself
+                (identity/metadata), grouped into one bordered panel so
+                it reads as a considered section -- the same treatment
+                Workspaces/view-cards/digests already get elsewhere --
+                rather than six bare one-line rows stacked directly
+                under the title. */}
+            <div className="space-details-panel">
+              <AccentPicker space={space} onChanged={refetchAll} />
+              <WorkingToward space={space} onChanged={refetchAll} />
+              <DueDate space={space} onChanged={refetchAll} />
+              <TagEditor space={space} onChanged={refetchAll} />
+              <PromoteToResource space={space} onChanged={refetchAll} />
+              <CategoryManager space={space} onChanged={refetchAll} />
+            </div>
 
             {backlinks && backlinks.length > 0 && (
               <p className="space-meta">

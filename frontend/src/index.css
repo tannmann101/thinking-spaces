@@ -33,6 +33,45 @@
   --body: 'Source Serif 4', Georgia, serif;
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
 
+  /* A type scale, added once the file's font-sizes had drifted to 24
+     distinct values with no defined steps -- several only 0.5px apart
+     (10.5px, 12.5px, 16.5px, ...), which reads as accidental rather
+     than intentional at any of those sizes. Every value below is a
+     real, grouped tier: --fs-2xs/--fs-xs/--fs-sm/--fs-md are the small
+     mono UI chrome (badges, chips, buttons, captions); --fs-base
+     through --fs-lg are body-adjacent reading text; --fs-xl and up are
+     headings and large display numbers. --fs-body-lg (16px) matches
+     body's own default size deliberately, so ordinary reading text
+     inside a card and the page's own base text size stay the same
+     unless a component has a real reason to differ. */
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-base: 14px;
+  --fs-body: 15px;
+  --fs-body-lg: 16px;
+  --fs-lg: 17px;
+  --fs-xl: 18px;
+  --fs-2xl: 20px;
+  --fs-3xl: 22px;
+  --fs-4xl: 24px;
+  --fs-5xl: 28px;
+
+  /* Two border-radius tiers, named so the existing (previously
+     unnamed) convention stays a deliberate choice rather than
+     something a future addition can drift away from by typing "2px"
+     or "3px" from habit: small inline chrome (pills, chips, small
+     buttons, form controls) uses --radius-sm; larger surfaces (cards,
+     panels, boxes) use --radius-md. A few elements deliberately fall
+     outside both -- circles (50%), one square corner for contrast
+     against a Category chip's rounded ones, and the two most
+     attention-grabbing surfaces (the Insights banner, the confirm
+     dialog's overlay) -- and stay as plain literals rather than being
+     forced onto this scale. */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+
   color-scheme: dark;
 }
 
@@ -45,7 +84,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--body);
-  font-size: 16px;
+  font-size: var(--fs-body-lg);
   line-height: 1.55;
 }
 
@@ -155,7 +194,7 @@ select:focus-visible,
 .wordmark {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 20px;
+  font-size: var(--fs-2xl);
   color: var(--ink);
   text-decoration: none;
 }
@@ -167,7 +206,7 @@ select:focus-visible,
   display: flex;
   gap: 14px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -192,7 +231,7 @@ select:focus-visible,
   display: inline-block;
   margin-bottom: 16px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   text-decoration: none;
 }
@@ -208,7 +247,7 @@ select:focus-visible,
   gap: 1px;
   background: var(--border-soft);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   list-style: none;
   margin: 0;
@@ -237,7 +276,7 @@ select:focus-visible,
 }
 
 .space-title a {
-  font-size: 16px;
+  font-size: var(--fs-body-lg);
   font-weight: 500;
   color: var(--ink);
   text-decoration: none;
@@ -248,12 +287,12 @@ select:focus-visible,
 
 .test-flag {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   font-weight: 500;
   letter-spacing: 0.6px;
   color: var(--maroon-bright);
   border: 1px solid var(--maroon);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 2px 5px;
   margin-left: 8px;
   white-space: nowrap;
@@ -262,7 +301,7 @@ select:focus-visible,
 .space-meta {
   margin-top: 4px;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   display: flex;
   align-items: center;
@@ -274,11 +313,11 @@ select:focus-visible,
 
 .status-pill {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   color: var(--ink-faint);
 }
@@ -307,11 +346,11 @@ select:focus-visible,
    manual layer already uses, so the association reads consistently. */
 .origin-badge {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   color: var(--ink-faint);
   margin-left: 6px;
@@ -322,7 +361,7 @@ select:focus-visible,
 }
 .origin-badge-small {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--accent);
@@ -332,20 +371,20 @@ select:focus-visible,
   margin: 6px 0;
 }
 .promote-hint {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   margin-left: 6px;
 }
 
 .new-space-btn {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--ink-dim);
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 7px 12px;
   text-decoration: none;
   display: inline-block;
@@ -392,7 +431,7 @@ select:focus-visible,
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-left: 3px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 14px 18px;
   margin-bottom: 16px;
 }
@@ -403,7 +442,7 @@ select:focus-visible,
   border-left-color: var(--accent);
 }
 .digest summary {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.7px;
@@ -440,10 +479,10 @@ select:focus-visible,
 }
 .space-search-input {
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--fs-base);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   color: var(--ink);
   min-width: 220px;
@@ -456,7 +495,7 @@ select:focus-visible,
 }
 .synthesis-selected-count {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--maroon-bright);
 }
 
@@ -464,12 +503,12 @@ select:focus-visible,
 
 .btn {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   letter-spacing: 0.4px;
   color: var(--ink-dim);
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 7px 12px;
   cursor: pointer;
   text-decoration: none;
@@ -497,12 +536,12 @@ select:focus-visible,
    remove) that shouldn't compete visually with primary actions. */
 .btn-ghost-small {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.3px;
   color: var(--ink-faint);
   background: transparent;
   border: 1px solid var(--border-soft);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 3px 8px;
   cursor: pointer;
 }
@@ -524,7 +563,7 @@ select {
   font-size: inherit;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   color: var(--ink);
   padding: 7px 9px;
 }
@@ -540,14 +579,33 @@ input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--maroon);
 }
+
+/* A date field reads as data, the same as any other timestamp in the
+   app (a Trail entry, a Log row) -- mono, not the inherited body
+   serif. `color-scheme: dark` on :root already gets the browser to
+   draw the field itself and its placeholder in a dark-appropriate
+   palette; the one piece that still needs an explicit hand is the
+   calendar-picker icon, which otherwise renders at full, slightly
+   too-bright contrast against the app's dimmer ink tones. */
+input[type='date'] {
+  font-family: var(--mono);
+}
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.65);
+  opacity: 0.7;
+  cursor: pointer;
+}
+input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
 fieldset {
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
 }
 legend {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -570,7 +628,7 @@ label {
   border-bottom: 1px solid var(--border-soft);
 }
 .page-head h1 {
-  font-size: 24px;
+  font-size: var(--fs-4xl);
 }
 
 /* ---------- Space page: header + block feed ---------- */
@@ -579,18 +637,37 @@ label {
   margin-bottom: 24px;
 }
 .space-header h1 {
-  font-size: 27px;
+  font-size: var(--fs-5xl);
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
 }
 .space-header .space-meta {
-  font-size: 12px;
+  font-size: var(--fs-sm);
+}
+
+/* Groups the Space's own identity fields (accent, working-toward,
+   due date, tags, promotion, Categories) into one bordered surface,
+   same family as .view-card/.digest/.work-block -- each row inside
+   keeps its own existing spacing, this just gives the group a visible
+   boundary instead of leaving it as bare rows loose under the title. */
+.space-details-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 4px 16px;
+  margin: 14px 0;
+}
+.space-details-panel > p:first-child {
+  margin-top: 6px;
+}
+.space-details-panel > p:last-child {
+  margin-bottom: 6px;
 }
 .skeleton-strip {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -626,7 +703,7 @@ label {
 .block-type-tag {
   margin: 0 0 6px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -659,11 +736,11 @@ label {
 .view-card {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
 }
 .view-card h3 {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -675,7 +752,7 @@ label {
 .progress-track {
   height: 6px;
   background: var(--surface-3);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -685,7 +762,7 @@ label {
 }
 .progress-stat {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -693,7 +770,7 @@ label {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: var(--fs-md);
 }
 .ledger-table td,
 .ledger-table th {
@@ -726,7 +803,7 @@ label {
 .timeline-tick {
   position: relative;
   padding-bottom: 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-md);
   color: var(--ink);
 }
 .timeline-tick:last-child {
@@ -744,7 +821,7 @@ label {
 }
 .timeline-tick .t-date {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
   display: block;
 }
@@ -758,9 +835,9 @@ label {
   height: 32px;
   text-align: center;
   vertical-align: middle;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   background: var(--surface-3);
   color: var(--ink-faint);
 }
@@ -775,10 +852,29 @@ label {
   background: transparent;
 }
 
+/* Breaks the graph canvas out of #root's centered 900px column via
+   the standard negative-viewport-margin technique -- the Map is the
+   one page where that width was an active bug (node labels clipping
+   against the canvas edge, see the WIDTH/HEIGHT comment in
+   GraphView.jsx), not just unused space, so it's the one page that
+   gets more room rather than widening every page uniformly. The
+   inner wrapper re-applies a cap and matches #root's own 24px side
+   padding, so the wide section's edges still line up with the rest
+   of the page's content on an ordinary-width screen. */
+.graph-frame {
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+.graph-frame-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
 .graph-svg {
   border: 1px solid var(--border-soft);
   background: var(--surface);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   max-width: 100%;
   height: auto;
   /* Dragging a node or panning the background shouldn't select the
@@ -793,7 +889,7 @@ label {
 .text-block .tag-label {
   display: inline-block;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--maroon-bright);
@@ -801,7 +897,7 @@ label {
 }
 .text-block p {
   margin: 0;
-  font-size: 16.5px;
+  font-size: var(--fs-body-lg);
   color: var(--ink);
 }
 
@@ -818,12 +914,12 @@ label {
 
 .text-workshop-focus-toggle {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.4px;
   color: var(--ink-faint);
   background: none;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 3px 8px;
   cursor: pointer;
   margin-bottom: 12px;
@@ -855,7 +951,7 @@ label {
   background: transparent;
   color: var(--ink-faint);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   line-height: 1;
   cursor: pointer;
   margin-top: 3px;
@@ -882,7 +978,7 @@ label {
   margin: 0;
   padding: 3px 0;
   font-family: var(--body);
-  font-size: 17px;
+  font-size: var(--fs-lg);
   line-height: 1.6;
   color: var(--ink);
 }
@@ -898,7 +994,7 @@ label {
   border-bottom: 1px solid var(--maroon);
   padding: 3px 0;
   font-family: var(--body);
-  font-size: 17px;
+  font-size: var(--fs-lg);
   color: var(--ink);
 }
 .text-workshop-line-input:focus {
@@ -911,7 +1007,7 @@ label {
   padding: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   max-width: 320px;
 }
 .text-workshop-suggestions li button {
@@ -922,7 +1018,7 @@ label {
   border: none;
   color: var(--ink);
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
 }
 .text-workshop-suggestions li button:hover {
@@ -935,7 +1031,7 @@ label {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -948,7 +1044,7 @@ label {
 
 .text-workshop-footer {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
   margin: 10px 0 0;
 }
@@ -958,7 +1054,7 @@ label {
    (see TextWorkshop.jsx), this just gives the remaining prose room. */
 .text-workshop-focused .text-workshop-line-text,
 .text-workshop-focused .text-workshop-line-input {
-  font-size: 21px;
+  font-size: var(--fs-3xl);
   line-height: 1.75;
 }
 .text-workshop-focused .text-workshop-tag-glyph {
@@ -970,23 +1066,23 @@ label {
 .work-block {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 18px;
 }
 .work-block-statement {
   font-family: var(--display);
-  font-size: 18px;
+  font-size: var(--fs-xl);
   margin: 0 0 8px;
   color: var(--ink);
 }
 .work-block-support {
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--ink-dim);
   margin: 0 0 10px;
 }
 .work-block-field-label {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--ink-faint);
@@ -1018,7 +1114,7 @@ label {
   border: none;
   color: var(--ink-faint);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   margin-left: auto;
 }
 .work-block-linker {
@@ -1026,10 +1122,10 @@ label {
   padding: 10px 12px;
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
 }
 .work-block-confidence {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-faint);
   margin: 0;
 }
@@ -1039,11 +1135,11 @@ label {
 .list-block {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 10px 18px;
 }
 .list-block h4 {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -1059,7 +1155,7 @@ label {
 .list-block li {
   padding: 9px 0;
   border-bottom: 1px solid var(--border-soft);
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--ink);
 }
 .list-block li:last-child {
@@ -1067,7 +1163,7 @@ label {
 }
 .list-item-controls {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 .list-item-controls button {
   background: none;
@@ -1102,7 +1198,7 @@ label {
 .list-workshop-heading,
 .list-workshop-heading-input {
   font-family: var(--display);
-  font-size: 20px;
+  font-size: var(--fs-2xl);
   font-weight: 600;
   color: var(--ink);
   margin: 0 0 12px;
@@ -1128,7 +1224,7 @@ label {
 .list-workshop-item {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   margin-bottom: 8px;
 }
@@ -1147,11 +1243,11 @@ label {
 .list-workshop-handle {
   cursor: grab;
   color: var(--ink-faint);
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 .list-workshop-item-text {
   flex: 1;
-  font-size: 15.5px;
+  font-size: var(--fs-body-lg);
   color: var(--ink);
 }
 .list-workshop-field-input {
@@ -1167,7 +1263,7 @@ label {
   border: none;
   color: var(--ink-faint);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 .list-workshop-remove:hover {
   color: var(--maroon-bright);
@@ -1181,11 +1277,11 @@ label {
 }
 .list-workshop-meta-field {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-dim);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 2px 7px;
 }
 .list-workshop-confidence {
@@ -1197,7 +1293,7 @@ label {
 }
 
 .list-workshop-shape-picker {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   margin: 0 0 8px;
 }
@@ -1213,8 +1309,8 @@ label {
   margin: 8px 0 0 22px;
   padding: 8px 10px;
   background: var(--surface-2);
-  border-radius: 2px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-md);
   color: var(--ink-dim);
 }
 .tension-pair-statement {
@@ -1225,7 +1321,7 @@ label {
 }
 .tension-pair-vs {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   color: var(--ink-faint);
   flex: none;
@@ -1234,12 +1330,12 @@ label {
 .tension-builder {
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   margin-top: 8px;
 }
 .tension-builder-label {
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   color: var(--ink-dim);
   margin: 0 0 8px;
 }
@@ -1249,7 +1345,7 @@ label {
 }
 .tension-builder-lane {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 
@@ -1258,10 +1354,10 @@ label {
 .reference-block {
   background: var(--surface-2);
   border-left: 2px solid var(--maroon);
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   padding: 12px 16px;
   margin: 0;
-  font-size: 14.5px;
+  font-size: var(--fs-body);
   color: var(--ink-dim);
 }
 .reference-block .ref-arrow {
@@ -1273,7 +1369,7 @@ label {
   font-family: var(--display);
   font-style: italic;
   color: var(--ink);
-  font-size: 16px;
+  font-size: var(--fs-body-lg);
 }
 
 /* ---------- Media block ---------- */
@@ -1283,13 +1379,13 @@ label {
 }
 .media-block img {
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   display: block;
 }
 .media-block figcaption {
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 .media-placeholder {
@@ -1298,7 +1394,7 @@ label {
   padding: 32px 16px;
   text-align: center;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 
@@ -1309,7 +1405,7 @@ label {
   align-items: center;
   gap: 6px;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.4px;
   color: var(--maroon-bright);
   margin-bottom: 10px;
@@ -1340,7 +1436,7 @@ label {
 
 .reference-workshop-target {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: var(--fs-body-lg);
 }
 .reference-workshop-target .ref-arrow {
   color: var(--maroon-bright);
@@ -1363,7 +1459,7 @@ label {
   border-bottom: 1px solid var(--border-soft);
   padding: 0 0 10px;
   font-family: var(--body);
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--ink);
   margin-bottom: 10px;
 }
@@ -1376,20 +1472,20 @@ label {
   font-style: italic;
 }
 .reference-workshop-trust-row {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   margin-bottom: 14px;
 }
 .reference-workshop-preview {
   background: var(--surface-2);
   border-left: 2px solid var(--maroon);
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   padding: 12px 16px;
 }
 .reference-workshop-preview-label {
   margin: 0 0 6px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--ink-faint);
@@ -1402,7 +1498,7 @@ label {
 }
 .reference-workshop-preview-title a {
   font-family: var(--display);
-  font-size: 17px;
+  font-size: var(--fs-lg);
   color: var(--ink);
 }
 
@@ -1417,7 +1513,7 @@ label {
   max-width: 100%;
   max-height: 420px;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   display: block;
   cursor: zoom-in;
 }
@@ -1427,13 +1523,13 @@ label {
   padding: 48px 16px;
   text-align: center;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 .media-workshop-caption {
   margin-top: 10px;
   font-family: var(--display);
-  font-size: 16px;
+  font-size: var(--fs-body-lg);
   color: var(--ink-dim);
 }
 .media-workshop-caption-input {
@@ -1448,7 +1544,7 @@ label {
 .media-workshop-url-row {
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 .media-workshop-url-input {
@@ -1497,7 +1593,7 @@ label {
   border-bottom: 1px solid var(--border-soft);
   padding: 0 0 8px;
   font-family: var(--body);
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--ink);
   margin-bottom: 14px;
 }
@@ -1514,12 +1610,12 @@ label {
 .comparison-workshop-side {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
 }
 .comparison-workshop-seam {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
   align-self: center;
   writing-mode: vertical-rl;
@@ -1544,7 +1640,7 @@ label {
   border-top: 1px solid var(--border-soft);
 }
 .trail-section h3 {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -1559,7 +1655,7 @@ label {
 .trail-list li {
   padding: 8px 0;
   border-bottom: 1px solid var(--border-soft);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 .trail-list li:last-child {
   border-bottom: none;
@@ -1567,10 +1663,10 @@ label {
 .rewind-snapshot {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 /* Rewind's Now-vs-As-of comparison: two of the same reading side by
@@ -1585,14 +1681,14 @@ label {
 .rewind-column {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 .rewind-column h5 {
   margin: 0 0 8px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1618,7 +1714,7 @@ label {
 .review-draft {
   border: 1px solid var(--accent);
   background: var(--surface);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   margin-bottom: 12px;
 }
@@ -1629,7 +1725,7 @@ label {
 .review-draft-list {
   margin: 0 0 8px;
   padding-left: 18px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
 }
 
@@ -1641,7 +1737,7 @@ label {
   gap: 1px;
   background: var(--border-soft);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   list-style: none;
   margin: 0;
@@ -1673,7 +1769,7 @@ label {
 .new-block-form {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-top: 10px;
 }
@@ -1689,7 +1785,7 @@ label {
 }
 
 .working-toward {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 6px 0;
 }
@@ -1698,7 +1794,7 @@ label {
 }
 
 .due-date-row {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 6px 0;
   display: flex;
@@ -1707,11 +1803,11 @@ label {
 }
 .due-date-row input[type='date'] {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 3px 6px;
 }
 .due-date-overdue {
@@ -1719,12 +1815,12 @@ label {
 }
 .overdue-badge {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--maroon-bright);
   border: 1px solid var(--maroon);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 1px 6px;
 }
 
@@ -1737,12 +1833,12 @@ label {
 }
 .tag-chip {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.4px;
   color: var(--ink-dim);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
 }
 .tag-chip .editable-toggle {
@@ -1759,7 +1855,7 @@ label {
 .tag-add-form input {
   width: 80px;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 /* ---------- Categories: per-Space facets, distinct from tags ---------- */
@@ -1775,18 +1871,18 @@ label {
   margin: 6px 0;
 }
 .category-row-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   margin-right: 2px;
 }
 .category-chip {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.4px;
   color: var(--maroon-bright);
   background: var(--maroon-wash);
   border: 1px solid var(--maroon);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
 }
 .category-chip .editable-toggle {
@@ -1803,7 +1899,7 @@ label {
 .category-add-form input {
   width: 100px;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 /* A chip that's also a toggle -- assigning/unassigning a block to a
@@ -1827,7 +1923,7 @@ label {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -1842,12 +1938,12 @@ label {
 }
 .category-filter-tab {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.3px;
   color: var(--ink-dim);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   cursor: pointer;
 }
@@ -1872,15 +1968,15 @@ label {
   padding: 14px 16px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
 }
 .workspace-section h2 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: var(--fs-body-lg);
 }
 .workspace-section > p {
   margin: 0 0 10px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -1896,7 +1992,7 @@ label {
   color: var(--ink);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
 .workspace-card:hover {
@@ -1904,7 +2000,7 @@ label {
 }
 .workspace-card h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 .workspace-name-row {
@@ -1923,12 +2019,12 @@ label {
   flex: 1;
   max-width: 240px;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .workspace-chip {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.4px;
   color: var(--ink-faint);
   background: var(--surface-3);
@@ -1962,7 +2058,7 @@ label {
 .workspace-subtitle {
   margin-top: 0;
   color: var(--ink-faint);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 .workspace-block-feed {
   margin-bottom: 24px;
@@ -1971,7 +2067,7 @@ label {
 /* ---------- Tools catalog ---------- */
 
 .tool-family-intro {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-faint);
   margin: 0 0 16px;
 }
@@ -1992,7 +2088,7 @@ label {
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-left: 3px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -2016,13 +2112,13 @@ label {
   gap: 8px;
 }
 .tool-card-head h4 {
-  font-size: 17px;
+  font-size: var(--fs-lg);
   margin: 0;
   flex: 1;
 }
 .tool-card-icon {
   flex: none;
-  font-size: 15px;
+  font-size: var(--fs-body);
   color: var(--ink-dim);
   width: 1.4em;
   text-align: center;
@@ -2030,12 +2126,12 @@ label {
 
 .tool-kind-tag {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--ink-faint);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
   flex: none;
 }
@@ -2043,13 +2139,13 @@ label {
 .tool-description {
   margin: 0;
   color: var(--ink-dim);
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 .tool-works-with {
   margin: 0;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 
@@ -2058,7 +2154,7 @@ label {
   padding: 12px;
   background: var(--bg);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   /* Demos render through the real, live components -- disable pointer
      interaction so a click inside one can't be mistaken for an
      editing gesture (they're already read-only via the id-less demo
@@ -2068,7 +2164,7 @@ label {
 .tool-no-demo {
   margin: 0;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -2092,7 +2188,7 @@ label {
   cursor: pointer;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   color: var(--ink);
 }
@@ -2104,20 +2200,20 @@ label {
   background: var(--maroon-wash);
 }
 .cluster-card h3 {
-  font-size: 15px;
+  font-size: var(--fs-body);
   margin: 0 0 4px;
 }
 .cluster-card p {
   margin: 0;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 
 .cluster-preview {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   margin-bottom: 16px;
   list-style: none;
@@ -2125,7 +2221,7 @@ label {
 .cluster-preview-label {
   margin: 0 0 8px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--ink-faint);
@@ -2133,7 +2229,7 @@ label {
 .cluster-preview-block {
   padding: 6px 0;
   border-bottom: 1px solid var(--border-soft);
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
 }
 .cluster-preview-block:last-child {
@@ -2153,12 +2249,12 @@ label {
 
 .btn-danger {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.4px;
   color: var(--ink-faint);
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 7px 12px;
   cursor: pointer;
 }
@@ -2182,10 +2278,28 @@ label {
 }
 .log-stat-number {
   font-family: var(--display);
-  font-size: 28px;
+  font-size: var(--fs-5xl);
   font-weight: 600;
   color: var(--ink);
   margin: 0;
+}
+
+.log-day-group + .log-day-group {
+  margin-top: 22px;
+}
+.log-day-heading {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.log-show-more {
+  margin-top: 18px;
 }
 
 .log-list {
@@ -2199,7 +2313,7 @@ label {
   gap: 10px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border-soft);
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 .log-list li:last-child {
   border-bottom: none;
@@ -2207,12 +2321,12 @@ label {
 .log-kind-tag {
   flex: none;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--ink-faint);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
   width: 70px;
   text-align: center;
@@ -2228,7 +2342,7 @@ label {
 .log-timestamp {
   flex: none;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-faint);
 }
 
@@ -2244,7 +2358,7 @@ label {
   gap: 4px;
   margin: 4px 0 20px;
   padding: 18px 22px;
-  border-radius: 4px;
+  border-radius: 4px; /* a touch softer than --radius-md -- the one deliberately loud element on the Dashboard */
   border: 1px solid var(--maroon);
   background: linear-gradient(120deg, var(--maroon-wash), var(--surface));
   text-decoration: none;
@@ -2255,13 +2369,13 @@ label {
 }
 .insights-banner-title {
   font-family: var(--display);
-  font-size: 22px;
+  font-size: var(--fs-3xl);
   font-weight: 600;
   color: var(--maroon-bright);
 }
 .insights-banner-sub {
   font-family: var(--body);
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
 }
 
@@ -2275,22 +2389,22 @@ label {
 .insight-section {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 18px 22px;
 }
 .insight-section h2 {
   font-family: var(--display);
-  font-size: 18px;
+  font-size: var(--fs-xl);
   margin: 0 0 4px;
 }
 .insight-section-sub {
   font-family: var(--body);
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 0 0 16px;
 }
 .insight-section h3 {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -2317,7 +2431,7 @@ label {
 }
 
 .insight-empty {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-faint);
 }
 
@@ -2331,7 +2445,7 @@ label {
   flex: none;
   width: 100px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--ink-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2344,7 +2458,7 @@ label {
 .insight-bar-count {
   flex: none;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
   width: 22px;
   text-align: right;
@@ -2354,7 +2468,7 @@ label {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 .insight-plain-list li {
   padding: 6px 0;
@@ -2369,13 +2483,13 @@ label {
 
 .insight-funnel {
   font-family: var(--body);
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 0 0 8px;
 }
 .insight-funnel-number {
   font-family: var(--display);
-  font-size: 20px;
+  font-size: var(--fs-2xl);
   font-weight: 600;
   color: var(--ink);
   margin-right: 6px;
@@ -2386,7 +2500,7 @@ label {
 .milestone-block {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
 }
 .milestone-block.milestone-overdue {
@@ -2400,7 +2514,7 @@ label {
   align-items: center;
   gap: 8px;
   margin: 0 0 6px;
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 .milestone-reached .milestone-label-row {
   text-decoration: line-through;
@@ -2410,31 +2524,31 @@ label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-dim);
   margin: 0 0 6px;
 }
 .milestone-meta-row input[type='date'] {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 3px 6px;
 }
 .milestone-reached-badge {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--accent);
   border: 1px solid var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 1px 6px;
 }
 .milestone-note {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 0;
 }
@@ -2444,21 +2558,21 @@ label {
 .session-block {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
 }
 .session-block.session-running {
   border-color: var(--accent);
 }
 .session-label-row {
-  font-size: 14px;
+  font-size: var(--fs-base);
   margin: 0 0 6px;
 }
 .session-meta-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-dim);
   margin: 0 0 6px;
 }
@@ -2471,7 +2585,7 @@ label {
   color: var(--ink-faint);
 }
 .session-note {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--ink-dim);
   margin: 0;
 }
@@ -2495,7 +2609,7 @@ label {
 .confirm-dialog {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 4px; /* a touch softer than --radius-md, to go with the shadow above */
   padding: 20px 24px;
   max-width: 420px;
   width: 100%;
@@ -2538,7 +2652,7 @@ label {
   padding: 12px 16px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   max-width: 680px;
 }
 .report-panel-controls {
@@ -2550,7 +2664,7 @@ label {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: var(--ink-dim);
   margin: 0;
@@ -2634,7 +2748,7 @@ label {
 /* A small monospace caption, e.g. a Template's block-type summary line. */
 .mono-caption {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 

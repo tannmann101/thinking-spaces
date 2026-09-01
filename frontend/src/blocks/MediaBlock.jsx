@@ -43,7 +43,11 @@ function MediaBlock({ block, onBlocksChanged }) {
     return (
       <div className="media-block">
         <figure>
-          <img src={url} alt={savedCaption} />
+          {url ? (
+            <img src={url} alt={savedCaption} />
+          ) : (
+            <div className="media-placeholder">No image URL set yet</div>
+          )}
           <figcaption>{captionNode}</figcaption>
         </figure>
       </div>

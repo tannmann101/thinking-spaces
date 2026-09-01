@@ -12,8 +12,19 @@ Graph view.
 
 ## Running it during development
 
-While this is being built, run it on your own machine (a Windows 11
-laptop) with two servers, in two terminals:
+### The easy way: the desktop launcher
+
+See `launcher/README.md` -- a one-time setup script creates a "Thinking
+Spaces" desktop icon (matching the app's own theme) that pulls the
+latest code and starts both servers for you. This is the everyday path;
+the manual steps below are what it's doing under the hood, and are still
+useful if you ever want to run a command yourself (e.g. to read an error
+a server window scrolled past).
+
+### The manual way
+
+Run it on your own machine (a Windows 11 laptop) with two servers, in
+two terminals:
 
 ```bash
 # Terminal 1 -- backend (Express + SQLite), http://localhost:3001

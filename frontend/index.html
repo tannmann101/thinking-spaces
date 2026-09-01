@@ -14,6 +14,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // The other half of public/404.html's redirect trick: if we got
+      // here via that redirect, ?redirect=<encoded path> carries the
+      // real path the user actually meant to load. Swap it back into
+      // the address bar via replaceState *before* React Router mounts,
+      // so it sees the real route on first render instead of "/" --
+      // this runs as a plain classic script (not type="module") so it
+      // executes before the module script below.
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var redirect = params.get('redirect');
+        if (redirect) {
+          history.replaceState(null, '', redirect);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

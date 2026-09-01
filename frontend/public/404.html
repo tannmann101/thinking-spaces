@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Thinking Spaces</title>
+    <script>
+      // GitHub Pages has no server-side rewrites, so a direct load of a
+      // client-routed path (e.g. /spaces/abc123) has no real file to
+      // serve and lands here, on Pages' own 404 page. This is the
+      // standard SPA-on-GitHub-Pages trick: encode the real path into a
+      // query string and redirect to the site root, where a matching
+      // script in index.html decodes it back and hands it to React
+      // Router via history.replaceState before the app ever renders --
+      // so the user never sees this page, and the URL in the address
+      // bar ends up exactly where they meant to land.
+      var path = location.pathname + location.search + location.hash;
+      location.replace('/?redirect=' + encodeURIComponent(path));
+    </script>
+  </head>
+  <body></body>
+</html>

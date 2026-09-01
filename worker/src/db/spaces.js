@@ -30,6 +30,16 @@ async function getOpenTensionCount(env, spaceId) {
   return row ? row.count : 0;
 }
 
+async function getMilestoneStats(env, spaceId) {
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS total, COALESCE(SUM(json_extract(content, '$.reached')), 0) AS reached
+     FROM blocks WHERE space_id = ? AND type = 'milestone'`
+  )
+    .bind(spaceId)
+    .first();
+  return { reached: row.reached, total: row.total };
+}
+
 const SPACE_COLUMNS =
   'id, title, status, template_id, tags, goal, categories, accent, origin, due_date, created_at, updated_at';
 
@@ -43,6 +53,7 @@ async function withComputedSpaceFields(env, space) {
     relationDensity: await getRelationDensity(env, space.id),
     openTensionCount: await getOpenTensionCount(env, space.id),
     isOverdue: Boolean(space.due_date && space.due_date < todayString()),
+    milestoneStats: await getMilestoneStats(env, space.id),
   };
 }
 

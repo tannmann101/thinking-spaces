@@ -38,6 +38,22 @@ function getOpenTensionCount(spaceId) {
   return row ? row.count : 0;
 }
 
+// {reached, total} across every Milestone block in the Space -- feeds
+// SpaceGlyph's own reactivity (a row of filled/hollow dots) the same
+// way getRelationDensity/getOpenTensionCount already feed its branches
+// and crack. json_extract reads a JSON boolean back as SQLite's native
+// 1/0, so SUM directly counts how many are reached without pulling
+// every row into JS first.
+function getMilestoneStats(spaceId) {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS total, COALESCE(SUM(json_extract(content, '$.reached')), 0) AS reached
+       FROM blocks WHERE space_id = ? AND type = 'milestone'`
+    )
+    .get(spaceId);
+  return { reached: row.reached, total: row.total };
+}
+
 const SPACE_COLUMNS =
   'id, title, status, template_id, tags, goal, categories, accent, origin, due_date, created_at, updated_at';
 
@@ -55,6 +71,7 @@ function withComputedSpaceFields(space) {
     // independent of status: a Space can sit at "developing" forever
     // without anyone touching it, and a due date can pass the same way.
     isOverdue: Boolean(space.due_date && space.due_date < todayString()),
+    milestoneStats: getMilestoneStats(space.id),
   };
 }
 

@@ -161,23 +161,32 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent,
 }
 
 // You could create a Space but never get rid of one -- the last "add
-// with no remove" gap. Blocks and Trail entries are deleted first
-// since both carry a foreign key to spaces(id) with foreign_keys = ON
-// (see db/index.js); there's no ON DELETE CASCADE on the schema, so
-// this does it explicitly, in the same spirit as everything else in
-// this file being plain and visible rather than relying on database
-// magic. The Test Space is protected -- it's a fixed scratch area
-// other code assumes exists (ensureTestSpaceExists recreates it if
-// missing, but there's no reason to make that path fire by accident).
-// A Reference block elsewhere that pointed at the deleted Space is left
-// as-is; it just renders its raw target id once the title lookup can
-// no longer resolve, the same graceful fallback a bad id already gets.
+// with no remove" gap. Blocks, Workspaces, and Trail entries are all
+// deleted first since each carries a foreign key to spaces(id) with
+// foreign_keys = ON (see db/index.js); there's no ON DELETE CASCADE on
+// the schema, so this does it explicitly, in the same spirit as
+// everything else in this file being plain and visible rather than
+// relying on database magic. The Test Space is protected -- it's a
+// fixed scratch area other code assumes exists (ensureTestSpaceExists
+// recreates it if missing, but there's no reason to make that path fire
+// by accident). A Reference block elsewhere that pointed at the deleted
+// Space is left as-is; it just renders its raw target id once the title
+// lookup can no longer resolve, the same graceful fallback a bad id
+// already gets.
+//
+// The Workspaces delete was missing for several passes (flagged twice
+// in CLAUDE.md's Open section, surfaced while testing Reports and again
+// while testing the queries.js split) -- any Space that ever had a
+// Workspace couldn't be deleted at all, since the DELETE FROM spaces
+// below would fail workspaces' own foreign key first. Caught for real
+// and fixed here once a test exercised exactly that case.
 export function deleteSpace(id) {
   if (id === TEST_SPACE_ID) {
     throw new Error('The Test Space cannot be deleted');
   }
   const existing = getSpaceById(id);
   db.prepare(`DELETE FROM blocks WHERE space_id = ?`).run(id);
+  db.prepare(`DELETE FROM workspaces WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM spaces WHERE id = ?`).run(id);
   // Logged with a snapshotted title (not a live join) precisely because

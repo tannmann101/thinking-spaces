@@ -38,7 +38,17 @@ export function getReviewDraft(spaceId) {
   const sinceDateIso = new Date(`${sinceDate.replace(' ', 'T')}Z`).toISOString();
 
   const blocks = listBlocksForSpace(spaceId);
-  const newBlocks = blocks.filter((block) => block.created_at > sinceDate);
+  // `>=`, not `>`: sinceDate for a first-ever Review is the Space's own
+  // created_at, and SQLite's datetime('now') is second-granularity --
+  // a Template's starter blocks are added synchronously, right after
+  // the Space itself, almost always within that same second in real
+  // usage. A strict `>` here made the very first Review of nearly any
+  // templated Space silently report "nothing new," missing every
+  // starter block. The tradeoff this accepts (a block could double-
+  // count across two Reviews logged in that same rare same-second
+  // window) is the same kind of precision limit already accepted for
+  // Milestones below, not worth guarding against in a personal app.
+  const newBlocks = blocks.filter((block) => block.created_at >= sinceDate);
   const blockCounts = {};
   newBlocks.forEach((block) => {
     blockCounts[block.type] = (blockCounts[block.type] || 0) + 1;

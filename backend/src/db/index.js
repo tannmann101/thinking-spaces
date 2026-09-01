@@ -8,10 +8,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, '..', '..', 'data', 'thinking-spaces.sqlite');
+// Overridable so the test suite can point this at an isolated ':memory:'
+// database instead of the real personal data file -- set via
+// THINKING_SPACES_DB_PATH in backend/vitest.config.js. Unset in normal
+// (dev/production) use, so this still resolves to the one real file.
+const DB_PATH = process.env.THINKING_SPACES_DB_PATH || path.join(__dirname, '..', '..', 'data', 'thinking-spaces.sqlite');
 const SCHEMA_PATH = path.join(__dirname, 'schema.sql');
 
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+if (DB_PATH !== ':memory:') {
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+}
 
 export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');

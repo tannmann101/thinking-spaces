@@ -2257,6 +2257,20 @@ label {
   font-size: var(--fs-base);
 }
 
+/* A Project reuses every other Workspace-card rule above (same grid,
+   same padding, same hover-brightens-the-border behavior) -- it only
+   overrides the accent color, from Work's maroon to the Time family's
+   own gold, the same "General neutral / Work maroon / Time gold"
+   convention .block-row[data-family] already established. This is
+   deliberately the one and only place Project gets a visual identity
+   of its own rather than reading as an unlabeled Workspace twin. */
+.project-card {
+  border-left: 3px solid var(--accent);
+}
+.project-card:hover {
+  border-color: var(--accent);
+}
+
 .workspace-name-row {
   display: flex;
   flex-wrap: wrap;

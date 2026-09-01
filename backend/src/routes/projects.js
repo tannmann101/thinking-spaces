@@ -6,7 +6,15 @@
 // (get/rename/delete).
 
 import { Router } from 'express';
-import { listProjectsForSpace, getProjectById, createProject, updateProject, deleteProject } from '../db/queries.js';
+import {
+  listProjectsForSpace,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject,
+  getProjectReport,
+} from '../db/queries.js';
+import { renderReportText } from '../reportFormat.js';
 
 export const projectsRouter = Router();
 
@@ -40,6 +48,16 @@ projectsRouter.patch('/projects/:id', (req, res) => {
     return res.status(400).json({ error: 'name is required' });
   }
   res.json(updateProject(req.params.id, { name: name.trim() }));
+});
+
+// A structured + prose snapshot of this Project's current state --
+// see getProjectReport in queries.js.
+projectsRouter.get('/projects/:id/report', (req, res) => {
+  const report = getProjectReport(req.params.id);
+  if (!report) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+  res.json({ report, narrative: renderReportText(report) });
 });
 
 projectsRouter.delete('/projects/:id', (req, res) => {

@@ -56,7 +56,7 @@ import { getReviewDraft, createReview } from './db/review.js';
 import { listWorkItems } from './db/work.js';
 import { listGlobalActivity, getActivityStats } from './db/log.js';
 import { getWorkMixInsights, getThemeInsights, getActivityTrendInsights, getProvenanceInsights, getTimeInsights } from './db/insights.js';
-import { getSpaceReport, getWorkspaceReport, getBlockReport } from './db/reports.js';
+import { getSpaceReport, getWorkspaceReport, getProjectReport, getBlockReport } from './db/reports.js';
 import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from './db/dashboard.js';
 import { renderReportText } from './reportFormat.js';
 
@@ -293,6 +293,12 @@ async function handleDeleteProject(env, id) {
   return json(null, 204);
 }
 
+async function handleProjectReport(env, id) {
+  const report = await getProjectReport(env, id);
+  if (!report) return errorResponse('Project not found', 404);
+  return json({ report, narrative: renderReportText(report) });
+}
+
 // ---------- Templates ----------
 
 async function handleCreateTemplate(request, env) {
@@ -456,6 +462,9 @@ export default {
       }
       if (m && method === 'PATCH') return await handlePatchProject(request, env, m[1]);
       if (m && method === 'DELETE') return await handleDeleteProject(env, m[1]);
+
+      m = path.match(/^\/api\/projects\/([\w-]+)\/report$/);
+      if (m && method === 'GET') return await handleProjectReport(env, m[1]);
 
       // Templates
       if (path === '/api/templates' && method === 'GET') return json(await listTemplates(env));

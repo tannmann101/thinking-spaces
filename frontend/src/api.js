@@ -245,6 +245,9 @@ export const renameProject = (id, name) =>
     body: JSON.stringify({ name }),
   });
 export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
+// A structured + prose snapshot of this Project's current state --
+// see getProjectReport in backend/src/db/queries.js.
+export const getProjectReport = (projectId) => request(`/projects/${projectId}/report`);
 
 // The Skeleton's alternate capture path: copy an already-written line
 // into a lane, leaving the Writing Surface untouched (see fileLineInLane

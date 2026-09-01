@@ -3,7 +3,7 @@
 import { WORK_TYPES } from './work.js';
 import { getBlockById, listBlocksForSpace, listBacklinksForSpace } from './blocks.js';
 import { getWorkspaceById, listWorkspacesForSpace } from './workspaces.js';
-import { getProjectById } from './projects.js';
+import { getProjectById, listProjectsForSpace } from './projects.js';
 import { getSpaceById } from './spaces.js';
 import { listTrailEntries } from './trail.js';
 import { getSkeletonSnapshot } from './skeleton.js';
@@ -149,11 +149,38 @@ export async function getWorkspaceReport(env, workspaceId) {
   return { level: 'workspace', id: workspace.id, label: workspace.name, generatedAt: new Date().toISOString(), sections };
 }
 
+export async function getProjectReport(env, projectId) {
+  const project = await getProjectById(env, projectId);
+  if (!project) return null;
+  const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(project.space_id).first();
+  const blocks = await listBlocksForSpace(env, project.space_id);
+  const memberBlocks = blocks.filter((block) => block.properties?.projectId === projectId);
+  const milestones = memberBlocks.filter((block) => block.type === 'milestone');
+  const sessions = memberBlocks.filter((block) => block.type === 'session');
+  const reached = milestones.filter((block) => block.content.reached).length;
+  const totalMinutes = sessions.reduce((sum, block) => sum + (block.content.durationMinutes || 0), 0);
+
+  const sections = [
+    { heading: 'Identity', lines: [`Space: ${space?.title || project.space_id}`, `Created: ${project.created_at}`] },
+    {
+      heading: `Assigned Milestones & Sessions (${memberBlocks.length})`,
+      lines: [
+        ...(milestones.length > 0 ? [`Milestones: ${reached} of ${milestones.length} reached`] : []),
+        ...(sessions.length > 0 ? [`Sessions: ${totalMinutes} min logged across ${sessions.length}`] : []),
+        ...memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)}`),
+      ],
+    },
+  ];
+
+  return { level: 'project', id: project.id, label: project.name, generatedAt: new Date().toISOString(), sections };
+}
+
 export async function getSpaceReport(env, spaceId) {
   const space = await getSpaceById(env, spaceId);
   if (!space) return null;
   const blocks = await listBlocksForSpace(env, spaceId);
   const workspaces = await listWorkspacesForSpace(env, spaceId);
+  const projects = await listProjectsForSpace(env, spaceId);
   const backlinks = await listBacklinksForSpace(env, spaceId);
   const trail = await listTrailEntries(env, spaceId);
   const skeleton = await getSkeletonSnapshot(env, spaceId);
@@ -189,6 +216,7 @@ export async function getSpaceReport(env, spaceId) {
       lines: [
         ...Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`),
         ...(workspaces.length > 0 ? [`Workspaces: ${workspaces.map((workspace) => workspace.name).join(', ')}`] : []),
+        ...(projects.length > 0 ? [`Projects: ${projects.map((project) => project.name).join(', ')}`] : []),
       ],
     },
   ];

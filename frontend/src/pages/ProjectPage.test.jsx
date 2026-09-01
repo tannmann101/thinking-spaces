@@ -87,6 +87,22 @@ describe('ProjectPage: progress summary', () => {
   });
 });
 
+describe('ProjectPage: Project Report', () => {
+  it('fetches and shows the Project report narrative once opened', async () => {
+    const user = userEvent.setup();
+    api.getProjectReport.mockResolvedValue({
+      report: { level: 'project', id: 'pr-1', label: 'Ship the redesign', sections: [] },
+      narrative: 'Project: Ship the redesign\n1 of 2 Milestones reached.',
+    });
+    renderPage();
+    await screen.findByText('Ship the redesign');
+
+    await user.click(screen.getByRole('button', { name: 'Project Report' }));
+    expect(await screen.findByText(/1 of 2 Milestones reached/)).toBeInTheDocument();
+    expect(api.getProjectReport).toHaveBeenCalledWith('pr-1');
+  });
+});
+
 describe('ProjectPage: assembled Milestones/Sessions', () => {
   it('shows an empty-state message when nothing is assigned yet', async () => {
     renderPage();

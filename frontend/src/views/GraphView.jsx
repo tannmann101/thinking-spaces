@@ -1,30 +1,39 @@
 // Renders every Reference block across every Space, plus every
-// Workspace inside those Spaces, as an interactive node/link map -- "the
-// Relational Map" from CLAUDE.md. Still pure, stateless-in, live-data-out:
-// no graph structure is stored anywhere, this just draws whatever
-// getGraphData() (backend/src/db/queries.js) returns each time it's
-// fetched, straight from the blocks/workspaces tables. Only the
-// *positions* are local to this component (a lightweight, hand-rolled
-// force simulation, not a library -- this app deliberately stays free of
-// extra dependencies for something this small), and those reset on
-// reload rather than being saved, in the same spirit as Obsidian's own
-// graph view: dragging repositions a node for this session, it doesn't
-// rewrite a stored layout.
+// Workspace and every Project inside those Spaces, as an interactive
+// node/link map -- "the Relational Map" from CLAUDE.md. Still pure,
+// stateless-in, live-data-out: no graph structure is stored anywhere,
+// this just draws whatever getGraphData() (backend/src/db/queries.js)
+// returns each time it's fetched, straight from the
+// blocks/workspaces/projects tables. Only the *positions* are local to
+// this component (a lightweight, hand-rolled force simulation, not a
+// library -- this app deliberately stays free of extra dependencies for
+// something this small), and those reset on reload rather than being
+// saved, in the same spirit as Obsidian's own graph view: dragging
+// repositions a node for this session, it doesn't rewrite a stored
+// layout.
 //
-// Two kinds of node (Space, Workspace) and two kinds of edge (a
-// "reference" edge between two Spaces; a "contains" edge from a Space to
-// one of its own Workspaces) share one graph: a Workspace is drawn
-// smaller, as a square rather than a circle, pulled in tight to its
-// parent Space by a short, unstyled "contains" spring, so it reads as
-// belonging to that Space rather than as a peer connection. Node ids are
-// namespaced (`space:<id>` / `workspace:<id>`) since Space ids and
-// Workspace ids come from different tables and could theoretically
-// collide.
+// Three kinds of node (Space, Workspace, Project) and three kinds of
+// edge (a "reference" edge between two Spaces; a "contains" edge from a
+// Space to one of its own Workspaces; a "contains-project" edge from a
+// Space to one of its own Projects) share one graph. A Workspace is
+// drawn smaller, as a square rather than a circle; a Project is drawn
+// the same size but as a diamond, in the Time family's own gold accent
+// rather than Workspace's maroon -- the same "General stays neutral,
+// Work gets maroon, Time gets gold" convention the block-family stripes
+// and Visual Identity's manual accent already use, extended here so a
+// Project reads as a genuinely different kind of grouping rather than a
+// same-colored twin of Workspace. Both contained-node kinds pull in
+// tight to their parent Space by a short, unstyled "contains"-style
+// spring, so they read as belonging to that Space rather than as a peer
+// connection. Node ids are namespaced (`space:<id>` / `workspace:<id>` /
+// `project:<id>`) since ids come from three different tables and could
+// theoretically collide.
 //
 // Interaction: drag a node to reposition it (it rejoins the simulation
 // on release), drag the background to pan, scroll to zoom, click a node
-// (without dragging it) to open that Space or Workspace. Hovering a node
-// highlights its connections (a Space's Workspaces included).
+// (without dragging it) to open that Space, Workspace, or Project.
+// Hovering a node highlights its connections (a Space's Workspaces and
+// Projects included).
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +61,7 @@ const CENTER_STRENGTH = 0.01;
 const DAMPING = 0.85;
 const CLICK_DRAG_THRESHOLD = 4; // px of screen movement before a node-press counts as a drag, not a click
 const WORKSPACE_RADIUS = 5;
+const PROJECT_RADIUS = 5;
 
 const STATUS_OPACITY = { nascent: 0.5, developing: 0.75, mature: 1, dormant: 0.35 };
 
@@ -73,10 +83,13 @@ function edgeEndpoints(edge) {
   if (edge.kind === 'contains') {
     return [`space:${edge.spaceId}`, `workspace:${edge.workspaceId}`];
   }
+  if (edge.kind === 'contains-project') {
+    return [`space:${edge.spaceId}`, `project:${edge.projectId}`];
+  }
   return [`space:${edge.sourceSpaceId}`, `space:${edge.targetSpaceId}`];
 }
 
-function GraphView({ spaces, workspaces = [], edges }) {
+function GraphView({ spaces, workspaces = [], projects = [], edges }) {
   const navigate = useNavigate();
   const svgRef = useRef(null);
   const nodesRef = useRef([]); // [{ id, kind, rawId, parentSpaceId?, title, status?, x, y, vx, vy, dragging }]
@@ -121,8 +134,27 @@ function GraphView({ spaces, workspaces = [], edges }) {
         vy: 0,
       };
     });
-    nodesRef.current = [...spaceNodes, ...workspaceNodes];
-  }, [spaces, workspaces]);
+    const projectNodes = projects.map((project, index) => {
+      const id = `project:${project.id}`;
+      const prior = existing.get(id);
+      if (prior) return { ...prior, title: project.name };
+      const parent = spaceNodeById.get(project.space_id);
+      const seed = parent
+        ? { x: parent.x + (Math.random() - 0.5) * 20, y: parent.y + (Math.random() - 0.5) * 20 }
+        : seededPosition(index, projects.length);
+      return {
+        id,
+        kind: 'project',
+        rawId: project.id,
+        parentSpaceId: project.space_id,
+        title: project.name,
+        ...seed,
+        vx: 0,
+        vy: 0,
+      };
+    });
+    nodesRef.current = [...spaceNodes, ...workspaceNodes, ...projectNodes];
+  }, [spaces, workspaces, projects]);
 
   // The physics: repulsion between every pair of nodes, a spring along
   // every edge pulling its two ends toward a natural resting distance (a
@@ -163,8 +195,9 @@ function GraphView({ spaces, workspaces = [], edges }) {
         const a = nodeById.get(fromId);
         const b = nodeById.get(toId);
         if (!a || !b) return;
-        const length = edge.kind === 'contains' ? CONTAINS_SPRING_LENGTH : SPRING_LENGTH;
-        const strength = edge.kind === 'contains' ? CONTAINS_SPRING_STRENGTH : SPRING_STRENGTH;
+        const isContainment = edge.kind === 'contains' || edge.kind === 'contains-project';
+        const length = isContainment ? CONTAINS_SPRING_LENGTH : SPRING_LENGTH;
+        const strength = isContainment ? CONTAINS_SPRING_STRENGTH : SPRING_STRENGTH;
         const dx = b.x - a.x || 0.01;
         const dy = b.y - a.y || 0.01;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -281,6 +314,8 @@ function GraphView({ spaces, workspaces = [], edges }) {
         const node = gesture.node;
         if (node.kind === 'workspace') {
           navigate(`/spaces/${node.parentSpaceId}/workspaces/${node.rawId}`);
+        } else if (node.kind === 'project') {
+          navigate(`/spaces/${node.parentSpaceId}/projects/${node.rawId}`);
         } else {
           navigate(`/spaces/${node.rawId}`);
         }
@@ -350,10 +385,10 @@ function GraphView({ spaces, workspaces = [], edges }) {
         if (!from || !to) return null;
         const connected = hoveredId && (fromId === hoveredId || toId === hoveredId);
         const dimmed = hoveredId && !connected;
-        if (edge.kind === 'contains') {
+        if (edge.kind === 'contains' || edge.kind === 'contains-project') {
           return (
             <line
-              key={`contains-${edge.workspaceId}`}
+              key={edge.kind === 'contains' ? `contains-${edge.workspaceId}` : `contains-project-${edge.projectId}`}
               x1={from.x}
               y1={from.y}
               x2={to.x}
@@ -402,6 +437,25 @@ function GraphView({ spaces, workspaces = [], edges }) {
                 strokeWidth={1.5}
               />
               <text x={node.x + WORKSPACE_RADIUS + 4} y={node.y + 4} fontSize="11" fill="var(--ink-dim)" fontFamily="var(--mono)">
+                {node.title}
+              </text>
+            </g>
+          );
+        }
+        if (node.kind === 'project') {
+          const r = PROJECT_RADIUS;
+          const points = `${node.x},${node.y - r} ${node.x + r},${node.y} ${node.x},${node.y + r} ${node.x - r},${node.y}`;
+          return (
+            <g
+              key={node.id}
+              onMouseDown={(event) => onNodeMouseDown(event, node)}
+              onMouseEnter={() => setHoveredId(node.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className="cursor-pointer"
+              opacity={dimmed ? 0.35 : 1}
+            >
+              <polygon points={points} fill="var(--surface-3)" stroke="var(--accent)" strokeWidth={1.5} />
+              <text x={node.x + PROJECT_RADIUS + 4} y={node.y + 4} fontSize="11" fill="var(--ink-dim)" fontFamily="var(--mono)">
                 {node.title}
               </text>
             </g>

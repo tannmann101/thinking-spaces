@@ -116,7 +116,7 @@ export const viewRegistry = {
   // every View is documented.
   graph: {
     label: 'Graph',
-    description: 'Every Reference block and every Workspace across every Space, as nodes and edges.',
+    description: 'Every Reference block, every Workspace, and every Project across every Space, as nodes and edges.',
     icon: '◈',
     appliesTo: () => false,
     component: GraphView,
@@ -128,10 +128,12 @@ export const viewRegistry = {
         { id: 'demo-c', title: 'Space C' },
       ],
       workspaces: [{ id: 'demo-workspace', space_id: 'demo-a', name: 'Demo Workspace' }],
+      projects: [{ id: 'demo-project', space_id: 'demo-b', name: 'Demo Project' }],
       edges: [
         { kind: 'reference', blockId: 'demo-edge-1', sourceSpaceId: 'demo-a', targetSpaceId: 'demo-b' },
         { kind: 'reference', blockId: 'demo-edge-2', sourceSpaceId: 'demo-b', targetSpaceId: 'demo-c' },
         { kind: 'contains', spaceId: 'demo-a', workspaceId: 'demo-workspace' },
+        { kind: 'contains-project', spaceId: 'demo-b', projectId: 'demo-project' },
       ],
     },
   },

@@ -73,7 +73,7 @@ export async function getWeekCalendar(env) {
   const projectNames = Object.fromEntries(projectRows.results.map((row) => [row.id, row.name]));
 
   const milestoneRows = await env.DB.prepare(
-    `SELECT blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
+    `SELECT blocks.id AS block_id, blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
      FROM blocks JOIN spaces ON spaces.id = blocks.space_id
      WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
   )
@@ -84,7 +84,12 @@ export async function getWeekCalendar(env) {
     const milestone = JSON.parse(row.content);
     const properties = JSON.parse(row.properties);
     if (milestone.targetDate && milestone.targetDate >= rangeStart && milestone.targetDate <= rangeEnd) {
+      // The block's own id and full content travel along too -- not
+      // just the summary fields -- so the Dashboard can mark a
+      // Milestone reached right from the calendar cell.
       (milestonesByDay[milestone.targetDate] ||= []).push({
+        id: row.block_id,
+        content: milestone,
         label: milestone.label,
         reached: milestone.reached,
         spaceId: row.space_id,
@@ -97,7 +102,7 @@ export async function getWeekCalendar(env) {
   // A completed Session lands on the day it ended; a still-running one
   // lands on the day it started, since it has no end day yet.
   const sessionRows = await env.DB.prepare(
-    `SELECT blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
+    `SELECT blocks.id AS block_id, blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
      FROM blocks JOIN spaces ON spaces.id = blocks.space_id
      WHERE blocks.type = 'session' AND blocks.space_id != ?`
   )
@@ -110,7 +115,12 @@ export async function getWeekCalendar(env) {
     const isRunning = Boolean(session.startedAt) && !session.endedAt;
     const day = (session.endedAt || session.startedAt || '').slice(0, 10);
     if (day && day >= rangeStart && day <= rangeEnd) {
+      // Same reasoning as Milestones above -- id and full content
+      // travel along so a running Session can be stopped right from
+      // the calendar cell.
       (sessionsByDay[day] ||= []).push({
+        id: row.block_id,
+        content: session,
         label: session.label,
         durationMinutes: session.durationMinutes,
         isRunning,

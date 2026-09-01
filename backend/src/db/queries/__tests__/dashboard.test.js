@@ -102,15 +102,20 @@ describe('getWeekCalendar', () => {
 
   it('places a Milestone targeted for today under today\'s date', () => {
     const space = createSpace({ title: 'Has a Milestone' });
-    createBlock({
-      spaceId: space.id,
-      type: 'milestone',
-      content: { label: 'Ship it', targetDate: todayString(), reached: false, reachedAt: null, note: '' },
-    });
+    const milestoneContent = { label: 'Ship it', targetDate: todayString(), reached: false, reachedAt: null, note: '' };
+    const block = createBlock({ spaceId: space.id, type: 'milestone', content: milestoneContent });
     const days = getWeekCalendar();
     const today = days.find((d) => d.isToday);
     expect(today.milestones).toEqual([
-      { label: 'Ship it', reached: false, spaceId: space.id, spaceTitle: 'Has a Milestone', projectName: null },
+      {
+        id: block.id,
+        content: milestoneContent,
+        label: 'Ship it',
+        reached: false,
+        spaceId: space.id,
+        spaceTitle: 'Has a Milestone',
+        projectName: null,
+      },
     ]);
   });
 

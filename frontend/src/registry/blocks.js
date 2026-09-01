@@ -94,11 +94,15 @@ export const MEDIA_TYPES = ['image', 'audio', 'sketch'];
 
 // A self-contained SVG data URI so the Media demo renders with no
 // dependency on external network access -- same trick the seeded demo
-// data uses (see backend/src/db/seedTestSpace.js).
+// data uses (see backend/src/db/seedTestSpace.js). Colored to match
+// the app's own dark palette/type system directly (rather than
+// inheriting index.css's variables, which an SVG data URI can't do)
+// so the demo doesn't read as an unstyled placeholder dropped into an
+// otherwise fully art-directed catalog.
 const DEMO_IMAGE_SVG =
   "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'>" +
-  "<rect width='100%' height='100%' fill='#ddd'/>" +
-  "<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='16'>Demo image</text>" +
+  "<rect width='100%' height='100%' fill='#201a1b'/>" +
+  "<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#6f5c5e' font-family='monospace' font-size='14'>Demo image</text>" +
   '</svg>';
 const DEMO_IMAGE_URL = `data:image/svg+xml,${encodeURIComponent(DEMO_IMAGE_SVG)}`;
 

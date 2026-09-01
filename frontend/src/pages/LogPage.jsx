@@ -32,14 +32,42 @@ const KIND_LABELS = {
   trail_review: 'Review',
 };
 
-function formatDate(isoLikeString) {
-  return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
+function toLocalDate(isoLikeString) {
+  return new Date(isoLikeString.replace(' ', 'T') + 'Z');
 }
+
+function formatDayHeading(isoLikeString) {
+  return toLocalDate(isoLikeString).toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function formatTime(isoLikeString) {
+  return toLocalDate(isoLikeString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+// A day-key for grouping -- the calendar day this entry's timestamp
+// falls on in the viewer's own local time, so entries near midnight
+// group the way a person would actually expect, not by raw UTC date.
+function dayKey(isoLikeString) {
+  const date = toLocalDate(isoLikeString);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+// How many entries to reveal per "Show more" click. Entries arrive
+// newest-first already (see listGlobalActivity), so a flat page size
+// rather than a day count keeps each click's cost predictable
+// regardless of how many events happened to land on one day.
+const PAGE_SIZE = 40;
 
 function LogPage() {
   usePageTitle('Log');
   const [activity, setActivity] = useState(null);
   const [error, setError] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     getActivity().then(setActivity).catch((err) => setError(err.message));
@@ -77,21 +105,56 @@ function LogPage() {
           </div>
 
           {activity.entries.length === 0 && <p>No activity yet.</p>}
-          {activity.entries.length > 0 && (
-            <ul className="log-list">
-              {activity.entries.map((entry) => (
-                <li key={entry.id}>
-                  <span className="log-kind-tag">{KIND_LABELS[entry.kind] || entry.kind}</span>
-                  {entry.space_id ? (
-                    <Link to={`/spaces/${entry.space_id}`}>{entry.summary}</Link>
-                  ) : (
-                    <span>{entry.summary}</span>
+          {activity.entries.length > 0 &&
+            (() => {
+              const visible = activity.entries.slice(0, visibleCount);
+              // Group consecutive entries sharing a calendar day under one
+              // heading, rather than repeating the full date on every row --
+              // entries already arrive newest-first, so this never needs to
+              // re-sort, only to notice when the day key changes.
+              const groups = [];
+              for (const entry of visible) {
+                const key = dayKey(entry.created_at);
+                const lastGroup = groups[groups.length - 1];
+                if (lastGroup && lastGroup.key === key) {
+                  lastGroup.entries.push(entry);
+                } else {
+                  groups.push({ key, heading: formatDayHeading(entry.created_at), entries: [entry] });
+                }
+              }
+              return (
+                <>
+                  {groups.map((group) => (
+                    <div key={group.key} className="log-day-group">
+                      <h2 className="log-day-heading">{group.heading}</h2>
+                      <ul className="log-list">
+                        {group.entries.map((entry) => (
+                          <li key={entry.id}>
+                            <span className="log-kind-tag">{KIND_LABELS[entry.kind] || entry.kind}</span>
+                            {entry.space_id ? (
+                              <Link to={`/spaces/${entry.space_id}`}>{entry.summary}</Link>
+                            ) : (
+                              <span>{entry.summary}</span>
+                            )}
+                            <span className="log-timestamp">{formatTime(entry.created_at)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  {visibleCount < activity.entries.length && (
+                    <p className="log-show-more">
+                      <button type="button" className="btn-ghost-small" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+                        Show {Math.min(PAGE_SIZE, activity.entries.length - visibleCount)} more
+                      </button>{' '}
+                      <span className="mono-caption">
+                        ({visible.length} of {activity.entries.length} shown)
+                      </span>
+                    </p>
                   )}
-                  <span className="log-timestamp">{formatDate(entry.created_at)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+                </>
+              );
+            })()}
         </>
       )}
     </main>

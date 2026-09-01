@@ -613,7 +613,7 @@ function SpacePage() {
   }
 
   async function handleRemoveBlock(blockId) {
-    if (!(await confirmDialog('Remove this block? This cannot be undone.'))) return;
+    if (!(await confirmDialog('Remove this entry? This cannot be undone.'))) return;
     await deleteBlockApi(blockId);
     refetchAll();
   }
@@ -758,7 +758,7 @@ function SpacePage() {
             </p>
           )}
 
-          {blocks && blocks.length === 0 && <p>No blocks yet.</p>}
+          {blocks && blocks.length === 0 && <p>No entries yet.</p>}
           {blocks && blocks.length > 0 && (() => {
             const visibleBlocks = blocks.filter((block) => {
               const matchesCategory =
@@ -769,7 +769,7 @@ function SpacePage() {
             if (visibleBlocks.length === 0) {
               return (
                 <p>
-                  No blocks match the current filter
+                  No entries match the current filter
                   {activeCategory !== null && <> (&ldquo;{activeCategory}&rdquo;)</>}
                   {activeType !== null && <> ({blockRegistry[activeType]?.label || activeType})</>}.
                 </p>
@@ -799,7 +799,7 @@ function SpacePage() {
                       {entry ? (
                         <entry.component block={block} onBlocksChanged={refetchAll} />
                       ) : (
-                        <p>Unknown block type: {block.type}</p>
+                        <p>Unknown entry type: {block.type}</p>
                       )}
                       {applicableViews.length > 0 && (
                         <div className="view-grid">
@@ -843,7 +843,7 @@ function SpacePage() {
                           className="btn-ghost-small"
                           onClick={() => handleRemoveBlock(block.id)}
                         >
-                          Remove block
+                          Remove entry
                         </button>
                       </div>
                     </div>

@@ -39,7 +39,7 @@ function labelForBlock(block) {
   if (WORK_TYPES.includes(block.type)) return block.content.statement || `(untitled ${block.type})`;
   if (block.type === 'text') {
     const firstLine = (block.content.lines || []).map((line) => line.text).find((text) => text.trim());
-    return firstLine || '(empty Text)';
+    return firstLine || '(empty Writing)';
   }
   if (block.type === 'list') return block.content.laneLabel || '(untitled List)';
   if (block.type === 'reference') return `Reference to ${block.content.targetSpaceTitle || block.content.target_space_id}`;
@@ -47,7 +47,7 @@ function labelForBlock(block) {
   if (block.type === 'comparison') return `${block.content.left?.text || '?'} vs. ${block.content.right?.text || '?'}`;
   if (block.type === 'milestone') return block.content.label || '(untitled Milestone)';
   if (block.type === 'session') return block.content.label || '(untitled Session)';
-  return `${block.type} block`;
+  return `${block.type} entry`;
 }
 
 // The lines that make up a block's own "Content" section -- switched
@@ -126,7 +126,7 @@ function summarizeBlockContent(block) {
       ...(content.note ? [`Note: ${content.note}`] : []),
     ];
   }
-  return [`(no summary available for block type "${type}")`];
+  return [`(no summary available for entry type "${type}")`];
 }
 
 // A single Tool/Work item's own report -- covers every Block type
@@ -151,7 +151,7 @@ export function getBlockReport(blockId) {
   const membershipLines = [
     ...((block.properties?.categories || []).length > 0 ? [`Categories: ${block.properties.categories.join(', ')}`] : []),
     ...(workspaceNames.length > 0 ? [`Workspaces: ${workspaceNames.join(', ')}`] : []),
-    ...(block.properties?.skeletonLane ? [`Skeleton lane: ${block.properties.skeletonLane}`] : []),
+    ...(block.properties?.skeletonLane ? [`Skeleton section: ${block.properties.skeletonLane}`] : []),
     ...(block.properties?.skeletonRole ? [`Skeleton role: ${block.properties.skeletonRole}`] : []),
   ];
 
@@ -243,7 +243,7 @@ export function getSpaceReport(spaceId) {
       ],
     },
     {
-      heading: `Structure (${blocks.length} block${blocks.length === 1 ? '' : 's'})`,
+      heading: `Structure (${blocks.length} ${blocks.length === 1 ? 'entry' : 'entries'})`,
       lines: [
         ...Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`),
         ...(workspaces.length > 0 ? [`Workspaces: ${workspaces.map((workspace) => workspace.name).join(', ')}`] : []),

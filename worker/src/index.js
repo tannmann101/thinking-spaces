@@ -198,7 +198,7 @@ async function handleMoveBlock(request, env, spaceId, blockId) {
 
 async function handlePatchBlock(request, env, id) {
   const existing = await getBlockById(env, id);
-  if (!existing) return errorResponse('Block not found', 404);
+  if (!existing) return errorResponse('Entry not found', 404);
   const body = (await readJson(request)) || {};
   const { content, categories, workspaces } = body;
   if (content === undefined && categories === undefined && workspaces === undefined) {
@@ -213,13 +213,13 @@ async function handlePatchBlock(request, env, id) {
 
 async function handleBlockReport(env, id) {
   const report = await getBlockReport(env, id);
-  if (!report) return errorResponse('Block not found', 404);
+  if (!report) return errorResponse('Entry not found', 404);
   return json({ report, narrative: renderReportText(report) });
 }
 
 async function handleSaveTextBlock(request, env, id) {
   const existing = await getBlockById(env, id);
-  if (!existing) return errorResponse('Block not found', 404);
+  if (!existing) return errorResponse('Entry not found', 404);
   const body = (await readJson(request)) || {};
   const { lines } = body;
   if (!Array.isArray(lines)) return errorResponse('lines is required');

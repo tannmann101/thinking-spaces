@@ -77,7 +77,7 @@ export function getReviewDraft(spaceId) {
 
   const summaryParts = [];
   if (newBlocks.length > 0) {
-    summaryParts.push(`${newBlocks.length} block${newBlocks.length === 1 ? '' : 's'} added`);
+    summaryParts.push(`${newBlocks.length} ${newBlocks.length === 1 ? 'entry' : 'entries'} added`);
   }
   if (milestonesReached.length > 0) {
     summaryParts.push(`${milestonesReached.length} milestone${milestonesReached.length === 1 ? '' : 's'} reached`);

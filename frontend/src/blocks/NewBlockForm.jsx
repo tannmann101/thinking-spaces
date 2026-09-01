@@ -135,10 +135,10 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
   return (
     <div className="new-block-form">
       <label>
-        Block type:{' '}
+        Entry type:{' '}
         <select value={type} onChange={(event) => setType(event.target.value)}>
           <optgroup label="General">
-            <option value="text">Text</option>
+            <option value="text">Writing</option>
             <option value="list">List</option>
           </optgroup>
           <optgroup label="Work">
@@ -236,7 +236,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
       )}
       <p>
         <button type="button" className="btn" onClick={handleSubmit}>
-          + Add Block
+          + Add Entry
         </button>
       </p>
     </div>

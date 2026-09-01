@@ -203,7 +203,7 @@ export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }
     spaceId,
     spaceTitle: space?.title ?? null,
     kind: 'block_added',
-    summary: `Added a ${type} block to "${space?.title ?? spaceId}"`,
+    summary: `Added a ${type} entry to "${space?.title ?? spaceId}"`,
   });
   return block;
 }
@@ -217,7 +217,7 @@ export function deleteBlock(id) {
       spaceId: block.space_id,
       spaceTitle: space?.title ?? null,
       kind: 'block_removed',
-      summary: `Removed a ${block.type} block from "${space?.title ?? block.space_id}"`,
+      summary: `Removed a ${block.type} entry from "${space?.title ?? block.space_id}"`,
     });
   }
 }

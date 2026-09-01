@@ -31,9 +31,9 @@ describe('getBlockReport', () => {
     expect(getBlockReport(block.id).label).toBe('Real content');
   });
 
-  it('labels an empty Text block as "(empty Text)"', () => {
+  it('labels an empty Text block as "(empty Writing)"', () => {
     const block = createBlock({ spaceId: space.id, type: 'text', content: { lines: [{ id: '1', text: '', tag: null }] } });
-    expect(getBlockReport(block.id).label).toBe('(empty Text)');
+    expect(getBlockReport(block.id).label).toBe('(empty Writing)');
   });
 
   it('labels a Work block by its statement', () => {
@@ -111,7 +111,7 @@ describe('getSpaceReport', () => {
     const report = getSpaceReport(space.id);
     expect(report.label).toBe('Fresh');
     expect(report.sections.find((s) => s.heading === 'Identity')).toBeTruthy();
-    expect(report.sections.find((s) => s.heading.startsWith('Structure'))).toMatchObject({ heading: 'Structure (0 blocks)' });
+    expect(report.sections.find((s) => s.heading.startsWith('Structure'))).toMatchObject({ heading: 'Structure (0 entries)' });
   });
 
   it('reflects due date, overdue status, tags, categories, and provenance in Identity', () => {
@@ -130,7 +130,7 @@ describe('getSpaceReport', () => {
     createWorkspace({ spaceId: space.id, name: 'My Workspace' });
 
     const structure = getSpaceReport(space.id).sections.find((s) => s.heading.startsWith('Structure'));
-    expect(structure.heading).toBe('Structure (2 blocks)');
+    expect(structure.heading).toBe('Structure (2 entries)');
     expect(structure.lines).toContain('2 text');
     expect(structure.lines).toContain('Workspaces: My Workspace');
   });

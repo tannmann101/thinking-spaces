@@ -22,7 +22,7 @@ function TemplatesPage() {
   async function handleDelete(id) {
     if (
       !(await confirm(
-        'Delete this Template? Spaces already created from it keep their blocks -- deleting a Template never touches them.'
+        'Delete this Template? Spaces already created from it keep their entries -- deleting a Template never touches them.'
       ))
     ) {
       return;

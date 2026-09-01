@@ -97,7 +97,7 @@ describe('CreateSpace: Tools step', () => {
     renderPage();
     await screen.findByText('Start Blank');
 
-    await user.click(screen.getByRole('button', { name: '+ Add Block' }));
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
     expect(await screen.findByRole('button', { name: 'Remove' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Remove' }));

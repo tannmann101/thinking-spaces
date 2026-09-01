@@ -32,4 +32,37 @@ describe('SpaceGlyph', () => {
       'Visual identity: developing, 2 connections, 1 open tensions, star accent'
     );
   });
+
+  it('mentions overdue in the description, and draws the trunk dashed, when the Space is overdue', () => {
+    const { container } = render(<SpaceGlyph space={makeSpace({ isOverdue: true })} />);
+    expect(container.querySelector('svg > title')).toHaveTextContent(
+      'Visual identity: developing, 2 connections, 1 open tensions, overdue'
+    );
+    const trunk = container.querySelector('svg > line');
+    expect(trunk).toHaveAttribute('stroke-dasharray', '2,1.5');
+  });
+
+  it('draws the trunk solid when not overdue', () => {
+    const { container } = render(<SpaceGlyph space={makeSpace()} />);
+    const trunk = container.querySelector('svg > line');
+    expect(trunk).not.toHaveAttribute('stroke-dasharray');
+  });
+
+  it('mentions Milestone progress in the description, and draws one ring per Milestone', () => {
+    const { container } = render(<SpaceGlyph space={makeSpace({ milestoneStats: { reached: 1, total: 3 } })} />);
+    expect(container.querySelector('svg > title')).toHaveTextContent(
+      'Visual identity: developing, 2 connections, 1 open tensions, 1/3 milestones reached'
+    );
+    // 3 Milestone rings plus the branch-tip circles already drawn for
+    // relationDensity: 2 -- scoped to just the rings' own filled state
+    // via their radius (1.1, distinct from branch tips' 1.4).
+    const rings = [...container.querySelectorAll('svg > circle')];
+    expect(rings).toHaveLength(3);
+    expect(rings.filter((c) => c.getAttribute('fill') !== 'none')).toHaveLength(1);
+  });
+
+  it('omits Milestone rings entirely when the Space has no Milestones', () => {
+    const { container } = render(<SpaceGlyph space={makeSpace({ milestoneStats: { reached: 0, total: 0 } })} />);
+    expect(container.querySelectorAll('svg > circle')).toHaveLength(0);
+  });
 });

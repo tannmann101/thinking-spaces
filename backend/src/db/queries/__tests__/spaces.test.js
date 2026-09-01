@@ -35,6 +35,7 @@ describe('createSpace / getSpaceById', () => {
       relationDensity: 0,
       openTensionCount: 0,
       isOverdue: false,
+      milestoneStats: { reached: 0, total: 0 },
     });
   });
 
@@ -93,6 +94,25 @@ describe('relationDensity / openTensionCount', () => {
       properties: { skeletonLane: 'tensions' },
     });
     expect(getSpaceById(space.id).openTensionCount).toBe(2);
+  });
+});
+
+describe('milestoneStats', () => {
+  beforeEach(() => {
+    resetDb();
+  });
+
+  it('counts reached and total Milestones separately', () => {
+    const space = createSpace({ title: 'Has Milestones' });
+    addBlockToSpace(space.id, { type: 'milestone', content: { label: 'A', reached: true } });
+    addBlockToSpace(space.id, { type: 'milestone', content: { label: 'B', reached: false } });
+    addBlockToSpace(space.id, { type: 'milestone', content: { label: 'C', reached: true } });
+    expect(getSpaceById(space.id).milestoneStats).toEqual({ reached: 2, total: 3 });
+  });
+
+  it('reports zero of zero for a Space with no Milestones', () => {
+    const space = createSpace({ title: 'No Milestones' });
+    expect(getSpaceById(space.id).milestoneStats).toEqual({ reached: 0, total: 0 });
   });
 });
 

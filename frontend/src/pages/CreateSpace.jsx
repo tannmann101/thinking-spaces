@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { createSpace, getTemplates, getSpacesByTag } from '../api.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function CreateSpace() {
@@ -118,8 +118,9 @@ function CreateSpace() {
   }
 
   return (
-    <main>
-      <TopNav />
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-content">
       <h1>New Space</h1>
 
       <form onSubmit={handleSubmit}>
@@ -313,7 +314,8 @@ function CreateSpace() {
 
         {error && <p>Could not create Space: {error}</p>}
       </form>
-    </main>
+      </main>
+    </div>
   );
 }
 

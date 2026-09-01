@@ -11,7 +11,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTemplate, createTemplate, updateTemplate } from '../api.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function TemplateEditor() {
@@ -77,15 +77,19 @@ function TemplateEditor() {
 
   if (isEditing && !loaded && !error) {
     return (
-      <main>
-        <p>Loading...</p>
-      </main>
+      <div className="app-shell">
+        <Sidebar current="templates" />
+        <main className="app-content">
+          <p>Loading...</p>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main>
-      <TopNav current="templates" />
+    <div className="app-shell">
+      <Sidebar current="templates" />
+      <main className="app-content">
       <Link to="/templates" className="back-link">
         &larr; Back to Templates
       </Link>
@@ -145,7 +149,8 @@ function TemplateEditor() {
           </button>
         </p>
       </form>
-    </main>
+      </main>
+    </div>
   );
 }
 

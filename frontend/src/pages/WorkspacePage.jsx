@@ -31,7 +31,7 @@ import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import ReportButton from '../components/ReportButton.jsx';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function EditableWorkspaceName({ workspace, onChanged }) {
@@ -154,8 +154,9 @@ function WorkspacePage() {
   );
 
   return (
-    <main>
-      <TopNav />
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-content">
       {space && (
         <Link to={`/spaces/${spaceId}`} className="back-link">
           &larr; Back to {space.title}
@@ -284,7 +285,8 @@ function WorkspacePage() {
           )}
         </>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

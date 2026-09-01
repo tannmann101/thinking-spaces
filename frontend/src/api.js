@@ -127,7 +127,7 @@ export const getWorkItems = () => request('/work-items');
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getRecentTrail = () => request('/dashboard/recent-trail');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
-// TopNav's "needs attention" badge -- fetched on every page.
+// The sidebar's "needs attention" badge -- fetched on every page.
 export const getNotificationCount = () => request('/notifications/count');
 // Everything InsightsPage.jsx needs in one call -- work mix, themes/
 // tensions, activity trend, and provenance/synthesis yield, all

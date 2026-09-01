@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getInsights } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function labelFor(workType) {
@@ -301,8 +301,9 @@ function InsightsPage() {
   }, []);
 
   return (
-    <main>
-      <TopNav current="insights" />
+    <div className="app-shell">
+      <Sidebar current="insights" />
+      <main className="app-content">
       <h1>Insights</h1>
       <p>What's actually going on across every Space -- the thinking, not just the record of it.</p>
 
@@ -318,7 +319,8 @@ function InsightsPage() {
           <TimeSection time={insights.time} />
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

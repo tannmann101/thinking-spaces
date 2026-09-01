@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getActivity } from '../api.js';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const KIND_LABELS = {
@@ -74,8 +74,9 @@ function LogPage() {
   }, []);
 
   return (
-    <main>
-      <TopNav current="log" />
+    <div className="app-shell">
+      <Sidebar current="log" />
+      <main className="app-content">
       <h1>Log</h1>
       <p>Everything that's happened, across every Space, oldest and newest in one place.</p>
 
@@ -157,7 +158,8 @@ function LogPage() {
             })()}
         </>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

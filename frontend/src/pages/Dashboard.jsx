@@ -10,7 +10,7 @@ import {
 } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
-import TopNav from '../components/TopNav.jsx';
+import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function formatDate(isoLikeString) {
@@ -176,8 +176,9 @@ function Dashboard() {
   }
 
   return (
-    <main>
-      <TopNav current="dashboard" />
+    <div className="app-shell">
+      <Sidebar current="dashboard" />
+      <main className="app-content">
 
       <p className="dashboard-create-row">
         <Link to="/spaces/new" className="new-space-btn">
@@ -311,7 +312,8 @@ function Dashboard() {
           </>
         );
       })()}
-    </main>
+      </main>
+    </div>
   );
 }
 

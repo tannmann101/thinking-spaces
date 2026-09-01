@@ -39,13 +39,13 @@ describe('GraphPage: loading and errors', () => {
     expect(await screen.findByText('Space A')).toBeInTheDocument();
   });
 
-  it('renders the graph canvas inside the wide breakout frame', async () => {
+  it('renders the graph canvas inside the wide content pane', async () => {
     api.getGraph.mockResolvedValue({ spaces: [{ id: 'a', title: 'Space A' }], workspaces: [], edges: [] });
     renderPage();
     await screen.findByText('Space A');
-    const frame = document.querySelector('.graph-frame');
-    expect(frame).toBeInTheDocument();
-    expect(frame.querySelector('.graph-frame-inner svg.graph-svg')).toBeInTheDocument();
+    const content = document.querySelector('.app-content-wide');
+    expect(content).toBeInTheDocument();
+    expect(content.querySelector('svg.graph-svg')).toBeInTheDocument();
   });
 
   it('shows an error when the fetch fails', async () => {

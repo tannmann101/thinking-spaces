@@ -2,7 +2,7 @@ import { db } from '../index.js';
 import { WORK_TYPES } from './work.js';
 import { getBlockById, listBlocksForSpace, listBacklinksForSpace } from './blocks.js';
 import { getWorkspaceById, listWorkspacesForSpace } from './workspaces.js';
-import { getProjectById } from './projects.js';
+import { getProjectById, listProjectsForSpace } from './projects.js';
 import { getSpaceById } from './spaces.js';
 import { listTrailEntries } from './trail.js';
 import { getSkeletonSnapshot } from './skeleton.js';
@@ -206,6 +206,45 @@ export function getWorkspaceReport(workspaceId) {
   };
 }
 
+// A Project's own report -- its identity plus every Milestone/Session
+// currently assigned to it, and the same reached/logged-minutes
+// progress readout ProjectPage.jsx itself computes and shows inline
+// (mirrored here rather than shared, since it's a few lines of
+// arithmetic over data this function already has, not worth a shared
+// helper for).
+export function getProjectReport(projectId) {
+  const project = getProjectById(projectId);
+  if (!project) return null;
+  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(project.space_id);
+  const memberBlocks = listBlocksForSpace(project.space_id).filter(
+    (block) => block.properties?.projectId === projectId
+  );
+  const milestones = memberBlocks.filter((block) => block.type === 'milestone');
+  const sessions = memberBlocks.filter((block) => block.type === 'session');
+  const reached = milestones.filter((block) => block.content.reached).length;
+  const totalMinutes = sessions.reduce((sum, block) => sum + (block.content.durationMinutes || 0), 0);
+
+  const sections = [
+    { heading: 'Identity', lines: [`Space: ${space?.title || project.space_id}`, `Created: ${project.created_at}`] },
+    {
+      heading: `Assigned Milestones & Sessions (${memberBlocks.length})`,
+      lines: [
+        ...(milestones.length > 0 ? [`Milestones: ${reached} of ${milestones.length} reached`] : []),
+        ...(sessions.length > 0 ? [`Sessions: ${totalMinutes} min logged across ${sessions.length}`] : []),
+        ...memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)}`),
+      ],
+    },
+  ];
+
+  return {
+    level: 'project',
+    id: project.id,
+    label: project.name,
+    generatedAt: new Date().toISOString(),
+    sections,
+  };
+}
+
 // A Space's own report -- the fullest of the three, since a Space is
 // where every other kind of state (its blocks, its Workspaces, its
 // Skeleton, its Trail, its relationships to other Spaces) actually
@@ -216,6 +255,7 @@ export function getSpaceReport(spaceId) {
   if (!space) return null;
   const blocks = listBlocksForSpace(spaceId);
   const workspaces = listWorkspacesForSpace(spaceId);
+  const projects = listProjectsForSpace(spaceId);
   const backlinks = listBacklinksForSpace(spaceId);
   const trail = listTrailEntries(spaceId);
   const skeleton = getSkeletonSnapshot(spaceId);
@@ -251,6 +291,7 @@ export function getSpaceReport(spaceId) {
       lines: [
         ...Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`),
         ...(workspaces.length > 0 ? [`Workspaces: ${workspaces.map((workspace) => workspace.name).join(', ')}`] : []),
+        ...(projects.length > 0 ? [`Projects: ${projects.map((project) => project.name).join(', ')}`] : []),
       ],
     },
   ];

@@ -499,7 +499,7 @@ function ProjectList({ space, projects, onChanged }) {
       {projects.length > 0 && (
         <div className="workspace-grid">
           {projects.map((project) => (
-            <Link key={project.id} to={`/spaces/${space.id}/projects/${project.id}`} className="workspace-card">
+            <Link key={project.id} to={`/spaces/${space.id}/projects/${project.id}`} className="workspace-card project-card">
               <h3>{project.name}</h3>
             </Link>
           ))}

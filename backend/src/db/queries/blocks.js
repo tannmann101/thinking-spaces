@@ -84,14 +84,18 @@ export function listBacklinksForSpace(spaceId) {
 
 // The Graph view (Pass 5's "Map"): every Reference block across every
 // Space, as nodes (Spaces) and edges (References), plus every Workspace
-// as its own node connected to its parent Space by a "contains" edge --
-// the Relational Map integration Workspaces originally deferred. Still
-// a plain query over existing tables -- CLAUDE.md is explicit that no
+// and every Project as their own nodes connected to their parent Space
+// by a "contains" edge -- the Relational Map integration Workspaces
+// originally deferred, and Projects picked up in the same pass once an
+// outside-review audit found Projects had been left out of the Graph
+// entirely with no reason on record (unlike the Workspace precedent,
+// this wasn't a deliberate deferral, just an unflagged gap). Still a
+// plain query over existing tables -- CLAUDE.md is explicit that no
 // separate graph structure gets modeled or cached, so this always
-// reflects whatever the blocks/workspaces tables currently hold. The
-// Test Space (and anything inside it) is left out for the same reason
-// it's left out of every other cross-Space view: it's scratch content,
-// not part of the real Map.
+// reflects whatever the blocks/workspaces/projects tables currently
+// hold. The Test Space (and anything inside it) is left out for the
+// same reason it's left out of every other cross-Space view: it's
+// scratch content, not part of the real Map.
 export function getGraphData() {
   const spaces = db
     .prepare(`SELECT id, title, status FROM spaces WHERE id != ? ORDER BY title ASC`)
@@ -104,6 +108,16 @@ export function getGraphData() {
        JOIN spaces ON spaces.id = workspaces.space_id
        WHERE spaces.id != ?
        ORDER BY workspaces.name ASC`
+    )
+    .all(TEST_SPACE_ID);
+
+  const projects = db
+    .prepare(
+      `SELECT projects.id, projects.space_id, projects.name
+       FROM projects
+       JOIN spaces ON spaces.id = projects.space_id
+       WHERE spaces.id != ?
+       ORDER BY projects.name ASC`
     )
     .all(TEST_SPACE_ID);
 
@@ -133,7 +147,18 @@ export function getGraphData() {
     workspaceId: workspace.id,
   }));
 
-  return { spaces, workspaces, edges: [...referenceEdges, ...containmentEdges] };
+  const projectContainmentEdges = projects.map((project) => ({
+    kind: 'contains-project',
+    spaceId: project.space_id,
+    projectId: project.id,
+  }));
+
+  return {
+    spaces,
+    workspaces,
+    projects,
+    edges: [...referenceEdges, ...containmentEdges, ...projectContainmentEdges],
+  };
 }
 
 export function getBlockById(id) {

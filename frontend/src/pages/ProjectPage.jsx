@@ -20,6 +20,7 @@ import {
   deleteBlockApi,
   updateBlockProject,
   getBlockReport,
+  getProjectReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
@@ -183,6 +184,9 @@ function ProjectPage() {
           </h1>
           <p className="workspace-subtitle">A Project inside &ldquo;{space.title}&rdquo;</p>
           <ProjectProgress memberBlocks={memberBlocks} />
+          <div className="report-row">
+            <ReportButton fetchReport={() => getProjectReport(projectId)} label="Project Report" />
+          </div>
 
           {memberBlocks.length === 0 && (
             <p>Nothing assigned to this Project yet -- add a Milestone or Session below, or pull one in already on the Space.</p>

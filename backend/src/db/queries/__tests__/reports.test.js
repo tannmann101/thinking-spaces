@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getBlockReport, getWorkspaceReport, getSpaceReport } from '../reports.js';
+import { getBlockReport, getWorkspaceReport, getProjectReport, getSpaceReport } from '../reports.js';
 import { createSpace } from '../spaces.js';
 import { createBlock, addBlockToSpace, updateBlockCategories, updateBlockWorkspaces, updateBlockProject } from '../blocks.js';
 import { createWorkspace } from '../workspaces.js';
@@ -106,6 +106,42 @@ describe('getWorkspaceReport', () => {
   });
 });
 
+describe('getProjectReport', () => {
+  let space;
+  beforeEach(() => {
+    resetDb();
+    space = createSpace({ title: 'A Space' });
+  });
+
+  it('returns null for a nonexistent Project', () => {
+    expect(getProjectReport('nonexistent')).toBeNull();
+  });
+
+  it('lists only the Milestones/Sessions assigned to this Project, with a reached/logged-minutes readout', () => {
+    const project = createProject({ spaceId: space.id, name: 'Ship it' });
+    const milestone = createBlock({
+      spaceId: space.id,
+      type: 'milestone',
+      content: { label: 'Ship it', targetDate: null, reached: true, reachedAt: '2024-01-01', note: null },
+    });
+    updateBlockProject(milestone.id, project.id);
+    const session = createBlock({
+      spaceId: space.id,
+      type: 'session',
+      content: { label: 'Drafting', startedAt: null, endedAt: null, durationMinutes: 30, note: null },
+    });
+    updateBlockProject(session.id, project.id);
+    createBlock({ spaceId: space.id, type: 'milestone', content: { reached: false } }); // not assigned
+
+    const report = getProjectReport(project.id);
+    expect(report.label).toBe('Ship it');
+    const assigned = report.sections.find((s) => s.heading.startsWith('Assigned'));
+    expect(assigned.heading).toBe('Assigned Milestones & Sessions (2)');
+    expect(assigned.lines).toContain('Milestones: 1 of 1 reached');
+    expect(assigned.lines).toContain('Sessions: 30 min logged across 1');
+  });
+});
+
 describe('getSpaceReport', () => {
   beforeEach(() => {
     resetDb();
@@ -132,16 +168,18 @@ describe('getSpaceReport', () => {
     expect(identity).toContain('Provenance: external');
   });
 
-  it('counts block types and lists Workspaces in Structure', () => {
+  it('counts block types and lists Workspaces and Projects in Structure', () => {
     const space = createSpace({ title: 'Structured' });
     createBlock({ spaceId: space.id, type: 'text', content: {} });
     createBlock({ spaceId: space.id, type: 'text', content: {} });
     createWorkspace({ spaceId: space.id, name: 'My Workspace' });
+    createProject({ spaceId: space.id, name: 'My Project' });
 
     const structure = getSpaceReport(space.id).sections.find((s) => s.heading.startsWith('Structure'));
     expect(structure.heading).toBe('Structure (2 entries)');
     expect(structure.lines).toContain('2 text');
     expect(structure.lines).toContain('Workspaces: My Workspace');
+    expect(structure.lines).toContain('Projects: My Project');
   });
 
   it('includes a Work section only when Work items exist, with confidence breakdown', () => {

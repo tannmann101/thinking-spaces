@@ -82,11 +82,11 @@ export async function listBacklinksForSpace(env, spaceId) {
 }
 
 // The Graph view: every Reference block across every Space, as nodes
-// (Spaces) and edges (References), plus every Workspace as its own node
-// connected to its parent Space by a "contains" edge. Still a plain
-// query over existing tables -- no separate graph structure is modeled
-// or cached. The Test Space is left out, same as every other
-// cross-Space view.
+// (Spaces) and edges (References), plus every Workspace and every
+// Project as their own nodes connected to their parent Space by a
+// "contains" edge. Still a plain query over existing tables -- no
+// separate graph structure is modeled or cached. The Test Space is
+// left out, same as every other cross-Space view.
 export async function getGraphData(env) {
   const spacesResult = await env.DB.prepare(`SELECT id, title, status FROM spaces WHERE id != ? ORDER BY title ASC`)
     .bind(TEST_SPACE_ID)
@@ -98,6 +98,16 @@ export async function getGraphData(env) {
      JOIN spaces ON spaces.id = workspaces.space_id
      WHERE spaces.id != ?
      ORDER BY workspaces.name ASC`
+  )
+    .bind(TEST_SPACE_ID)
+    .all();
+
+  const projectsResult = await env.DB.prepare(
+    `SELECT projects.id, projects.space_id, projects.name
+     FROM projects
+     JOIN spaces ON spaces.id = projects.space_id
+     WHERE spaces.id != ?
+     ORDER BY projects.name ASC`
   )
     .bind(TEST_SPACE_ID)
     .all();
@@ -130,10 +140,17 @@ export async function getGraphData(env) {
     workspaceId: workspace.id,
   }));
 
+  const projectContainmentEdges = projectsResult.results.map((project) => ({
+    kind: 'contains-project',
+    spaceId: project.space_id,
+    projectId: project.id,
+  }));
+
   return {
     spaces: spacesResult.results,
     workspaces: workspacesResult.results,
-    edges: [...referenceEdges, ...containmentEdges],
+    projects: projectsResult.results,
+    edges: [...referenceEdges, ...containmentEdges, ...projectContainmentEdges],
   };
 }
 

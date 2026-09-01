@@ -141,6 +141,14 @@ describe('blocks.js', () => {
       expect(containEdges).toEqual([{ kind: 'contains', spaceId: space.id, workspaceId: workspace.id }]);
     });
 
+    it('includes one contains-project edge per Project', () => {
+      const project = createProject({ spaceId: space.id, name: 'A Project' });
+      const graph = getGraphData();
+      expect(graph.projects).toEqual([{ id: project.id, space_id: space.id, name: 'A Project' }]);
+      const projectEdges = graph.edges.filter((e) => e.kind === 'contains-project');
+      expect(projectEdges).toEqual([{ kind: 'contains-project', spaceId: space.id, projectId: project.id }]);
+    });
+
     it('still includes a reference edge whose target Space was since deleted', () => {
       // CLAUDE.md is explicit that a dangling Reference is "left as-is"
       // rather than cleaned up -- the frontend falls back to showing

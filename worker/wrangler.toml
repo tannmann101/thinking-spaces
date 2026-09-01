@@ -1,0 +1,17 @@
+name = "thinking-spaces-api"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Intercepts /api/* at the Cloudflare edge for a subdomain of
+# thegardners.xyz -- the rest of that subdomain is served by GitHub
+# Pages (the built frontend), same split gardners-hub's own Worker
+# already uses for the main site. Subdomain TBD as part of deployment
+# (see worker/DEPLOY.md) -- placeholder here until that's decided.
+routes = [
+  { pattern = "thinking.thegardners.xyz/api/*", zone_name = "thegardners.xyz" }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "thinking-spaces"
+database_id = "REPLACE_WITH_YOUR_DATABASE_ID"

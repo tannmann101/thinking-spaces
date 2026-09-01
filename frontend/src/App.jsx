@@ -8,6 +8,8 @@ import WorkspacePage from './pages/WorkspacePage.jsx';
 import ProjectPage from './pages/ProjectPage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
 import TemplateEditor from './pages/TemplateEditor.jsx';
+import ResourceTemplatesPage from './pages/ResourceTemplatesPage.jsx';
+import ResourceTemplateEditor from './pages/ResourceTemplateEditor.jsx';
 import GraphPage from './pages/GraphPage.jsx';
 import ToolsPage from './pages/ToolsPage.jsx';
 import LogPage from './pages/LogPage.jsx';
@@ -30,6 +32,9 @@ function App() {
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/templates/new" element={<TemplateEditor />} />
           <Route path="/templates/:id/edit" element={<TemplateEditor />} />
+          <Route path="/resource-templates" element={<ResourceTemplatesPage />} />
+          <Route path="/resource-templates/new" element={<ResourceTemplateEditor />} />
+          <Route path="/resource-templates/:id/edit" element={<ResourceTemplateEditor />} />
           <Route path="/graph" element={<GraphPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/log" element={<LogPage />} />

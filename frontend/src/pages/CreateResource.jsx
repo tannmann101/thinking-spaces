@@ -2,10 +2,11 @@
 // card inside ordinary Creation Mode -- a Resource isn't a train of
 // thought like a Space, it's something that gets surfaced *within*
 // Spaces, so the questions worth asking up front are different: what
-// this thing is, what it affords, what it touches (or is touched by),
-// and what it offers. Those four facets become the new Space's own
-// starting Categories (see the Categories feature), each seeded with a
-// block, so a Resource never starts as an empty, undifferentiated page.
+// this thing is, what it affords (or a type-tailored replacement for
+// both -- see below), what it touches (or is touched by), and what it
+// offers. Those facets become the new Space's own starting Categories
+// (see the Categories feature), each seeded with a block, so a
+// Resource never starts as an empty, undifferentiated page.
 //
 // Under the hood a Resource is still an ordinary Space (tagged
 // "resource", plus whatever type tags are chosen here) -- that's what
@@ -19,10 +20,19 @@
 // CreateSynthesis.jsx) -- so the Space page can show at a glance
 // whether a given Space is a citable thing you sourced, or one the
 // app itself produced through Work/Synthesis.
+//
+// Resource Templates (see backend/src/db/queries/resourceTemplates.js)
+// replace the three descriptive facets below with a type-tailored set
+// of their own, once a chosen type tag matches one -- "What is this,
+// plainly" means something different for a Book than for a Riddle. The
+// fourth, structural facet (Touches / Touched By) stays the same for
+// every type: it's a mechanical capability (create a Reference to an
+// existing Space), not a description that varies by what kind of thing
+// this is.
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createSpace, getSpaces } from '../api.js';
+import { useNavigate, Link } from 'react-router-dom';
+import { createSpace, getSpaces, getResourceTemplateByType } from '../api.js';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -36,23 +46,32 @@ import { usePageTitle } from '../hooks/usePageTitle.js';
 // Formulation Work Type (registry/blocks.js) and CLAUDE.md.
 const RESOURCE_TYPE_SUGGESTIONS = ['book', 'person', 'account', 'app', 'place', 'media', 'lens'];
 
-// The four facets this flow homes in on, in order. Used both as the
-// question labels and, verbatim, as the new Space's starting Categories
-// -- so what you fill in here is exactly what you'll see as filterable
-// sections on the Resource's own page afterward.
-const WHAT_IT_IS = 'What It Is';
-const WHAT_IT_AFFORDS = 'What It Affords';
 const TOUCHES = 'Touches / Touched By';
-const WHAT_IT_OFFERS = 'What It Offers';
+
+// Used only when no chosen type tag matches a Resource Template -- the
+// original three questions, generic enough to fit anything.
+const DEFAULT_FACETS = [
+  {
+    name: 'What It Is',
+    prompt: 'What is this Resource, plainly -- its nature, where it comes from, the basics.',
+  },
+  {
+    name: 'What It Affords',
+    prompt: 'What does having this around actually let you do?',
+  },
+  {
+    name: 'What It Offers',
+    prompt: 'What value or content does it actually offer once you engage with it?',
+  },
+];
 
 function CreateResource() {
   usePageTitle('New Resource');
   const [title, setTitle] = useState('');
   const [typeTags, setTypeTags] = useState([]);
   const [typeInput, setTypeInput] = useState('');
-  const [whatItIs, setWhatItIs] = useState('');
-  const [whatItAffords, setWhatItAffords] = useState('');
-  const [whatItOffers, setWhatItOffers] = useState('');
+  const [resourceTemplate, setResourceTemplate] = useState(null);
+  const [facetValues, setFacetValues] = useState({});
   const [allSpaces, setAllSpaces] = useState(null);
   const [selectedRelations, setSelectedRelations] = useState({}); // spaceId -> note string
   const [error, setError] = useState(null);
@@ -62,6 +81,45 @@ function CreateResource() {
   useEffect(() => {
     getSpaces().then(setAllSpaces).catch(() => setAllSpaces([]));
   }, []);
+
+  // The first chosen type tag (in the order added) that matches a real
+  // Resource Template wins -- checked in order, not in parallel, so a
+  // slower-resolving earlier tag can't be overtaken by a faster later
+  // one. Falls back to no template (the generic facets) if none match,
+  // or if the lookup itself fails.
+  useEffect(() => {
+    let cancelled = false;
+    async function findTemplate() {
+      for (const type of typeTags) {
+        const match = await getResourceTemplateByType(type).catch(() => null);
+        if (match) {
+          if (!cancelled) setResourceTemplate(match);
+          return;
+        }
+      }
+      if (!cancelled) setResourceTemplate(null);
+    }
+    findTemplate();
+    return () => {
+      cancelled = true;
+    };
+  }, [typeTags]);
+
+  // A genuinely different active template means the old facet answers
+  // don't apply anymore -- reset rather than carry stale text under a
+  // now-unrelated facet name. Adjusting state directly during render
+  // (React's own recommended pattern for "reset when a derived value
+  // changes") rather than an effect, keyed on id (not the whole object)
+  // so this only fires when the actually matched template changes, not
+  // on every typeTags edit.
+  const activeTemplateId = resourceTemplate?.id ?? null;
+  const [lastTemplateId, setLastTemplateId] = useState(activeTemplateId);
+  if (activeTemplateId !== lastTemplateId) {
+    setLastTemplateId(activeTemplateId);
+    setFacetValues({});
+  }
+
+  const activeFacets = resourceTemplate ? resourceTemplate.facets : DEFAULT_FACETS;
 
   function addType(rawType) {
     const type = rawType.trim().toLowerCase();
@@ -97,22 +155,16 @@ function CreateResource() {
     setError(null);
 
     const extraBlocks = [
-      { type: 'text', content: { tag: null, text: whatItIs.trim() }, properties: { categories: [WHAT_IT_IS] } },
-      {
+      ...activeFacets.map((facet) => ({
         type: 'text',
-        content: { tag: null, text: whatItAffords.trim() },
-        properties: { categories: [WHAT_IT_AFFORDS] },
-      },
+        content: { tag: null, text: (facetValues[facet.name] || '').trim() },
+        properties: { categories: [facet.name] },
+      })),
       ...Object.entries(selectedRelations).map(([targetSpaceId, note]) => ({
         type: 'reference',
         content: { target_space_id: targetSpaceId, note: note.trim() || null },
         properties: { categories: [TOUCHES] },
       })),
-      {
-        type: 'text',
-        content: { tag: null, text: whatItOffers.trim() },
-        properties: { categories: [WHAT_IT_OFFERS] },
-      },
     ];
 
     try {
@@ -122,7 +174,7 @@ function CreateResource() {
         extraBlocks,
         resourceSpaceIds: [],
         tags: ['resource', ...typeTags],
-        categories: [WHAT_IT_IS, WHAT_IT_AFFORDS, TOUCHES, WHAT_IT_OFFERS],
+        categories: [...activeFacets.map((facet) => facet.name), TOUCHES],
         goal: null,
         origin: 'external',
       });
@@ -159,7 +211,10 @@ function CreateResource() {
         </div>
 
         <h2>Type</h2>
-        <p>Optional -- helps sub-type this Resource alongside every other one.</p>
+        <p>
+          Optional -- helps sub-type this Resource alongside every other one. Some types have their
+          own tailored set of questions below (see <Link to="/resource-templates">Resource Templates</Link>).
+        </p>
         <p className="tag-row">
           {typeTags.map((type) => (
             <span key={type} className="tag-chip">
@@ -196,26 +251,25 @@ function CreateResource() {
             </button>
           ))}
         </p>
+        {resourceTemplate && (
+          <p className="resource-template-active">
+            Using the <strong>{resourceTemplate.label}</strong> template's own questions below.
+          </p>
+        )}
 
-        <h2>{WHAT_IT_IS}</h2>
-        <p>What is this Resource, plainly -- its nature, where it comes from, the basics.</p>
-        <textarea
-          value={whatItIs}
-          rows={3}
-          className="field-full"
-          placeholder="(optional -- can be filled in later)"
-          onChange={(event) => setWhatItIs(event.target.value)}
-        />
-
-        <h2>{WHAT_IT_AFFORDS}</h2>
-        <p>What does having this around actually let you do?</p>
-        <textarea
-          value={whatItAffords}
-          rows={3}
-          className="field-full"
-          placeholder="(optional -- can be filled in later)"
-          onChange={(event) => setWhatItAffords(event.target.value)}
-        />
+        {activeFacets.map((facet) => (
+          <div key={facet.name}>
+            <h2>{facet.name}</h2>
+            <p>{facet.prompt}</p>
+            <textarea
+              value={facetValues[facet.name] || ''}
+              rows={3}
+              className="field-full"
+              placeholder="(optional -- can be filled in later)"
+              onChange={(event) => setFacetValues((current) => ({ ...current, [facet.name]: event.target.value }))}
+            />
+          </div>
+        ))}
 
         <h2>{TOUCHES}</h2>
         <p>Which existing Spaces does this Resource relate to? Each becomes a real reference.</p>
@@ -246,16 +300,6 @@ function CreateResource() {
             ))}
           </ul>
         )}
-
-        <h2>{WHAT_IT_OFFERS}</h2>
-        <p>What value or content does it actually offer once you engage with it?</p>
-        <textarea
-          value={whatItOffers}
-          rows={3}
-          className="field-full"
-          placeholder="(optional -- can be filled in later)"
-          onChange={(event) => setWhatItOffers(event.target.value)}
-        />
 
         <p>
           <button type="submit" className="btn btn-primary" disabled={submitting || !title.trim()}>

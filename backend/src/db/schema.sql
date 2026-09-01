@@ -11,6 +11,28 @@ CREATE TABLE IF NOT EXISTS templates (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Resource Templates: a deliberately separate mechanism from the
+-- ordinary Templates table above, per direct confirmation. Where a
+-- Space Template seeds a block_arrangement wholesale, a Resource
+-- Template instead REPLACES CreateResource.jsx's three generic
+-- descriptive facets (What It Is / What It Affords / What It Offers)
+-- with a type-tailored set of its own -- `facets` is a JSON array of
+-- {name, prompt}, one guided question per facet, mirroring the
+-- structure of the generic flow it replaces. The fourth, structural
+-- facet (Touches / Touched By -- the cross-Space reference picker)
+-- stays universal across every type: it's a mechanical capability
+-- (create a Reference block to an existing Space), not a descriptive
+-- facet that varies by what kind of thing a Resource is, so it's never
+-- part of a Template's own `facets` list.
+CREATE TABLE IF NOT EXISTS resource_templates (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL UNIQUE, -- matches a Resource's own type tag, e.g. 'book'
+  label TEXT NOT NULL, -- display name, e.g. "Book"
+  facets TEXT NOT NULL DEFAULT '[]', -- JSON array of {name, prompt}
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS spaces (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,

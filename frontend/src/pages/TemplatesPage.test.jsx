@@ -28,7 +28,7 @@ describe('TemplatesPage: loading and errors', () => {
     renderPage();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(await screen.findByText('Inquiry')).toBeInTheDocument();
-    expect(screen.getByText('(2 blocks)')).toBeInTheDocument();
+    expect(screen.getByText('(2 entries)')).toBeInTheDocument();
   });
 
   it('shows an error when the fetch fails', async () => {
@@ -43,10 +43,10 @@ describe('TemplatesPage: loading and errors', () => {
     expect(await screen.findByText('No Templates yet.')).toBeInTheDocument();
   });
 
-  it('uses singular "block" for exactly one block', async () => {
+  it('uses singular "entry" for exactly one entry', async () => {
     api.getTemplates.mockResolvedValue([{ id: 't1', name: 'Solo', block_arrangement: [{ type: 'text' }] }]);
     renderPage();
-    expect(await screen.findByText('(1 block)')).toBeInTheDocument();
+    expect(await screen.findByText('(1 entry)')).toBeInTheDocument();
   });
 });
 

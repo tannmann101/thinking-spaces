@@ -41,6 +41,11 @@ function TemplatesPage() {
           + New Template
         </Link>
       </div>
+      <p>
+        <Link to="/resource-templates">Manage Resource Templates</Link> -- a separate set of
+        starting facets used specifically by <Link to="/resources/new">New Resource</Link>, one per
+        type of thing (Book, Poem, Debate, ...).
+      </p>
 
       {error && <p>Could not load templates: {error}</p>}
       {templates === null && !error && <p>Loading...</p>}
@@ -52,8 +57,8 @@ function TemplatesPage() {
               <span>
                 {template.name}{' '}
                 <span className="mono-caption">
-                  ({template.block_arrangement.length} block
-                  {template.block_arrangement.length === 1 ? '' : 's'})
+                  ({template.block_arrangement.length} entr
+                  {template.block_arrangement.length === 1 ? 'y' : 'ies'})
                 </span>
               </span>
               <span className="row-actions">

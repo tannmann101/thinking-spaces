@@ -5,6 +5,7 @@ import cors from 'cors';
 import { healthRouter } from './routes/health.js';
 import { spacesRouter } from './routes/spaces.js';
 import { templatesRouter } from './routes/templates.js';
+import { resourceTemplatesRouter } from './routes/resourceTemplates.js';
 import { blocksRouter } from './routes/blocks.js';
 import { workspacesRouter } from './routes/workspaces.js';
 import { projectsRouter } from './routes/projects.js';
@@ -15,6 +16,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { ensureTestSpaceExists, migrateTextBlockLines, migrateWorkItemSupport } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
 import { seedTemplates } from './db/seedTemplates.js';
+import { seedResourceTemplates } from './db/seedResourceTemplates.js';
 
 ensureTestSpaceExists();
 // One-time backfill for any Text block created before the per-line
@@ -24,6 +26,7 @@ ensureTestSpaceExists();
 migrateTextBlockLines();
 migrateWorkItemSupport();
 seedTemplates();
+seedResourceTemplates();
 seedTestSpaceBlocks();
 
 const app = express();
@@ -35,6 +38,7 @@ app.use(express.json());
 app.use('/api', healthRouter);
 app.use('/api', spacesRouter);
 app.use('/api', templatesRouter);
+app.use('/api', resourceTemplatesRouter);
 app.use('/api', blocksRouter);
 app.use('/api', workspacesRouter);
 app.use('/api', projectsRouter);

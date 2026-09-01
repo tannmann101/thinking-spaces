@@ -18,6 +18,15 @@ CREATE TABLE IF NOT EXISTS templates (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS resource_templates (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL,
+  facets TEXT NOT NULL DEFAULT '[]', -- JSON array of {name, prompt}
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS spaces (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,

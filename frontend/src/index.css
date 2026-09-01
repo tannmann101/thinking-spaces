@@ -646,6 +646,25 @@ label {
 .space-header .space-meta {
   font-size: var(--fs-sm);
 }
+
+/* Groups the Space's own identity fields (accent, working-toward,
+   due date, tags, promotion, Categories) into one bordered surface,
+   same family as .view-card/.digest/.work-block -- each row inside
+   keeps its own existing spacing, this just gives the group a visible
+   boundary instead of leaving it as bare rows loose under the title. */
+.space-details-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 4px 16px;
+  margin: 14px 0;
+}
+.space-details-panel > p:first-child {
+  margin-top: 6px;
+}
+.space-details-panel > p:last-child {
+  margin-bottom: 6px;
+}
 .skeleton-strip {
   font-family: var(--mono);
   font-size: var(--fs-sm);
@@ -831,6 +850,25 @@ label {
 }
 .streak-cell.empty {
   background: transparent;
+}
+
+/* Breaks the graph canvas out of #root's centered 900px column via
+   the standard negative-viewport-margin technique -- the Map is the
+   one page where that width was an active bug (node labels clipping
+   against the canvas edge, see the WIDTH/HEIGHT comment in
+   GraphView.jsx), not just unused space, so it's the one page that
+   gets more room rather than widening every page uniformly. The
+   inner wrapper re-applies a cap and matches #root's own 24px side
+   padding, so the wide section's edges still line up with the rest
+   of the page's content on an ordinary-width screen. */
+.graph-frame {
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+.graph-frame-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
 .graph-svg {

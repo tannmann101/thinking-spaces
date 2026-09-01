@@ -7,6 +7,8 @@ import {
   getWeekCalendar,
   getResurfaceSuggestion,
   deleteSpace,
+  updateBlockContent,
+  createReview,
 } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
@@ -58,6 +60,25 @@ function formatShort(isoDate) {
   return parseLocalDate(isoDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// The Space ids that were genuinely active this week -- Trail activity,
+// a Milestone actually reached, or a Session that actually completed.
+// A due date passing on its own isn't a change worth reviewing, so
+// dueSpaces is deliberately not part of this union.
+function computeActiveSpaceIds(days) {
+  const ids = new Set();
+  for (const day of days) {
+    for (const entry of day.trail) ids.add(entry.space_id);
+    for (const m of day.milestones) if (m.reached) ids.add(m.spaceId);
+    for (const s of day.sessions) if (!s.isRunning) ids.add(s.spaceId);
+  }
+  return ids;
+}
+
 // A real calendar grid, not a flat list -- the whole point is that
 // "what does 'this week' mean" is answered just by looking at the day
 // labels and the actual dates in the header, rather than being a fact
@@ -71,17 +92,64 @@ function projectSuffix(projectName) {
   return projectName ? ` (${projectName})` : '';
 }
 
-function WeekCalendarDigest({ days }) {
+function WeekCalendarDigest({ days, onDataChanged }) {
+  const { confirm } = useConfirmDialog();
+  const [reviewMessage, setReviewMessage] = useState(null);
   const hasAnything = days.some(
     (day) => day.trail.length + day.dueSpaces.length + day.milestones.length + day.sessions.length > 0
   );
   if (!hasAnything) return null;
+
+  // Marking a Milestone reached or stopping a running Session right
+  // from the calendar cell -- the same mutation the Milestone/Session
+  // Tool itself would make (updateBlockContent with the whole content
+  // object, reached/reachedAt or endedAt/durationMinutes set the same
+  // way MilestoneBlock.jsx/SessionBlock.jsx do it), just reachable
+  // without leaving the Dashboard first.
+  async function markMilestoneReached(milestone) {
+    await updateBlockContent(milestone.id, { ...milestone.content, reached: true, reachedAt: todayString() });
+    onDataChanged();
+  }
+
+  async function stopSession(session) {
+    const endedAt = new Date().toISOString();
+    const minutes = Math.max(0, Math.round((new Date(endedAt) - new Date(session.content.startedAt)) / 60000));
+    await updateBlockContent(session.id, { ...session.content, endedAt, durationMinutes: minutes });
+    onDataChanged();
+  }
+
+  // A bulk "close out the week" action -- one Review per Space that
+  // was genuinely active (see computeActiveSpaceIds), reusing the
+  // existing per-Space createReview API rather than any new endpoint.
+  async function handleReviewWeek() {
+    const activeIds = computeActiveSpaceIds(days);
+    if (activeIds.size === 0) return;
+    const confirmed = await confirm(
+      `Log a Review for ${activeIds.size} Space${activeIds.size === 1 ? '' : 's'} active this week?`
+    );
+    if (!confirmed) return;
+    for (const spaceId of activeIds) {
+      await createReview(spaceId);
+    }
+    setReviewMessage(`Logged ${activeIds.size} Review${activeIds.size === 1 ? '' : 's'}.`);
+    onDataChanged();
+  }
+
+  const activeSpaceCount = computeActiveSpaceIds(days).size;
 
   return (
     <details className="digest digest-week" data-digest="week" open>
       <summary>
         <span className="digest-icon">◷</span>This week ({formatShort(days[0].date)} &ndash; {formatShort(days[6].date)})
       </summary>
+      {activeSpaceCount > 0 && (
+        <p className="week-review-row">
+          <button type="button" className="week-review-btn" onClick={handleReviewWeek}>
+            📋 Review this week ({activeSpaceCount} Space{activeSpaceCount === 1 ? '' : 's'})
+          </button>
+          {reviewMessage && <span className="week-review-message">{reviewMessage}</span>}
+        </p>
+      )}
       <div className="week-grid">
         {days.map((day, index) => {
           const pastItems = [
@@ -122,6 +190,7 @@ function WeekCalendarDigest({ days }) {
                 spaceId: m.spaceId,
                 spaceTitle: m.spaceTitle,
                 text: `target: ${m.label}${projectSuffix(m.projectName)}`,
+                action: { label: 'Mark reached', onClick: () => markMilestoneReached(m) },
               })),
             ...day.sessions
               .filter((s) => s.isRunning)
@@ -130,6 +199,7 @@ function WeekCalendarDigest({ days }) {
                 spaceId: s.spaceId,
                 spaceTitle: s.spaceTitle,
                 text: `session running${s.label ? `: ${s.label}` : ''}${projectSuffix(s.projectName)}`,
+                action: { label: 'Stop', onClick: () => stopSession(s) },
               })),
           ];
           return (
@@ -151,6 +221,11 @@ function WeekCalendarDigest({ days }) {
                   {upcomingItems.map((item) => (
                     <li key={item.key} className="week-item week-item-upcoming">
                       <Link to={`/spaces/${item.spaceId}`}>{item.spaceTitle}</Link>: {item.text}
+                      {item.action && (
+                        <button type="button" className="week-item-action" onClick={item.action.onClick}>
+                          {item.action.label}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -255,10 +330,14 @@ function Dashboard() {
     getSpaces().then(setSpaces).catch((err) => setError(err.message));
   }
 
+  function refetchWeek() {
+    getWeekCalendar().then(setWeekDays).catch(() => {});
+  }
+
   useEffect(() => {
     refetchSpaces();
     getOverdueReviews().then(setOverdue).catch(() => {});
-    getWeekCalendar().then(setWeekDays).catch(() => {});
+    refetchWeek();
     getResurfaceSuggestion().then(setResurface).catch(() => {});
     getSpacesByTag('resource').then(setResources).catch(() => {});
     getSpacesByTag('synthesis').then(setSyntheses).catch(() => {});
@@ -306,7 +385,7 @@ function Dashboard() {
       </Link>
 
       <OverdueReviews items={overdue} />
-      <WeekCalendarDigest days={weekDays} />
+      <WeekCalendarDigest days={weekDays} onDataChanged={refetchWeek} />
       <ResurfaceSuggestion space={resurface} />
       <ResourcesDigest spaces={resources} />
       <SynthesesDigest spaces={syntheses} />

@@ -652,6 +652,55 @@ select:focus-visible,
   font-size: var(--fs-2xs);
 }
 
+/* An upcoming Milestone/running Session's inline action -- "mark
+   reached"/"stop" right from the calendar cell, matching the same
+   small-mono-button treatment .new-space-btn already uses, just
+   scaled down to fit inside a week-item line. */
+.week-item-action {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  margin-left: 6px;
+  cursor: pointer;
+}
+.week-item-action:hover {
+  border-color: var(--accent);
+}
+
+/* The bulk "close out the week" action -- shown only once at least one
+   Space was genuinely active this week (see computeActiveSpaceIds in
+   Dashboard.jsx). */
+.week-review-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 12px;
+}
+.week-review-btn {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.week-review-btn:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.week-review-message {
+  font-size: var(--fs-xs);
+  color: var(--ink-faint);
+}
+
 @media (max-width: 700px) {
   .week-grid {
     grid-template-columns: 1fr;

@@ -303,6 +303,91 @@ describe('Dashboard: Week calendar', () => {
   });
 });
 
+describe('Dashboard: Week calendar actions', () => {
+  it('marks a Milestone reached from the calendar and refetches the week', async () => {
+    const user = userEvent.setup();
+    const milestone = {
+      id: 'm1',
+      content: { label: 'Ship it', reached: false, targetDate: '2024-06-05' },
+      label: 'Ship it',
+      reached: false,
+      spaceId: 'sp-4',
+      spaceTitle: 'Pending Space',
+      projectName: null,
+    };
+    api.getWeekCalendar.mockResolvedValue(makeWeekDays({ 4: { milestones: [milestone] } }));
+    api.updateBlockContent.mockResolvedValue(null);
+    renderDashboard();
+    await screen.findByText(/target: Ship it/);
+
+    await user.click(screen.getByRole('button', { name: 'Mark reached' }));
+
+    await waitFor(() =>
+      expect(api.updateBlockContent).toHaveBeenCalledWith('m1', expect.objectContaining({ reached: true }))
+    );
+    expect(api.getWeekCalendar).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops a running Session from the calendar', async () => {
+    const user = userEvent.setup();
+    const session = {
+      id: 's1',
+      content: { label: 'Editing', startedAt: '2024-06-03T10:00:00.000Z', endedAt: null, durationMinutes: null },
+      label: 'Editing',
+      durationMinutes: null,
+      isRunning: true,
+      spaceId: 'sp-6',
+      spaceTitle: 'Writing Space',
+      projectName: null,
+    };
+    api.getWeekCalendar.mockResolvedValue(makeWeekDays({ 3: { sessions: [session] } }));
+    api.updateBlockContent.mockResolvedValue(null);
+    renderDashboard();
+    await screen.findByText(/session running: Editing/);
+
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+
+    await waitFor(() =>
+      expect(api.updateBlockContent).toHaveBeenCalledWith(
+        's1',
+        expect.objectContaining({ endedAt: expect.any(String), durationMinutes: expect.any(Number) })
+      )
+    );
+  });
+
+  it('shows a "Review this week" button only when a Space was genuinely active, and logs one Review per Space', async () => {
+    const user = userEvent.setup();
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({
+        3: { trail: [{ id: 't1', space_id: 'sp-1', spaceTitle: 'A Space', summary: 'wrote a paragraph' }] },
+        4: { milestones: [{ label: 'Shipped it', reached: true, spaceId: 'sp-3', spaceTitle: 'Done Space' }] },
+      })
+    );
+    api.createReview.mockResolvedValue(null);
+    renderDashboard();
+    const reviewBtn = await screen.findByRole('button', { name: /Review this week \(2 Spaces\)/ });
+
+    await user.click(reviewBtn);
+    const dialogMessage = await screen.findByText(/Log a Review for 2 Spaces active this week/);
+    const dialog = dialogMessage.closest('.confirm-dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => expect(api.createReview).toHaveBeenCalledTimes(2));
+    expect(api.createReview).toHaveBeenCalledWith('sp-1');
+    expect(api.createReview).toHaveBeenCalledWith('sp-3');
+    expect(await screen.findByText('Logged 2 Reviews.')).toBeInTheDocument();
+  });
+
+  it('does not show the "Review this week" button when only a due date passed, with nothing actually done', async () => {
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({ 5: { dueSpaces: [{ spaceId: 'sp-2', spaceTitle: 'Due Space' }] } })
+    );
+    renderDashboard();
+    await screen.findByText(/due/);
+    expect(screen.queryByRole('button', { name: /Review this week/ })).not.toBeInTheDocument();
+  });
+});
+
 describe('Dashboard: navigation', () => {
   it('links to the three creation flows', async () => {
     renderDashboard();

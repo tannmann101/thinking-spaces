@@ -215,3 +215,34 @@ describe('ListBlock: read-only mode', () => {
     expect(screen.queryByPlaceholderText('+ Add item')).not.toBeInTheDocument();
   });
 });
+
+describe('ListBlock: onSave override', () => {
+  it('routes a checkbox toggle through onSave instead, for an id-less demo/Comparison side', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ListBlock
+        block={makeBlock({ items: [{ id: '1', text: 'Task', checkbox: false }] }, { id: undefined })}
+        onSave={onSave}
+      />
+    );
+    await user.click(screen.getByRole('checkbox'));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ items: [expect.objectContaining({ checkbox: true })] })
+      )
+    );
+    expect(api.updateBlockContent).not.toHaveBeenCalled();
+  });
+
+  it('shows per-item controls when onSave makes an id-less block editable', () => {
+    render(
+      <ListBlock
+        block={makeBlock({ items: [{ id: '1', text: 'x' }] }, { id: undefined })}
+        onSave={vi.fn()}
+      />
+    );
+    expect(screen.getByTitle('Remove item')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('+ Add item')).toBeInTheDocument();
+  });
+});

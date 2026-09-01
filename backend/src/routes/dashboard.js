@@ -4,7 +4,7 @@
 import { Router } from 'express';
 import {
   listOverdueReviews,
-  listRecentTrailEntries,
+  getWeekCalendar,
   suggestSpaceToResurface,
   getGraphData,
   listGlobalActivity,
@@ -18,15 +18,15 @@ dashboardRouter.get('/dashboard/overdue-reviews', (req, res) => {
   res.json(listOverdueReviews());
 });
 
-// TopNav's badge, fetched on every page -- deliberately its own small
+// The sidebar's badge, fetched on every page -- deliberately its own small
 // endpoint rather than the full Insights payload, since a page chrome
 // element needs a number, not five sections of aggregated data.
 dashboardRouter.get('/notifications/count', (req, res) => {
   res.json({ count: getNeedsAttentionCount() });
 });
 
-dashboardRouter.get('/dashboard/recent-trail', (req, res) => {
-  res.json(listRecentTrailEntries());
+dashboardRouter.get('/dashboard/week', (req, res) => {
+  res.json(getWeekCalendar());
 });
 
 dashboardRouter.get('/dashboard/resurface', (req, res) => {

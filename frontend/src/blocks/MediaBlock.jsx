@@ -7,8 +7,12 @@
 import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
 
-function MediaBlock({ block, onBlocksChanged }) {
-  const editable = Boolean(block.id);
+// onSave lets a parent override where an edit goes -- a Comparison side
+// or the Tools catalog's own interactive demo (see ToolsPage.jsx's
+// DemoBlock), same pattern every other simple Block already follows
+// (see ReferenceBlock.jsx).
+function MediaBlock({ block, onSave, onBlocksChanged }) {
+  const editable = Boolean(block.id) || Boolean(onSave);
   const { mediaType, url } = block.content;
 
   const [editing, setEditing] = useState(false);
@@ -19,8 +23,13 @@ function MediaBlock({ block, onBlocksChanged }) {
     setEditing(false);
     if (draft === savedCaption) return;
     setSavedCaption(draft);
-    await updateBlockContent(block.id, { ...block.content, caption: draft });
-    onBlocksChanged?.();
+    const newContent = { ...block.content, caption: draft };
+    if (onSave) {
+      await onSave(newContent);
+    } else {
+      await updateBlockContent(block.id, newContent);
+      onBlocksChanged?.();
+    }
   }
 
   const captionNode = editing ? (

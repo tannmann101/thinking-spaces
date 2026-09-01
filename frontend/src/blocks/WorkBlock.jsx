@@ -185,8 +185,12 @@ function SupportItem({ item, spaceBlocks, editable, onSaveText, onRemove }) {
   );
 }
 
-function WorkBlock({ block, onBlocksChanged, statementLabel, supportLabel }) {
-  const editable = Boolean(block.id);
+// onSave lets a parent override where an edit goes -- the Tools
+// catalog's own interactive demo (see ToolsPage.jsx's DemoBlock), same
+// pattern every other simple Block already follows (see
+// ReferenceBlock.jsx).
+function WorkBlock({ block, onSave, onBlocksChanged, statementLabel, supportLabel }) {
+  const editable = Boolean(block.id) || Boolean(onSave);
   const [content, setContent] = useState(block.content);
   const [spaceBlocks, setSpaceBlocks] = useState(null);
   const [newSupportText, setNewSupportText] = useState('');
@@ -194,16 +198,22 @@ function WorkBlock({ block, onBlocksChanged, statementLabel, supportLabel }) {
 
   // Needed both to resolve any existing pointer support points and to
   // offer link candidates -- fetched once per block instance, same
-  // eagerness ListWorkshop already applies for Tensions.
+  // eagerness ListWorkshop already applies for Tensions. Gated on
+  // block.id specifically, not editable -- a demo block is "editable"
+  // via onSave but has no real space_id to fetch against.
   useEffect(() => {
-    if (editable) getBlocksForSpace(block.space_id).then(setSpaceBlocks);
-  }, [editable, block.space_id]);
+    if (block.id) getBlocksForSpace(block.space_id).then(setSpaceBlocks);
+  }, [block.id, block.space_id]);
 
   async function save(next) {
     setContent(next);
     if (!editable) return;
-    await updateBlockContent(block.id, next);
-    onBlocksChanged?.();
+    if (onSave) {
+      await onSave(next);
+    } else {
+      await updateBlockContent(block.id, next);
+      onBlocksChanged?.();
+    }
   }
 
   function cycleConfidence() {

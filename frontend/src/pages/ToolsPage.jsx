@@ -6,11 +6,19 @@
 //
 // Each demo renders through the exact same component a live Space
 // uses, fed a real id-less block (or, for Graph, plain demo props) --
-// not a screenshot or a hand-built mockup. An id-less block is
-// automatically read-only (every Block component treats a missing
-// `id` as "not editable"), so nothing here can accidentally write to
-// the database.
+// not a screenshot or a hand-built mockup. A demo is genuinely
+// interactive -- checkboxes toggle, text opens for editing, items can
+// be added/reordered -- via DemoBlock below, which holds the evolving
+// content as its own local state and passes it back in through
+// `onSave` rather than ever letting a Block component reach for the
+// real API with an id that doesn't exist. That's the exact same
+// `onSave` override every Block component already supports for a
+// Comparison-embedded side (see ReferenceBlock.jsx's own comment) --
+// reused here rather than inventing a second, demo-specific mechanism.
+// A View's demo needs none of this: Views are already read-only,
+// computed lenses with no edit surface to begin with.
 
+import { useState } from 'react';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
@@ -21,6 +29,27 @@ const ALL_TOOLS = { ...blockRegistry, ...viewRegistry };
 
 function labelFor(key) {
   return ALL_TOOLS[key]?.label || key;
+}
+
+// A demo block's own content, held here rather than in entry.demoBlock
+// itself, so typing/clicking in one card's demo never mutates the
+// registry's shared demo data (every ToolCard would otherwise be
+// rendering, and silently sharing, the exact same object).
+function DemoBlock({ entry }) {
+  const Demo = entry.component;
+  const [content, setContent] = useState(entry.demoBlock.content);
+  // Merged onto the previous content, not replaced outright -- a real
+  // Reference block's targetSpaceTitle is a display field the backend
+  // injects at read time rather than something PATCHed back (see
+  // backend/src/db/queries/blocks.js), so a demo with no backend behind
+  // it needs to hang onto it itself across an edit instead of losing it.
+  return (
+    <Demo
+      block={{ ...entry.demoBlock, content }}
+      onSave={(next) => setContent((prev) => ({ ...prev, ...next }))}
+      onBlocksChanged={() => {}}
+    />
+  );
 }
 
 function ToolCard({ entry, kind }) {
@@ -40,7 +69,7 @@ function ToolCard({ entry, kind }) {
         {entry.demoProps ? (
           <Demo {...entry.demoProps} />
         ) : entry.demoBlock ? (
-          <Demo block={entry.demoBlock} />
+          <DemoBlock entry={entry} />
         ) : (
           <p className="tool-no-demo">(no demo available)</p>
         )}

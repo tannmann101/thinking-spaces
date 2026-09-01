@@ -1,5 +1,5 @@
 import { db } from '../index.js';
-import { TEST_SPACE_ID } from './constants.js';
+import { TEST_SPACE_ID, todayString } from './constants.js';
 import { parseTrailRow } from './trail.js';
 
 // --- Dashboard aggregations -------------------------------------------
@@ -32,20 +32,84 @@ export function listOverdueReviews() {
   }));
 }
 
-// Every Trail entry (auto or manual) from the last N days, across
-// every Space -- a "what changed this week" digest for the Dashboard.
-export function listRecentTrailEntries(days = 7) {
-  const rows = db
+// The Dashboard's Week calendar: one entry per day of the current
+// calendar week (Sunday through Saturday), each carrying whatever
+// actually happened that day (Trail entries -- what a flat "this week"
+// list used to show with no explanation of what "week" meant) and
+// whatever is due that day (a Space's own due_date, a Milestone's
+// targetDate). Answering "how does it know what this week is" is the
+// whole point -- a real calendar grid with day labels/dates makes that
+// visible for free, instead of it being a fact only the code knows.
+export function getWeekCalendar() {
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // back up to Sunday
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const rangeStart = days[0];
+  const rangeEnd = days[6];
+  const today = todayString();
+
+  const trailRows = db
     .prepare(
       `SELECT trail_entries.*, spaces.title AS space_title
        FROM trail_entries
        JOIN spaces ON spaces.id = trail_entries.space_id
-       WHERE trail_entries.created_at >= datetime('now', ?)
+       WHERE date(trail_entries.created_at) BETWEEN ? AND ?
          AND spaces.id != ?
-       ORDER BY trail_entries.created_at DESC`
+       ORDER BY trail_entries.created_at ASC`
     )
-    .all(`-${days} days`, TEST_SPACE_ID);
-  return rows.map((row) => ({ ...parseTrailRow(row), spaceTitle: row.space_title }));
+    .all(rangeStart, rangeEnd, TEST_SPACE_ID);
+  const trailByDay = {};
+  for (const row of trailRows) {
+    const day = row.created_at.slice(0, 10);
+    (trailByDay[day] ||= []).push({
+      ...parseTrailRow(row),
+      spaceId: row.space_id,
+      spaceTitle: row.space_title,
+    });
+  }
+
+  const dueSpaceRows = db
+    .prepare(`SELECT id, title, due_date FROM spaces WHERE id != ? AND due_date BETWEEN ? AND ?`)
+    .all(TEST_SPACE_ID, rangeStart, rangeEnd);
+  const dueSpacesByDay = {};
+  for (const row of dueSpaceRows) {
+    (dueSpacesByDay[row.due_date] ||= []).push({ spaceId: row.id, spaceTitle: row.title });
+  }
+
+  const milestoneRows = db
+    .prepare(
+      `SELECT blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
+       FROM blocks JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
+    )
+    .all(TEST_SPACE_ID);
+  const milestonesByDay = {};
+  for (const row of milestoneRows) {
+    const milestone = JSON.parse(row.content);
+    if (milestone.targetDate && milestone.targetDate >= rangeStart && milestone.targetDate <= rangeEnd) {
+      (milestonesByDay[milestone.targetDate] ||= []).push({
+        label: milestone.label,
+        reached: milestone.reached,
+        spaceId: row.space_id,
+        spaceTitle: row.space_title,
+      });
+    }
+  }
+
+  return days.map((date) => ({
+    date,
+    isToday: date === today,
+    isPast: date < today,
+    trail: trailByDay[date] || [],
+    dueSpaces: dueSpacesByDay[date] || [],
+    milestones: milestonesByDay[date] || [],
+  }));
 }
 
 // One suggestion for "maybe revisit this": the nascent/dormant Space
@@ -64,7 +128,7 @@ export function suggestSpaceToResurface() {
   return row || null;
 }
 
-// The count behind TopNav's "needs attention" badge -- deliberately
+// The count behind the sidebar's "needs attention" badge -- deliberately
 // narrow and already-actionable, not a raw activity count. Three
 // things: overdue List items (reviewBy), overdue Spaces (due_date),
 // and overdue Milestones (targetDate, not yet reached). Trail Review

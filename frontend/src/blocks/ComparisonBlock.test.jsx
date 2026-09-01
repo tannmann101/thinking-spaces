@@ -122,4 +122,19 @@ describe('ComparisonBlock: contrast marker', () => {
     expect(screen.getByText(/Marked as a contrast/)).toBeInTheDocument();
     expect(screen.getByText('Speed vs. cost')).toBeInTheDocument();
   });
+
+  it('routes the contrast toggle through onSave instead, for an id-less demo', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderBlock({
+      block: makeBlock(
+        { left: { kind: 'text', tag: null, text: 'A' }, right: { kind: 'text', tag: null, text: 'B' }, contrast: false },
+        { id: undefined }
+      ),
+      onSave,
+    });
+    await user.click(screen.getByText(/not marked as a contrast/));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ contrast: true })));
+    expect(api.updateBlockContent).not.toHaveBeenCalled();
+  });
 });

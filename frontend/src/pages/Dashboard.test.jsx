@@ -37,7 +37,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.getSpaces.mockResolvedValue([]);
   api.getOverdueReviews.mockResolvedValue([]);
-  api.getRecentTrail.mockResolvedValue([]);
+  api.getWeekCalendar.mockResolvedValue([]);
   api.getResurfaceSuggestion.mockResolvedValue(null);
   api.getSpacesByTag.mockResolvedValue([]);
 });
@@ -216,6 +216,73 @@ describe('Dashboard: digests', () => {
     renderDashboard();
     expect(await screen.findByText('Maybe revisit...')).toBeInTheDocument();
     expect(screen.getByText('Forgotten Space')).toBeInTheDocument();
+  });
+});
+
+// A 7-day getWeekCalendar payload with everything empty by default --
+// each test overrides just the one day/field it cares about, same
+// "start from a known-good shape" helper pattern makeSpace() uses above.
+function makeWeekDays(overrides = {}) {
+  const days = Array.from({ length: 7 }, (_, i) => ({
+    date: `2024-06-0${i + 2}`, // a Sunday-Saturday week, arbitrary but ordered
+    isToday: i === 3,
+    isPast: i < 3,
+    trail: [],
+    dueSpaces: [],
+    milestones: [],
+  }));
+  Object.entries(overrides).forEach(([index, patch]) => {
+    days[index] = { ...days[index], ...patch };
+  });
+  return days;
+}
+
+describe('Dashboard: Week calendar', () => {
+  it('hides the digest entirely when every day is empty', async () => {
+    api.getWeekCalendar.mockResolvedValue(makeWeekDays());
+    renderDashboard();
+    await screen.findByText('No spaces yet. Create your first one to get started.');
+    expect(screen.queryByText(/^This week/)).not.toBeInTheDocument();
+  });
+
+  it('shows a Trail entry under its own day, linking to its Space', async () => {
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({ 3: { trail: [{ id: 't1', space_id: 'sp-1', spaceTitle: 'A Space', summary: 'wrote a paragraph' }] } })
+    );
+    renderDashboard();
+    expect(await screen.findByText(/wrote a paragraph/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'A Space' })).toHaveAttribute('href', '/spaces/sp-1');
+  });
+
+  it('shows a Space due that day as "due"', async () => {
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({ 5: { dueSpaces: [{ spaceId: 'sp-2', spaceTitle: 'Due Space' }] } })
+    );
+    renderDashboard();
+    expect(await screen.findByText(/due/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Due Space' })).toHaveAttribute('href', '/spaces/sp-2');
+  });
+
+  it('distinguishes a reached Milestone from one still targeted', async () => {
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({
+        1: { milestones: [{ label: 'Shipped it', reached: true, spaceId: 'sp-3', spaceTitle: 'Done Space' }] },
+        4: { milestones: [{ label: 'Ship it', reached: false, spaceId: 'sp-4', spaceTitle: 'Pending Space' }] },
+      })
+    );
+    renderDashboard();
+    expect(await screen.findByText(/reached: Shipped it/)).toBeInTheDocument();
+    expect(screen.getByText(/target: Ship it/)).toBeInTheDocument();
+  });
+
+  it('marks today\'s column distinctly from the others', async () => {
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({ 3: { trail: [{ id: 't1', space_id: 'sp-1', spaceTitle: 'A Space', summary: 'x' }] } })
+    );
+    renderDashboard();
+    await screen.findByText(/x$/);
+    const todayColumns = document.querySelectorAll('.week-day[data-today]');
+    expect(todayColumns).toHaveLength(1);
   });
 });
 

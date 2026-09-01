@@ -14,10 +14,11 @@ import { updateBlockContent } from '../api.js';
 
 const TRUST_CYCLE = [null, 'high', 'medium', 'low'];
 
-// onSave lets a parent block (Comparison) override where an edit goes,
-// same reasoning as TextBlock. onBlocksChanged tells SpacePage to
-// refetch after a standalone save, so anything else on the page
-// depending on this Space's data doesn't stay stale.
+// onSave lets a parent override where an edit goes -- a Comparison side,
+// or the Tools catalog's own interactive demo (see ToolsPage.jsx's
+// DemoBlock) -- same reasoning as TextBlock. onBlocksChanged tells
+// SpacePage to refetch after a standalone save, so anything else on the
+// page depending on this Space's data doesn't stay stale.
 function ReferenceBlock({ block, onSave, onBlocksChanged }) {
   const editable = Boolean(block.id) || Boolean(onSave);
   const { target_space_id, targetSpaceTitle } = block.content;

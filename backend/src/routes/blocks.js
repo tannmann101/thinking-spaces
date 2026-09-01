@@ -5,6 +5,7 @@ import {
   updateBlockContent,
   updateBlockCategories,
   updateBlockWorkspaces,
+  updateBlockProject,
   saveTextBlockWithPromotion,
   addBlockToSpace,
   deleteBlock,
@@ -38,16 +39,17 @@ blocksRouter.post('/spaces/:spaceId/blocks/:blockId/move', (req, res) => {
   res.json(listBlocksForSpace(req.params.spaceId));
 });
 
-// content, categories, and workspaces are all independent edits (content
-// vs. two different properties), so any subset can be sent together.
+// content, categories, workspaces, and projectId are all independent
+// edits (content vs. three different properties), so any subset can be
+// sent together.
 blocksRouter.patch('/blocks/:id', (req, res) => {
   const existing = getBlockById(req.params.id);
   if (!existing) {
     return res.status(404).json({ error: 'Entry not found' });
   }
-  const { content, categories, workspaces } = req.body;
-  if (content === undefined && categories === undefined && workspaces === undefined) {
-    return res.status(400).json({ error: 'content, categories, or workspaces is required' });
+  const { content, categories, workspaces, projectId } = req.body;
+  if (content === undefined && categories === undefined && workspaces === undefined && projectId === undefined) {
+    return res.status(400).json({ error: 'content, categories, workspaces, or projectId is required' });
   }
   let updated = existing;
   if (content !== undefined) {
@@ -58,6 +60,9 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
   }
   if (workspaces !== undefined) {
     updated = updateBlockWorkspaces(req.params.id, workspaces);
+  }
+  if (projectId !== undefined) {
+    updated = updateBlockProject(req.params.id, projectId);
   }
   res.json(updated);
 });

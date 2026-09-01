@@ -11,8 +11,11 @@ import {
   updateSpace,
   updateBlockCategories,
   updateBlockWorkspaces,
+  updateBlockProject,
   getWorkspacesForSpace,
   createWorkspace,
+  getProjectsForSpace,
+  createProject,
   deleteSpace,
   getSpaceReport,
   getBlockReport,
@@ -23,6 +26,7 @@ import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
 import SpaceGlyph, { SPACE_STATUSES, SPACE_ACCENTS } from '../glyph/SpaceGlyph.jsx';
 import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
+import { newSessionSpec } from '../blocks/sessionActions.js';
 import ReportButton from '../components/ReportButton.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import Sidebar from '../components/Sidebar.jsx';
@@ -471,6 +475,83 @@ function WorkspaceList({ space, workspaces, onChanged }) {
   );
 }
 
+// A Project is a real, named goal/project inside this Space that a
+// Milestone or Session belongs to -- the Time family's own dedicated
+// concept, mirroring WorkspaceList above almost exactly. Named
+// "Project" rather than "Goal" to avoid colliding with the Space's own
+// `goal` field (the "Working toward" line above).
+function ProjectList({ space, projects, onChanged }) {
+  const [newName, setNewName] = useState('');
+
+  async function addProject(event) {
+    event.preventDefault();
+    const name = newName.trim();
+    setNewName('');
+    if (!name) return;
+    await createProject(space.id, name);
+    onChanged();
+  }
+
+  return (
+    <div className="workspace-section">
+      <h2>Projects</h2>
+      <p>Group Milestones and Sessions together under a named goal or project.</p>
+      {projects.length > 0 && (
+        <div className="workspace-grid">
+          {projects.map((project) => (
+            <Link key={project.id} to={`/spaces/${space.id}/projects/${project.id}`} className="workspace-card">
+              <h3>{project.name}</h3>
+            </Link>
+          ))}
+        </div>
+      )}
+      <form onSubmit={addProject} className="workspace-add-form">
+        <input
+          type="text"
+          value={newName}
+          placeholder="+ New Project"
+          onChange={(event) => setNewName(event.target.value)}
+        />
+        <button type="submit" className="btn-ghost-small" disabled={!newName.trim()}>
+          Create
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// Which Project (if any) a Milestone/Session belongs to -- a single
+// value, not a many-to-many toggle like BlockWorkspacePicker below,
+// since a checkpoint or a timed sitting most naturally serves one
+// project at a time. Scoped to just Milestone/Session blocks -- a
+// Project is specifically their dedicated concept, not a general one
+// every Tool joins the way a Workspace is.
+function BlockProjectPicker({ block, spaceProjects, onChanged }) {
+  if (spaceProjects.length === 0 || !['milestone', 'session'].includes(block.type)) return null;
+  const current = block.properties?.projectId || null;
+
+  async function select(event) {
+    await updateBlockProject(block.id, event.target.value || null);
+    onChanged();
+  }
+
+  return (
+    <p className="block-workspace-row">
+      <label>
+        Project:{' '}
+        <select value={current || ''} onChange={select}>
+          <option value="">(none)</option>
+          {spaceProjects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </p>
+  );
+}
+
 // Which Workspaces this one block has been assembled into. Only shows
 // once the Space has at least one Workspace, same zero-state reasoning
 // as BlockCategoryPicker. Membership is stored as Workspace ids (see
@@ -541,6 +622,7 @@ function SpacePage() {
   usePageTitle(space?.title);
   const [blocks, setBlocks] = useState(null);
   const [workspaces, setWorkspaces] = useState(null);
+  const [projects, setProjects] = useState(null);
   const [backlinks, setBacklinks] = useState(null);
   const [trail, setTrail] = useState(null);
   const [error, setError] = useState(null);
@@ -575,6 +657,7 @@ function SpacePage() {
     getSpace(id).then(setSpace).catch((err) => setError(err.message));
     getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
     getWorkspacesForSpace(id).then(setWorkspaces).catch((err) => setError(err.message));
+    getProjectsForSpace(id).then(setProjects).catch((err) => setError(err.message));
     refetchTrail();
   }, [id, refetchTrail]);
 
@@ -609,6 +692,15 @@ function SpacePage() {
   // block state on every fetch, so nothing else needs to change here.
   async function handleAddBlock(spec) {
     await addBlockToSpace(id, spec);
+    refetchAll();
+  }
+
+  // A dedicated one-click alternative to the generic "+ Add Entry" ->
+  // pick Session -> Start two-step flow, since starting a timer is a
+  // more time-sensitive action than adding an ordinary entry -- see
+  // sessionActions.js for the shape this creates.
+  async function handleStartSession() {
+    await addBlockToSpace(id, newSessionSpec());
     refetchAll();
   }
 
@@ -703,6 +795,7 @@ function SpacePage() {
           </div>
 
           {workspaces && <WorkspaceList space={space} workspaces={workspaces} onChanged={refetchAll} />}
+          {projects && <ProjectList space={space} projects={projects} onChanged={refetchAll} />}
 
           {/* Filtering by Category is the "zoom in on one aspect of the
               topic" the flat feed couldn't offer -- but it only narrows
@@ -818,6 +911,11 @@ function SpacePage() {
                         spaceWorkspaces={workspaces || []}
                         onChanged={refetchAll}
                       />
+                      <BlockProjectPicker
+                        block={block}
+                        spaceProjects={projects || []}
+                        onChanged={refetchAll}
+                      />
                       <div className="block-report-row">
                         <ReportButton fetchReport={() => getBlockReport(block.id)} />
                       </div>
@@ -853,7 +951,21 @@ function SpacePage() {
             );
           })()}
 
-          {blocks && <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />}
+          {blocks && (
+            <>
+              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />
+              <p>
+                <button
+                  type="button"
+                  className="btn-ghost-small"
+                  onClick={handleStartSession}
+                  title="Create and immediately start a new Session, skipping the Add-Entry form"
+                >
+                  ▶ Start a Session
+                </button>
+              </p>
+            </>
+          )}
 
           {trail && <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />}
 

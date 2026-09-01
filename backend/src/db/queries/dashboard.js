@@ -82,9 +82,14 @@ export function getWeekCalendar() {
     (dueSpacesByDay[row.due_date] ||= []).push({ spaceId: row.id, spaceTitle: row.title });
   }
 
+  // Every Project name, looked up once rather than per-row -- both
+  // Milestones and Sessions below resolve their own properties.projectId
+  // against this same map.
+  const projectNames = Object.fromEntries(db.prepare(`SELECT id, name FROM projects`).all().map((row) => [row.id, row.name]));
+
   const milestoneRows = db
     .prepare(
-      `SELECT blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
+      `SELECT blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
        FROM blocks JOIN spaces ON spaces.id = blocks.space_id
        WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
     )
@@ -92,12 +97,43 @@ export function getWeekCalendar() {
   const milestonesByDay = {};
   for (const row of milestoneRows) {
     const milestone = JSON.parse(row.content);
+    const properties = JSON.parse(row.properties);
     if (milestone.targetDate && milestone.targetDate >= rangeStart && milestone.targetDate <= rangeEnd) {
       (milestonesByDay[milestone.targetDate] ||= []).push({
         label: milestone.label,
         reached: milestone.reached,
         spaceId: row.space_id,
         spaceTitle: row.space_title,
+        projectName: properties.projectId ? projectNames[properties.projectId] || null : null,
+      });
+    }
+  }
+
+  // A completed Session lands on the day it ended (that's when "N min
+  // logged" became a fact worth seeing); a still-running one lands on
+  // the day it started, since it has no end day yet -- both cases use
+  // whichever timestamp is the most recently-known one.
+  const sessionRows = db
+    .prepare(
+      `SELECT blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
+       FROM blocks JOIN spaces ON spaces.id = blocks.space_id
+       WHERE blocks.type = 'session' AND blocks.space_id != ?`
+    )
+    .all(TEST_SPACE_ID);
+  const sessionsByDay = {};
+  for (const row of sessionRows) {
+    const session = JSON.parse(row.content);
+    const properties = JSON.parse(row.properties);
+    const isRunning = Boolean(session.startedAt) && !session.endedAt;
+    const day = (session.endedAt || session.startedAt || '').slice(0, 10);
+    if (day && day >= rangeStart && day <= rangeEnd) {
+      (sessionsByDay[day] ||= []).push({
+        label: session.label,
+        durationMinutes: session.durationMinutes,
+        isRunning,
+        spaceId: row.space_id,
+        spaceTitle: row.space_title,
+        projectName: properties.projectId ? projectNames[properties.projectId] || null : null,
       });
     }
   }
@@ -109,6 +145,7 @@ export function getWeekCalendar() {
     trail: trailByDay[date] || [],
     dueSpaces: dueSpacesByDay[date] || [],
     milestones: milestonesByDay[date] || [],
+    sessions: sessionsByDay[date] || [],
   }));
 }
 

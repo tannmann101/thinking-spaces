@@ -5,6 +5,7 @@ import CreateResource from './pages/CreateResource.jsx';
 import CreateSynthesis from './pages/CreateSynthesis.jsx';
 import SpacePage from './pages/SpacePage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
+import ProjectPage from './pages/ProjectPage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
 import TemplateEditor from './pages/TemplateEditor.jsx';
 import GraphPage from './pages/GraphPage.jsx';
@@ -25,6 +26,7 @@ function App() {
           <Route path="/synthesis/new" element={<CreateSynthesis />} />
           <Route path="/spaces/:id" element={<SpacePage />} />
           <Route path="/spaces/:spaceId/workspaces/:workspaceId" element={<WorkspacePage />} />
+          <Route path="/spaces/:spaceId/projects/:projectId" element={<ProjectPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/templates/new" element={<TemplateEditor />} />
           <Route path="/templates/:id/edit" element={<TemplateEditor />} />

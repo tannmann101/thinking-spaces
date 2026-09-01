@@ -14,9 +14,11 @@ import {
   updateBlockContent,
   updateBlockCategories,
   updateBlockWorkspaces,
+  updateBlockProject,
 } from '../blocks.js';
 import { createSpace } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
+import { createProject } from '../projects.js';
 import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
@@ -225,6 +227,28 @@ describe('blocks.js', () => {
     it('returns null for a nonexistent block rather than throwing', () => {
       expect(updateBlockCategories('nonexistent', ['X'])).toBeNull();
       expect(updateBlockWorkspaces('nonexistent', ['y'])).toBeNull();
+    });
+  });
+
+  describe('updateBlockProject', () => {
+    it('sets a single Project id, independently of other properties', () => {
+      const project = createProject({ spaceId: space.id, name: 'Ship it' });
+      const block = createBlock({ spaceId: space.id, type: 'milestone', content: {}, properties: { categories: ['X'] } });
+      const updated = updateBlockProject(block.id, project.id);
+      expect(updated.properties.projectId).toBe(project.id);
+      expect(updated.properties.categories).toEqual(['X']);
+    });
+
+    it('clears the Project id when passed null', () => {
+      const project = createProject({ spaceId: space.id, name: 'Ship it' });
+      const block = createBlock({ spaceId: space.id, type: 'milestone', content: {}, properties: {} });
+      updateBlockProject(block.id, project.id);
+      const cleared = updateBlockProject(block.id, null);
+      expect(cleared.properties.projectId).toBeNull();
+    });
+
+    it('returns null for a nonexistent block rather than throwing', () => {
+      expect(updateBlockProject('nonexistent', 'some-id')).toBeNull();
     });
   });
 });

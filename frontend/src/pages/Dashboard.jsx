@@ -65,8 +65,16 @@ function formatShort(isoDate) {
 // entries, a reached Milestone) with what's coming up (a Space's own
 // due date, a Milestone's still-open target date) -- past days read as
 // a small log, days at or after today read as a small forecast.
+// A Milestone/Session week-item's own project suffix, e.g. " (Ship the redesign)" -- shared
+// so the four item kinds below stay consistent rather than each formatting it separately.
+function projectSuffix(projectName) {
+  return projectName ? ` (${projectName})` : '';
+}
+
 function WeekCalendarDigest({ days }) {
-  const hasAnything = days.some((day) => day.trail.length + day.dueSpaces.length + day.milestones.length > 0);
+  const hasAnything = days.some(
+    (day) => day.trail.length + day.dueSpaces.length + day.milestones.length + day.sessions.length > 0
+  );
   if (!hasAnything) return null;
 
   return (
@@ -89,7 +97,15 @@ function WeekCalendarDigest({ days }) {
                 key: `reached-${index}-${i}`,
                 spaceId: m.spaceId,
                 spaceTitle: m.spaceTitle,
-                text: `reached: ${m.label}`,
+                text: `reached: ${m.label}${projectSuffix(m.projectName)}`,
+              })),
+            ...day.sessions
+              .filter((s) => !s.isRunning)
+              .map((s, i) => ({
+                key: `session-${index}-${i}`,
+                spaceId: s.spaceId,
+                spaceTitle: s.spaceTitle,
+                text: `logged ${s.durationMinutes ?? '?'} min${s.label ? `: ${s.label}` : ''}${projectSuffix(s.projectName)}`,
               })),
           ];
           const upcomingItems = [
@@ -105,7 +121,15 @@ function WeekCalendarDigest({ days }) {
                 key: `target-${index}-${i}`,
                 spaceId: m.spaceId,
                 spaceTitle: m.spaceTitle,
-                text: `target: ${m.label}`,
+                text: `target: ${m.label}${projectSuffix(m.projectName)}`,
+              })),
+            ...day.sessions
+              .filter((s) => s.isRunning)
+              .map((s, i) => ({
+                key: `running-${index}-${i}`,
+                spaceId: s.spaceId,
+                spaceTitle: s.spaceTitle,
+                text: `session running${s.label ? `: ${s.label}` : ''}${projectSuffix(s.projectName)}`,
               })),
           ];
           return (

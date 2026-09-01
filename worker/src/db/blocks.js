@@ -253,3 +253,13 @@ export async function updateBlockWorkspaces(env, id, workspaceIds) {
     .run();
   return getBlockById(env, id);
 }
+
+export async function updateBlockProject(env, id, projectId) {
+  const block = await getBlockById(env, id);
+  if (!block) return null;
+  const properties = { ...block.properties, projectId: projectId || null };
+  await env.DB.prepare(`UPDATE blocks SET properties = ?, updated_at = datetime('now') WHERE id = ?`)
+    .bind(JSON.stringify(properties), id)
+    .run();
+  return getBlockById(env, id);
+}

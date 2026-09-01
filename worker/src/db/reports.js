@@ -3,6 +3,7 @@
 import { WORK_TYPES } from './work.js';
 import { getBlockById, listBlocksForSpace, listBacklinksForSpace } from './blocks.js';
 import { getWorkspaceById, listWorkspacesForSpace } from './workspaces.js';
+import { getProjectById } from './projects.js';
 import { getSpaceById } from './spaces.js';
 import { listTrailEntries } from './trail.js';
 import { getSkeletonSnapshot } from './skeleton.js';
@@ -101,9 +102,12 @@ export async function getBlockReport(env, blockId) {
     workspaceNames = results.map((row) => row.name);
   }
 
+  const project = block.properties?.projectId ? await getProjectById(env, block.properties.projectId) : null;
+
   const membershipLines = [
     ...((block.properties?.categories || []).length > 0 ? [`Categories: ${block.properties.categories.join(', ')}`] : []),
     ...(workspaceNames.length > 0 ? [`Workspaces: ${workspaceNames.join(', ')}`] : []),
+    ...(project ? [`Project: ${project.name}`] : []),
     ...(block.properties?.skeletonLane ? [`Skeleton section: ${block.properties.skeletonLane}`] : []),
     ...(block.properties?.skeletonRole ? [`Skeleton role: ${block.properties.skeletonRole}`] : []),
   ];

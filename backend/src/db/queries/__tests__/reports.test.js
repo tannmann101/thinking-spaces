@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getBlockReport, getWorkspaceReport, getSpaceReport } from '../reports.js';
 import { createSpace } from '../spaces.js';
-import { createBlock, addBlockToSpace, updateBlockCategories, updateBlockWorkspaces } from '../blocks.js';
+import { createBlock, addBlockToSpace, updateBlockCategories, updateBlockWorkspaces, updateBlockProject } from '../blocks.js';
 import { createWorkspace } from '../workspaces.js';
+import { createProject } from '../projects.js';
 import { logTrailEntry } from '../trail.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
@@ -63,6 +64,14 @@ describe('getBlockReport', () => {
     updateBlockWorkspaces(filed.id, [workspace.id]);
     const membership = getBlockReport(filed.id).sections.find((s) => s.heading === 'Membership');
     expect(membership.lines).toEqual(['Categories: Risk', 'Workspaces: WS']);
+  });
+
+  it('includes a Project membership line for a Milestone/Session assigned to one', () => {
+    const project = createProject({ spaceId: space.id, name: 'Ship it' });
+    const block = createBlock({ spaceId: space.id, type: 'milestone', content: {} });
+    updateBlockProject(block.id, project.id);
+    const membership = getBlockReport(block.id).sections.find((s) => s.heading === 'Membership');
+    expect(membership.lines).toEqual(['Project: Ship it']);
   });
 
   it('reports a Milestone\'s target/reached status', () => {

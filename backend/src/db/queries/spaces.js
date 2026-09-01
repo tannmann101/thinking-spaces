@@ -187,6 +187,7 @@ export function deleteSpace(id) {
   const existing = getSpaceById(id);
   db.prepare(`DELETE FROM blocks WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM workspaces WHERE space_id = ?`).run(id);
+  db.prepare(`DELETE FROM projects WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM spaces WHERE id = ?`).run(id);
   // Logged with a snapshotted title (not a live join) precisely because

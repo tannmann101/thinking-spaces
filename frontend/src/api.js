@@ -175,6 +175,13 @@ export const updateBlockWorkspaces = (blockId, workspaces) =>
     method: 'PATCH',
     body: JSON.stringify({ workspaces }),
   });
+// Which Project (see below) a Milestone/Session belongs to -- a single
+// id, not an array; pass null to clear it.
+export const updateBlockProject = (blockId, projectId) =>
+  request(`/blocks/${blockId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ projectId }),
+  });
 export const moveBlockInSpace = (spaceId, blockId, direction) =>
   request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
     method: 'POST',
@@ -199,6 +206,24 @@ export const deleteWorkspace = (id) => request(`/workspaces/${id}`, { method: 'D
 // A structured + prose snapshot of this Workspace's current state --
 // see getWorkspaceReport in backend/src/db/queries.js.
 export const getWorkspaceReport = (workspaceId) => request(`/workspaces/${workspaceId}/report`);
+
+// Projects: a real, named goal/project inside one Space that a
+// Milestone or Session belongs to (see backend/src/db/queries.js,
+// "--- Projects ---"). Named "Project" rather than "Goal" to avoid
+// colliding with a Space's own pre-existing `goal` field.
+export const getProjectsForSpace = (spaceId) => request(`/spaces/${spaceId}/projects`);
+export const getProject = (id) => request(`/projects/${id}`);
+export const createProject = (spaceId, name) =>
+  request(`/spaces/${spaceId}/projects`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+export const renameProject = (id, name) =>
+  request(`/projects/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
 
 // The Skeleton's alternate capture path: copy an already-written line
 // into a lane, leaving the Writing Surface untouched (see fileLineInLane

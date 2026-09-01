@@ -2028,6 +2028,58 @@ label {
   margin: 4px 0 8px;
 }
 
+/* A native <select> can only show one Work Type's description at a
+   time (whichever is currently chosen) -- comparing close calls like
+   Insight vs. Implication meant reselecting through all 11 to read
+   each in turn. This panel shows every Work Type's label and
+   description at once, kept deliberately plain (no icons, no family
+   color) since it's a reference list inside a form, not a page-level
+   digest. */
+.work-type-compare {
+  margin: 4px 0 10px;
+  font-size: var(--fs-sm);
+}
+.work-type-compare summary {
+  cursor: pointer;
+  color: var(--ink-faint);
+}
+.work-type-compare summary:hover {
+  color: var(--ink-dim);
+}
+.work-type-compare dl {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+}
+.work-type-compare-row {
+  padding: 4px 0;
+}
+.work-type-compare-row + .work-type-compare-row {
+  border-top: 1px solid var(--border-soft);
+}
+.work-type-compare dt {
+  margin: 0;
+}
+.work-type-compare-pick {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.work-type-compare-pick:hover {
+  color: var(--maroon-bright);
+}
+.work-type-compare dd {
+  margin: 2px 0 0;
+  color: var(--ink-faint);
+}
+
 /* ---------- Space-level properties: status, tags, working-toward ---------- */
 
 .status-pill-clickable {

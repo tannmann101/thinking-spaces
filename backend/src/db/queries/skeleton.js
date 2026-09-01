@@ -223,5 +223,15 @@ export function getSkeletonSnapshot(spaceId) {
   const articulationBlock = blocks.find(
     (b) => b.type === 'text' && b.properties.skeletonRole === 'current-best-articulation'
   );
-  return { lanes, articulation: articulationBlock ? articulationBlock.content.text : '' };
+  // Found by this project's first backend test suite, not by inspection:
+  // this used to read articulationBlock.content.text directly, a field
+  // that stopped existing the moment Text blocks were migrated to their
+  // current {lines: [...]} shape (see the Tools vocabulary entry in
+  // CLAUDE.md) -- every Trail snapshot taken since then silently
+  // recorded an empty Current Best Articulation, no matter what was
+  // actually written. Rejoining the lines with '\n' matches the same
+  // join saveTextBlockWithPromotion above already uses to compare old
+  // vs. new articulation text.
+  const articulation = articulationBlock ? (articulationBlock.content.lines || []).map((line) => line.text).join('\n') : '';
+  return { lanes, articulation };
 }

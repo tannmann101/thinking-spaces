@@ -283,7 +283,7 @@ describe('SpacePage: block type filter', () => {
     renderPage();
     await screen.findByText('A text block');
     expect(screen.getByText('All types (2)')).toBeInTheDocument();
-    expect(screen.getByText('Text (1)')).toBeInTheDocument();
+    expect(screen.getByText('Writing (1)')).toBeInTheDocument();
     expect(screen.getByText('List (1)')).toBeInTheDocument();
 
     const listTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent.startsWith('List'));
@@ -293,26 +293,26 @@ describe('SpacePage: block type filter', () => {
 });
 
 describe('SpacePage: block feed actions', () => {
-  it('shows "No blocks yet." for an empty Space', async () => {
+  it('shows "No entries yet." for an empty Space', async () => {
     renderPage();
-    expect(await screen.findByText('No blocks yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No entries yet.')).toBeInTheDocument();
   });
 
   it('adds a block via NewBlockForm', async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText('No blocks yet.');
-    await user.click(screen.getByRole('button', { name: '+ Add Block' }));
+    await screen.findByText('No entries yet.');
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
     await waitFor(() => expect(api.addBlockToSpace).toHaveBeenCalledWith('space-1', expect.objectContaining({ type: 'text' })));
   });
 
   it('shows the selected Tool\'s own description, updating as the type changes', async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText('No blocks yet.');
+    await screen.findByText('No entries yet.');
     expect(screen.getByText('A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.')).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Block type:'), 'assessment');
+    await user.selectOptions(screen.getByLabelText('Entry type:'), 'assessment');
     expect(screen.getByText('A judgment on something, with supporting points and a confidence marker.')).toBeInTheDocument();
   });
 
@@ -324,8 +324,8 @@ describe('SpacePage: block feed actions', () => {
     renderPage();
     await screen.findByText('Doomed block');
 
-    await user.click(screen.getByRole('button', { name: 'Remove block' }));
-    const dialog = screen.getByText('Remove this block? This cannot be undone.').closest('.confirm-dialog');
+    await user.click(screen.getByRole('button', { name: 'Remove entry' }));
+    const dialog = screen.getByText('Remove this entry? This cannot be undone.').closest('.confirm-dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(api.deleteBlockApi).toHaveBeenCalledWith('b1'));
@@ -338,7 +338,7 @@ describe('SpacePage: block feed actions', () => {
     ]);
     renderPage();
     await screen.findByText('Safe block');
-    await user.click(screen.getByRole('button', { name: 'Remove block' }));
+    await user.click(screen.getByRole('button', { name: 'Remove entry' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(api.deleteBlockApi).not.toHaveBeenCalled();
   });
@@ -365,7 +365,7 @@ describe('SpacePage: block feed actions', () => {
   it('shows an unknown-type fallback for a Block type not in the registry', async () => {
     api.getBlocksForSpace.mockResolvedValue([{ id: 'b1', type: 'mystery-type', content: {}, properties: {}, updated_at: 'v1' }]);
     renderPage();
-    expect(await screen.findByText('Unknown block type: mystery-type')).toBeInTheDocument();
+    expect(await screen.findByText('Unknown entry type: mystery-type')).toBeInTheDocument();
   });
 });
 

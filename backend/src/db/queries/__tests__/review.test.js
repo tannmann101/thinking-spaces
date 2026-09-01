@@ -49,7 +49,7 @@ describe('getReviewDraft', () => {
       { type: 'list', count: 1 },
       { type: 'text', count: 2 },
     ]);
-    expect(draft.summaryText).toBe('Review: 3 blocks added');
+    expect(draft.summaryText).toBe('Review: 3 entries added');
   });
 
   it('counts a Space\'s own starter blocks (created in the same request as the Space itself) as new for its first Review', () => {

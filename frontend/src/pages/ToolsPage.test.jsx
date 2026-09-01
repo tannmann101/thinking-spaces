@@ -67,10 +67,10 @@ describe('ToolsPage: interactive demos', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  it('opens a Text demo for editing on click', async () => {
+  it('opens a Writing demo for editing on click', async () => {
     const user = userEvent.setup();
     renderPage();
-    const textCard = screen.getByRole('heading', { name: 'Text', level: 4 }).closest('.tool-card');
+    const textCard = screen.getByRole('heading', { name: 'Writing', level: 4 }).closest('.tool-card');
     await user.click(within(textCard).getByText(/A demo paragraph/));
     expect(within(textCard).getByRole('textbox')).toBeInTheDocument();
   });

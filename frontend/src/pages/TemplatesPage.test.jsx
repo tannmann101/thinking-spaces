@@ -70,7 +70,7 @@ describe('TemplatesPage: deleting a Template', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     const dialog = screen
-      .getByText('Delete this Template? Spaces already created from it keep their blocks -- deleting a Template never touches them.')
+      .getByText('Delete this Template? Spaces already created from it keep their entries -- deleting a Template never touches them.')
       .closest('.confirm-dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 

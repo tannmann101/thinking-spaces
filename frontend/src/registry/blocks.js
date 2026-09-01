@@ -109,7 +109,7 @@ const DEMO_IMAGE_URL = `data:image/svg+xml,${encodeURIComponent(DEMO_IMAGE_SVG)}
 
 export const blockRegistry = {
   text: {
-    label: 'Text',
+    label: 'Writing',
     description:
       'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.',
     family: 'general',
@@ -119,7 +119,7 @@ export const blockRegistry = {
     worksWith: ['comparison'],
     demoBlock: {
       type: 'text',
-      content: { tag: 'reflection', text: 'A demo paragraph, showing how a Text block reads.' },
+      content: { tag: 'reflection', text: 'A demo paragraph, showing how a Writing entry reads.' },
       properties: {},
     },
   },
@@ -181,7 +181,7 @@ export const blockRegistry = {
   comparison: {
     label: 'Comparison',
     description:
-      'Two Text or Reference blocks shown side by side, optionally marked as a contrast.',
+      'Two Writing or Reference entries shown side by side, optionally marked as a contrast.',
     family: 'general',
     icon: '⇄',
     component: ComparisonBlock,

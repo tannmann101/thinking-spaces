@@ -97,7 +97,7 @@ function TemplateEditor() {
       {isEditing && (
         <p>
           Saving here only changes what future Spaces created from this Template start with.
-          Spaces already created from it keep the blocks they already have.
+          Spaces already created from it keep the entries they already have.
         </p>
       )}
       {error && <p>Error: {error}</p>}
@@ -110,8 +110,8 @@ function TemplateEditor() {
           </label>
         </p>
 
-        <h2>Blocks</h2>
-        {blocks.length === 0 && <p>No blocks yet.</p>}
+        <h2>Entries</h2>
+        {blocks.length === 0 && <p>No entries yet.</p>}
         <ol className="list-reset">
           {blocks.map((block, index) => (
             <li key={index} className="block-row list-reset-row">

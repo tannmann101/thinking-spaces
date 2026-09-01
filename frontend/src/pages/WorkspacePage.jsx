@@ -130,7 +130,7 @@ function WorkspacePage() {
   }
 
   async function handleDeleteBlock(blockId) {
-    if (!(await confirm('Remove this block entirely? This cannot be undone.'))) return;
+    if (!(await confirm('Remove this entry entirely? This cannot be undone.'))) return;
     await deleteBlockApi(blockId);
     refetchAll();
   }
@@ -217,7 +217,7 @@ function WorkspacePage() {
                           onFocus={setFocusedBlockId}
                         />
                       ) : (
-                        <p>Unknown block type: {block.type}</p>
+                        <p>Unknown entry type: {block.type}</p>
                       )}
                       {!focusedBlockId && applicableViews.length > 0 && (
                         <div className="view-grid">
@@ -245,7 +245,7 @@ function WorkspacePage() {
                             className="btn-ghost-small"
                             onClick={() => handleDeleteBlock(block.id)}
                           >
-                            Delete block
+                            Delete entry
                           </button>
                         </div>
                       )}

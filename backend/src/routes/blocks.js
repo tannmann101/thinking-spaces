@@ -43,7 +43,7 @@ blocksRouter.post('/spaces/:spaceId/blocks/:blockId/move', (req, res) => {
 blocksRouter.patch('/blocks/:id', (req, res) => {
   const existing = getBlockById(req.params.id);
   if (!existing) {
-    return res.status(404).json({ error: 'Block not found' });
+    return res.status(404).json({ error: 'Entry not found' });
   }
   const { content, categories, workspaces } = req.body;
   if (content === undefined && categories === undefined && workspaces === undefined) {
@@ -73,7 +73,7 @@ blocksRouter.delete('/blocks/:id', (req, res) => {
 blocksRouter.get('/blocks/:id/report', (req, res) => {
   const report = getBlockReport(req.params.id);
   if (!report) {
-    return res.status(404).json({ error: 'Block not found' });
+    return res.status(404).json({ error: 'Entry not found' });
   }
   res.json({ report, narrative: renderReportText(report) });
 });
@@ -87,7 +87,7 @@ blocksRouter.get('/blocks/:id/report', (req, res) => {
 blocksRouter.patch('/blocks/:id/text', (req, res) => {
   const existing = getBlockById(req.params.id);
   if (!existing) {
-    return res.status(404).json({ error: 'Block not found' });
+    return res.status(404).json({ error: 'Entry not found' });
   }
   const { lines } = req.body;
   if (!Array.isArray(lines)) {

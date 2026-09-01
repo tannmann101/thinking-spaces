@@ -93,8 +93,8 @@ describe('WorkspacePage: assembled blocks', () => {
     renderPage();
     await screen.findByText('Doomed');
 
-    await user.click(screen.getByRole('button', { name: 'Delete block' }));
-    const dialog = screen.getByText('Remove this block entirely? This cannot be undone.').closest('.confirm-dialog');
+    await user.click(screen.getByRole('button', { name: 'Delete entry' }));
+    const dialog = screen.getByText('Remove this entry entirely? This cannot be undone.').closest('.confirm-dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(api.deleteBlockApi).toHaveBeenCalledWith('b1'));
   });
@@ -105,7 +105,7 @@ describe('WorkspacePage: adding and pulling in Tools', () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('Add a new Tool to this Workspace');
-    await user.click(screen.getByRole('button', { name: '+ Add Block' }));
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
     await waitFor(() =>
       expect(api.addBlockToSpace).toHaveBeenCalledWith(
         'space-1',

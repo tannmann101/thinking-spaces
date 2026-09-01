@@ -235,7 +235,7 @@ function TextWorkshop({ block, onBlocksChanged, focused = false, onFocus }) {
                     type="button"
                     className="btn-ghost-small"
                     onClick={() => setFilePopoverId(filePopoverId === line.id ? null : line.id)}
-                    title="File this line into a Skeleton lane (copies it, leaves it here)"
+                    title="File this line into a Skeleton section (copies it, leaves it here)"
                   >
                     File
                   </button>

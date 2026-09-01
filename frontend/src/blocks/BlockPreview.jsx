@@ -10,7 +10,7 @@
 
 function BlockPreview({ block }) {
   if (block.type === 'text') {
-    return <p>[Text] {block.content?.text || <em>(empty)</em>}</p>;
+    return <p>[Writing] {block.content?.text || <em>(empty)</em>}</p>;
   }
   if (block.type === 'list') {
     return (

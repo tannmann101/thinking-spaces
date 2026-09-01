@@ -41,7 +41,7 @@ describe('TemplateEditor: creating', () => {
   it('shows "New Template" with no loading gate, and a blocks empty state', async () => {
     renderNew();
     expect(screen.getByRole('heading', { name: 'New Template' })).toBeInTheDocument();
-    expect(screen.getByText('No blocks yet.')).toBeInTheDocument();
+    expect(screen.getByText('No entries yet.')).toBeInTheDocument();
   });
 
   it('does nothing on submit until a name is entered, then creates on submit', async () => {
@@ -65,10 +65,10 @@ describe('TemplateEditor: creating', () => {
   it('adds a block via NewBlockForm, shows it in the preview, and can remove/reorder it', async () => {
     const user = userEvent.setup();
     renderNew();
-    await user.click(screen.getByRole('button', { name: '+ Add Block' }));
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
     expect(await screen.findByRole('button', { name: 'Remove' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '+ Add Block' }));
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
     const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
     expect(removeButtons).toHaveLength(2);
 
@@ -97,7 +97,7 @@ describe('TemplateEditor: editing', () => {
     renderEdit();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(await screen.findByDisplayValue('Existing')).toBeInTheDocument();
-    expect(screen.getByText(/\[Text\] hi/)).toBeInTheDocument();
+    expect(screen.getByText(/\[Writing\] hi/)).toBeInTheDocument();
   });
 
   it('saves via updateTemplate, renumbering block positions', async () => {

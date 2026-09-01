@@ -311,10 +311,17 @@ describe('SpacePage: block feed actions', () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('No entries yet.');
-    expect(screen.getByText('A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.')).toBeInTheDocument();
+    expect(document.querySelector('.new-block-type-description').textContent).toBe(
+      'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.'
+    );
 
+    // Scoped to this specific paragraph, not a bare getByText -- once
+    // a Work Type is selected, its description also appears a second
+    // time in the "+ Add Entry" form's own Compare Work Types panel.
     await user.selectOptions(screen.getByLabelText('Entry type:'), 'assessment');
-    expect(screen.getByText('A judgment on something, with supporting points and a confidence marker.')).toBeInTheDocument();
+    expect(document.querySelector('.new-block-type-description').textContent).toBe(
+      'A judgment on something, with supporting points and a confidence marker.'
+    );
   });
 
   it('removes a block after confirming', async () => {
@@ -438,9 +445,13 @@ describe('SpacePage: backlinks', () => {
   it('shows which Spaces reference this one', async () => {
     api.getBacklinksForSpace.mockResolvedValue([{ blockId: 'b1', sourceSpaceId: 'other', sourceSpaceTitle: 'Other Space', note: 'why it matters' }]);
     renderPage();
-    expect(await screen.findByText('Referenced by:')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Other Space' })).toHaveAttribute('href', '/spaces/other');
-    expect(screen.getByText(/why it matters/)).toBeInTheDocument();
+    const referencedBy = (await screen.findByText('Referenced by:')).closest('p');
+    expect(within(referencedBy).getByRole('link', { name: 'Other Space' })).toHaveAttribute('href', '/spaces/other');
+    // Scoped to this paragraph specifically -- the phrase "why it
+    // matters" also appears verbatim in the Question Work Type's own
+    // registry description, rendered elsewhere on this page by the
+    // "+ Add Entry" form's Compare Work Types panel.
+    expect(within(referencedBy).getByText(/why it matters/)).toBeInTheDocument();
   });
 
   it('shows nothing when there are no backlinks', async () => {

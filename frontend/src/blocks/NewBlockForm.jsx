@@ -167,6 +167,33 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
       {blockRegistry[type]?.description && (
         <p className="new-block-type-description">{blockRegistry[type].description}</p>
       )}
+      {/* Reading one description at a time (above) still means
+          reselecting through all 11 Work Types to compare close calls
+          like Insight vs. Implication -- confirmed via direct question
+          that sharpening any one description wouldn't fix this (the
+          registry copy already names the relationship directly, e.g.
+          Implication's own "a softer sibling to Deduction"); the actual
+          gap is not being able to see every description at once while
+          still deciding. This panel is exactly that -- every Work
+          Type's label and description in one place, registry-driven so
+          a future Work Type needs no edit here either -- with clicking
+          a label selecting it in the dropdown above as a shortcut, not
+          a requirement. */}
+      <details className="work-type-compare">
+        <summary>Compare Work Types</summary>
+        <dl>
+          {WORK_TYPES.map(([key, entry]) => (
+            <div key={key} className="work-type-compare-row">
+              <dt>
+                <button type="button" className="work-type-compare-pick" onClick={() => setType(key)}>
+                  {entry.label}
+                </button>
+              </dt>
+              <dd>{entry.description}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
       <br />
       {type !== 'list' ? (
         <textarea

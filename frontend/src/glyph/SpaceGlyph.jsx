@@ -148,16 +148,19 @@ function SpaceGlyph({ space, size = 28 }) {
 
   const crackSegments = Math.min(openTensionCount, MAX_CRACK_SEGMENTS);
 
+  // The same description backs both the accessible name (aria-label,
+  // for a screen reader) and a native <title> element -- an SVG
+  // <title> is what actually produces a hover tooltip in a mouse-driven
+  // browser, which aria-label alone doesn't. Without it, this glyph is
+  // "computed from real data, never decorative" per CLAUDE.md, but a
+  // sighted user has no way to learn how to actually read it.
+  const description = `Visual identity: ${status}, ${relationDensity} connections, ${openTensionCount} open tensions${
+    space.accent ? `, ${space.accent} accent` : ''
+  }`;
+
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      role="img"
-      aria-label={`Visual identity: ${status}, ${relationDensity} connections, ${openTensionCount} open tensions${
-        space.accent ? `, ${space.accent} accent` : ''
-      }`}
-    >
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={description}>
+      <title>{description}</title>
       <line
         x1={cx}
         y1={baseY}

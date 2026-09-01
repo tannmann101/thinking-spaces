@@ -113,8 +113,12 @@ describe('Dashboard: search and status filter', () => {
     renderDashboard();
     await screen.findByText('Nascent one');
     // Both the filter chip and the Mature Space's own status-pill show
-    // the bare word "mature" -- scope to the filter strip specifically.
-    const matureChip = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent === 'mature');
+    // the word "mature" -- scope to the filter strip specifically. The
+    // chip also carries a count now, so match on a prefix rather than
+    // the exact bare word.
+    const matureChip = [...document.querySelectorAll('.category-filter-tab')].find((el) =>
+      el.textContent.startsWith('mature ')
+    );
 
     await user.click(matureChip);
     expect(screen.queryByText('Nascent one')).not.toBeInTheDocument();
@@ -122,6 +126,21 @@ describe('Dashboard: search and status filter', () => {
 
     await user.click(matureChip);
     expect(screen.getByText('Nascent one')).toBeInTheDocument();
+  });
+
+  it('shows a count on each status tab, reflecting the current search text', async () => {
+    api.getSpaces.mockResolvedValue([
+      makeSpace({ id: 'a', title: 'Alpha', status: 'nascent' }),
+      makeSpace({ id: 'b', title: 'Beta', status: 'mature' }),
+      makeSpace({ id: 'c', title: 'Gamma', status: 'mature' }),
+    ]);
+    renderDashboard();
+    await screen.findByText('Alpha');
+    const tabs = [...document.querySelectorAll('.category-filter-tab')].map((el) => el.textContent);
+    expect(tabs).toContain('All (3)');
+    expect(tabs).toContain('mature (2)');
+    expect(tabs).toContain('nascent (1)');
+    expect(tabs).toContain('developing (0)');
   });
 });
 

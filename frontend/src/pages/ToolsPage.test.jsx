@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import ToolsPage from './ToolsPage.jsx';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
+import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
 
 // ToolsPage is purely a read of blockRegistry/viewRegistry -- no API
 // calls, nothing to mock. The one thing worth stubbing is the Graph
@@ -46,5 +47,20 @@ describe('ToolsPage', () => {
       .map((k) => blockRegistry[k]?.label || viewRegistry[k]?.label || k)
       .join(', ');
     expect(screen.getByText(`Works with: ${expectedLabels}`)).toBeInTheDocument();
+  });
+});
+
+describe('ToolsPage: Skeleton & Tensions', () => {
+  it('documents the Skeleton, even though it is not a registered Block or View', () => {
+    renderPage();
+    expect(screen.getByRole('heading', { name: 'Skeleton & Tensions', level: 2 })).toBeInTheDocument();
+    for (const lane of SKELETON_LANE_LABELS) {
+      expect(screen.getByText(lane.label)).toBeInTheDocument();
+    }
+    // "?" also appears as the Question Tool's own icon elsewhere on the
+    // page, so check the shorthand symbols via their <code> elements
+    // specifically rather than a page-wide text match.
+    const codeTexts = [...document.querySelectorAll('code')].map((el) => el.textContent);
+    expect(codeTexts).toEqual(['=', '?', '!']);
   });
 });

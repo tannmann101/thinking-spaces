@@ -12,6 +12,7 @@ import {
   createRelationalSpace,
 } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
+import { createProject } from '../projects.js';
 import { addBlockToSpace, listBlocksForSpace } from '../blocks.js';
 import { createTemplate } from '../templates.js';
 import { TEST_SPACE_ID } from '../constants.js';
@@ -210,6 +211,15 @@ describe('deleteSpace', () => {
     expect(() => deleteSpace(space.id)).not.toThrow();
     expect(getSpaceById(space.id)).toBeUndefined();
     expect(db.prepare('SELECT * FROM workspaces WHERE space_id = ?').all(space.id)).toEqual([]);
+  });
+
+  it('also deletes a Space\'s own Projects -- the same foreign-key gap Workspaces once had', () => {
+    const space = createSpace({ title: 'Has a Project' });
+    createProject({ spaceId: space.id, name: 'A Project' });
+
+    expect(() => deleteSpace(space.id)).not.toThrow();
+    expect(getSpaceById(space.id)).toBeUndefined();
+    expect(db.prepare('SELECT * FROM projects WHERE space_id = ?').all(space.id)).toEqual([]);
   });
 });
 

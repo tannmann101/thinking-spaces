@@ -52,6 +52,7 @@ beforeEach(() => {
   api.getSpace.mockResolvedValue(makeSpace());
   api.getBlocksForSpace.mockResolvedValue([]);
   api.getWorkspacesForSpace.mockResolvedValue([]);
+  api.getProjectsForSpace.mockResolvedValue([]);
   api.getBacklinksForSpace.mockResolvedValue([]);
   api.getTrailEntries.mockResolvedValue([]);
   api.updateSpace.mockResolvedValue({});
@@ -381,9 +382,55 @@ describe('SpacePage: Workspaces', () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('My Space');
-    await user.type(screen.getByPlaceholderText('+ New Workspace'), 'New Area');
-    await user.click(screen.getByRole('button', { name: 'Create' }));
+    const input = screen.getByPlaceholderText('+ New Workspace');
+    await user.type(input, 'New Area');
+    await user.click(within(input.closest('form')).getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(api.createWorkspace).toHaveBeenCalledWith('space-1', 'New Area'));
+  });
+});
+
+describe('SpacePage: Projects', () => {
+  it('lists existing Projects as cards linking to their own page', async () => {
+    api.getProjectsForSpace.mockResolvedValue([{ id: 'pr-1', name: 'Ship the redesign' }]);
+    renderPage();
+    const link = await screen.findByRole('link', { name: 'Ship the redesign' });
+    expect(link).toHaveAttribute('href', '/spaces/space-1/projects/pr-1');
+  });
+
+  it('creates a new Project', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('My Space');
+    const input = screen.getByPlaceholderText('+ New Project');
+    await user.type(input, 'New Goal');
+    await user.click(within(input.closest('form')).getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(api.createProject).toHaveBeenCalledWith('space-1', 'New Goal'));
+  });
+
+  it('starts a Session in one click via the quick-start button', async () => {
+    const user = userEvent.setup();
+    api.addBlockToSpace.mockResolvedValue({});
+    renderPage();
+    await screen.findByText('My Space');
+    await user.click(screen.getByRole('button', { name: /Start a Session/ }));
+    await waitFor(() =>
+      expect(api.addBlockToSpace).toHaveBeenCalledWith(
+        'space-1',
+        expect.objectContaining({ type: 'session', content: expect.objectContaining({ startedAt: expect.any(String) }) })
+      )
+    );
+  });
+
+  it('sets which Project a Milestone belongs to via the inline picker', async () => {
+    const user = userEvent.setup();
+    api.getProjectsForSpace.mockResolvedValue([{ id: 'pr-1', name: 'Ship the redesign' }]);
+    api.getBlocksForSpace.mockResolvedValue([
+      { id: 'b1', type: 'milestone', content: { label: 'Ship it', targetDate: null, reached: false, reachedAt: null, note: '' }, properties: {}, updated_at: 'v1' },
+    ]);
+    renderPage();
+    await screen.findByText('Ship it');
+    await user.selectOptions(screen.getByLabelText('Project:'), 'pr-1');
+    await waitFor(() => expect(api.updateBlockProject).toHaveBeenCalledWith('b1', 'pr-1'));
   });
 });
 

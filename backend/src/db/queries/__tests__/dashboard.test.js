@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../index.js';
 import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from '../dashboard.js';
 import { createSpace, updateSpace } from '../spaces.js';
-import { createBlock } from '../blocks.js';
+import { createBlock, updateBlockProject } from '../blocks.js';
+import { createProject } from '../projects.js';
 import { logTrailEntry } from '../trail.js';
 import { TEST_SPACE_ID, todayString } from '../constants.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
@@ -109,11 +110,44 @@ describe('getWeekCalendar', () => {
     const days = getWeekCalendar();
     const today = days.find((d) => d.isToday);
     expect(today.milestones).toEqual([
-      { label: 'Ship it', reached: false, spaceId: space.id, spaceTitle: 'Has a Milestone' },
+      { label: 'Ship it', reached: false, spaceId: space.id, spaceTitle: 'Has a Milestone', projectName: null },
     ]);
   });
 
-  it('excludes the Test Space from Trail entries, due dates, and Milestones alike', () => {
+  it('resolves a Milestone\'s Project name when it belongs to one', () => {
+    const space = createSpace({ title: 'Has a Project' });
+    const project = createProject({ spaceId: space.id, name: 'Ship the redesign' });
+    const block = createBlock({
+      spaceId: space.id,
+      type: 'milestone',
+      content: { label: 'Ship it', targetDate: todayString(), reached: false, reachedAt: null, note: '' },
+    });
+    updateBlockProject(block.id, project.id);
+    const days = getWeekCalendar();
+    const today = days.find((d) => d.isToday);
+    expect(today.milestones[0].projectName).toBe('Ship the redesign');
+  });
+
+  it('places a completed Session on the day it ended, and a running one on the day it started', () => {
+    const space = createSpace({ title: 'Has Sessions' });
+    createBlock({
+      spaceId: space.id,
+      type: 'session',
+      content: { label: 'Drafting', startedAt: `${todayString()}T09:00:00.000Z`, endedAt: `${todayString()}T09:45:00.000Z`, durationMinutes: 45, note: '' },
+    });
+    createBlock({
+      spaceId: space.id,
+      type: 'session',
+      content: { label: 'Editing', startedAt: `${todayString()}T10:00:00.000Z`, endedAt: null, durationMinutes: null, note: '' },
+    });
+    const days = getWeekCalendar();
+    const today = days.find((d) => d.isToday);
+    expect(today.sessions).toHaveLength(2);
+    expect(today.sessions.find((s) => s.label === 'Drafting')).toMatchObject({ durationMinutes: 45, isRunning: false });
+    expect(today.sessions.find((s) => s.label === 'Editing')).toMatchObject({ durationMinutes: null, isRunning: true });
+  });
+
+  it('excludes the Test Space from Trail entries, due dates, Milestones, and Sessions alike', () => {
     createSpace({ id: TEST_SPACE_ID, title: 'Test Space' });
     logTrailEntry({ spaceId: TEST_SPACE_ID, kind: 'auto', summary: 'scratch' });
     updateSpace(TEST_SPACE_ID, { dueDate: todayString() });
@@ -122,11 +156,17 @@ describe('getWeekCalendar', () => {
       type: 'milestone',
       content: { label: 'x', targetDate: todayString(), reached: false, reachedAt: null, note: '' },
     });
+    createBlock({
+      spaceId: TEST_SPACE_ID,
+      type: 'session',
+      content: { label: 'x', startedAt: `${todayString()}T09:00:00.000Z`, endedAt: null, durationMinutes: null, note: '' },
+    });
     const days = getWeekCalendar();
     const today = days.find((d) => d.isToday);
     expect(today.trail).toEqual([]);
     expect(today.dueSpaces).toEqual([]);
     expect(today.milestones).toEqual([]);
+    expect(today.sessions).toEqual([]);
   });
 });
 

@@ -282,3 +282,21 @@ export function updateBlockWorkspaces(id, workspaceIds) {
   ).run(JSON.stringify(properties), id);
   return getBlockById(id);
 }
+
+// Which Project (see projects.js) this block belongs to -- a single
+// nullable id, not an array, since a Milestone or Session most
+// naturally serves one project at a time (unlike a Tool, which can
+// usefully belong to several Workspaces). Pass null to clear it. Scoped
+// in practice to Milestone and Session (the two Time Types a "goal/
+// project" is really about), but nothing here enforces that -- same
+// "properties are just properties" looseness
+// updateBlockCategories/updateBlockWorkspaces already have.
+export function updateBlockProject(id, projectId) {
+  const block = getBlockById(id);
+  if (!block) return null;
+  const properties = { ...block.properties, projectId: projectId || null };
+  db.prepare(
+    `UPDATE blocks SET properties = ?, updated_at = datetime('now') WHERE id = ?`
+  ).run(JSON.stringify(properties), id);
+  return getBlockById(id);
+}

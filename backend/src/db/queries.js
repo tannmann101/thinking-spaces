@@ -6,8 +6,8 @@
 //
 // This file itself is a barrel: the actual query logic lives in
 // backend/src/db/queries/*.js, one module per conceptual section of the
-// app (spaces, blocks, workspaces, skeleton, trail, review, work,
-// insights, reports, the Log, Dashboard aggregations), mirroring the
+// app (spaces, blocks, workspaces, projects, skeleton, trail, review,
+// work, insights, reports, the Log, Dashboard aggregations), mirroring the
 // same "--- Section ---" divisions this file used to have internally
 // when it was a single ~1,800-line file. Splitting it this way keeps
 // CLAUDE.md's Transparency principle intact rather than breaking it:
@@ -23,6 +23,7 @@ export * from './queries/spaces.js';
 export * from './queries/templates.js';
 export * from './queries/blocks.js';
 export * from './queries/workspaces.js';
+export * from './queries/projects.js';
 export * from './queries/skeleton.js';
 export * from './queries/trail.js';
 export * from './queries/review.js';

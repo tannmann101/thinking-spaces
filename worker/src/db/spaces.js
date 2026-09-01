@@ -124,6 +124,7 @@ export async function deleteSpace(env, id) {
   const existing = await getSpaceById(env, id);
   await env.DB.prepare(`DELETE FROM blocks WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM workspaces WHERE space_id = ?`).bind(id).run();
+  await env.DB.prepare(`DELETE FROM projects WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM spaces WHERE id = ?`).bind(id).run();
   if (existing) {

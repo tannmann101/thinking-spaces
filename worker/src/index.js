@@ -28,6 +28,7 @@ import {
   updateBlockContent,
   updateBlockCategories,
   updateBlockWorkspaces,
+  updateBlockProject,
   deleteBlock,
   moveBlockInSpace,
   getGraphData,
@@ -39,6 +40,7 @@ import {
   updateWorkspace,
   deleteWorkspace,
 } from './db/workspaces.js';
+import { listProjectsForSpace, getProjectById, createProject, updateProject, deleteProject } from './db/projects.js';
 import { listTemplates, getTemplateById, createTemplate, updateTemplate, deleteTemplate } from './db/templates.js';
 import { SKELETON_LANES, saveTextBlockWithPromotion, fileLineInLane, createTensionPair, getSkeletonSnapshot } from './db/skeleton.js';
 import { listTrailEntries, addManualTrailEntry, updateTrailEntry } from './db/trail.js';
@@ -200,14 +202,15 @@ async function handlePatchBlock(request, env, id) {
   const existing = await getBlockById(env, id);
   if (!existing) return errorResponse('Entry not found', 404);
   const body = (await readJson(request)) || {};
-  const { content, categories, workspaces } = body;
-  if (content === undefined && categories === undefined && workspaces === undefined) {
-    return errorResponse('content, categories, or workspaces is required');
+  const { content, categories, workspaces, projectId } = body;
+  if (content === undefined && categories === undefined && workspaces === undefined && projectId === undefined) {
+    return errorResponse('content, categories, workspaces, or projectId is required');
   }
   let updated = existing;
   if (content !== undefined) updated = await updateBlockContent(env, id, content);
   if (categories !== undefined) updated = await updateBlockCategories(env, id, categories);
   if (workspaces !== undefined) updated = await updateBlockWorkspaces(env, id, workspaces);
+  if (projectId !== undefined) updated = await updateBlockProject(env, id, projectId);
   return json(updated);
 }
 
@@ -254,6 +257,31 @@ async function handleDeleteWorkspace(env, id) {
   const existing = await getWorkspaceById(env, id);
   if (!existing) return errorResponse('Workspace not found', 404);
   await deleteWorkspace(env, id);
+  return json(null, 204);
+}
+
+// ---------- Projects ----------
+
+async function handleCreateProject(request, env, spaceId) {
+  const body = (await readJson(request)) || {};
+  const { name } = body;
+  if (!name || !name.trim()) return errorResponse('name is required');
+  return json(await createProject(env, { spaceId, name: name.trim() }), 201);
+}
+
+async function handlePatchProject(request, env, id) {
+  const existing = await getProjectById(env, id);
+  if (!existing) return errorResponse('Project not found', 404);
+  const body = (await readJson(request)) || {};
+  const { name } = body;
+  if (!name || !name.trim()) return errorResponse('name is required');
+  return json(await updateProject(env, id, { name: name.trim() }));
+}
+
+async function handleDeleteProject(env, id) {
+  const existing = await getProjectById(env, id);
+  if (!existing) return errorResponse('Project not found', 404);
+  await deleteProject(env, id);
   return json(null, 204);
 }
 
@@ -383,6 +411,20 @@ export default {
 
       m = path.match(/^\/api\/workspaces\/([\w-]+)\/report$/);
       if (m && method === 'GET') return await handleWorkspaceReport(env, m[1]);
+
+      // Projects
+      m = path.match(/^\/api\/spaces\/([\w-]+)\/projects$/);
+      if (m && method === 'GET') return json(await listProjectsForSpace(env, m[1]));
+      if (m && method === 'POST') return await handleCreateProject(request, env, m[1]);
+
+      m = path.match(/^\/api\/projects\/([\w-]+)$/);
+      if (m && method === 'GET') {
+        const project = await getProjectById(env, m[1]);
+        if (!project) return errorResponse('Project not found', 404);
+        return json(project);
+      }
+      if (m && method === 'PATCH') return await handlePatchProject(request, env, m[1]);
+      if (m && method === 'DELETE') return await handleDeleteProject(env, m[1]);
 
       // Templates
       if (path === '/api/templates' && method === 'GET') return json(await listTemplates(env));

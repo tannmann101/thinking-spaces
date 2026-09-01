@@ -75,6 +75,29 @@ CREATE TABLE IF NOT EXISTS workspaces (
 );
 CREATE INDEX IF NOT EXISTS idx_workspaces_space_id ON workspaces(space_id);
 
+-- Projects: a real, named goal/project inside one Space that a
+-- Milestone or Session belongs to -- the Time family's own equivalent
+-- of a Workspace, added once the person asked for Sessions/Milestones
+-- to be "associated with goals/projects" as a real dedicated concept
+-- rather than individually implying structure. Named "Project" rather
+-- than "Goal" to avoid colliding with the Space's own pre-existing
+-- `goal` column below (a single free-text "what this Space is working
+-- toward" line) -- confirmed via direct question once that collision
+-- surfaced. Deliberately narrower than a Workspace in one way: a block
+-- points at at most one Project (a single nullable `projectId` in its
+-- own `properties`, not an array), since a checkpoint or a timed
+-- sitting most naturally serves one project, not several at once the
+-- way a Tool can usefully belong to several Workspaces -- see
+-- updateBlockProject in queries.js.
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id),
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_projects_space_id ON projects(space_id);
+
 -- Trail: the history layer (see Tools & Resources doc). "auto" entries
 -- are written automatically on a Skeleton structural change (an item
 -- promoted into a lane, the Current Best Articulation edited); "manual"

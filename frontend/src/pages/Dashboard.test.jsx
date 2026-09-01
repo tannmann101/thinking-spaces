@@ -230,6 +230,7 @@ function makeWeekDays(overrides = {}) {
     trail: [],
     dueSpaces: [],
     milestones: [],
+    sessions: [],
   }));
   Object.entries(overrides).forEach(([index, patch]) => {
     days[index] = { ...days[index], ...patch };
@@ -273,6 +274,22 @@ describe('Dashboard: Week calendar', () => {
     renderDashboard();
     expect(await screen.findByText(/reached: Shipped it/)).toBeInTheDocument();
     expect(screen.getByText(/target: Ship it/)).toBeInTheDocument();
+  });
+
+  it('distinguishes a completed Session from one still running, and shows its Project', async () => {
+    api.getWeekCalendar.mockResolvedValue(
+      makeWeekDays({
+        2: {
+          sessions: [
+            { label: 'Drafting', durationMinutes: 45, isRunning: false, spaceId: 'sp-5', spaceTitle: 'Writing Space', projectName: 'Ship the redesign' },
+          ],
+        },
+        3: { sessions: [{ label: 'Editing', durationMinutes: null, isRunning: true, spaceId: 'sp-6', spaceTitle: 'Writing Space', projectName: null }] },
+      })
+    );
+    renderDashboard();
+    expect(await screen.findByText(/logged 45 min: Drafting \(Ship the redesign\)/)).toBeInTheDocument();
+    expect(screen.getByText(/session running: Editing/)).toBeInTheDocument();
   });
 
   it('marks today\'s column distinctly from the others', async () => {

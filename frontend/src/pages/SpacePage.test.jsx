@@ -84,6 +84,54 @@ describe('SpacePage: details panel', () => {
   });
 });
 
+describe('SpacePage: adaptive density', () => {
+  it('starts the details panel collapsed for a Space with no metadata set', async () => {
+    renderPage();
+    await screen.findByText('My Space');
+    expect(document.querySelector('.space-details-panel').open).toBe(false);
+  });
+
+  it('starts the details panel expanded when the Space already has a due date', async () => {
+    api.getSpace.mockResolvedValue(makeSpace({ due_date: '2026-01-01' }));
+    renderPage();
+    await screen.findByText('My Space');
+    // The panel's open state is set from a *second* effect that only
+    // runs once `space` has actually loaded, one render after the title
+    // itself first appears -- wait for it rather than assuming it's
+    // already settled the instant the title text shows up.
+    await waitFor(() => expect(document.querySelector('.space-details-panel').open).toBe(true));
+  });
+
+  it.each([
+    ['tags', { tags: ['resource'] }],
+    ['categories', { categories: ['Risk'] }],
+    ['a goal', { goal: 'Ship it' }],
+    ['an accent', { accent: 'star' }],
+  ])('starts the details panel expanded when the Space has %s set, same as due date', async (label, overrides) => {
+    api.getSpace.mockResolvedValue(makeSpace(overrides));
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-details-panel').open).toBe(true));
+  });
+
+  it('starts expanded for an unpromoted, internal Synthesis, since promoting is something to act on', async () => {
+    api.getSpace.mockResolvedValue(makeSpace({ origin: 'internal', tags: ['synthesis'] }));
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-details-panel').open).toBe(true));
+  });
+
+  it('lets a collapsed panel be opened manually by clicking its summary', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('My Space');
+    const panel = document.querySelector('.space-details-panel');
+    expect(panel.open).toBe(false);
+    await user.click(screen.getByText('Details'));
+    expect(panel.open).toBe(true);
+  });
+});
+
 describe('SpacePage: identity fields', () => {
   it('edits the title', async () => {
     const user = userEvent.setup();

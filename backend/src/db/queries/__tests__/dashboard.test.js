@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../index.js';
-import { listOverdueReviews, listRecentTrailEntries, suggestSpaceToResurface } from '../dashboard.js';
+import { listOverdueReviews, listRecentTrailEntries, suggestSpaceToResurface, getNeedsAttentionCount } from '../dashboard.js';
 import { createSpace, updateSpace } from '../spaces.js';
 import { createBlock } from '../blocks.js';
 import { logTrailEntry } from '../trail.js';
@@ -104,5 +104,77 @@ describe('suggestSpaceToResurface', () => {
 
   it('returns null when there are no candidate Spaces at all', () => {
     expect(suggestSpaceToResurface()).toBeNull();
+  });
+});
+
+describe('getNeedsAttentionCount', () => {
+  beforeEach(() => {
+    resetDb();
+  });
+
+  it('is zero when nothing is overdue', () => {
+    createSpace({ title: 'Fine' });
+    expect(getNeedsAttentionCount()).toBe(0);
+  });
+
+  it('counts an overdue List reviewBy item', () => {
+    const space = createSpace({ title: 'Has a stale item' });
+    createBlock({ spaceId: space.id, type: 'list', content: { items: [{ id: '1', text: 'x', reviewBy: '2000-01-01' }] } });
+    expect(getNeedsAttentionCount()).toBe(1);
+  });
+
+  it('counts an overdue Space due_date', () => {
+    const space = createSpace({ title: 'Overdue Space' });
+    updateSpace(space.id, { dueDate: '2000-01-01' });
+    expect(getNeedsAttentionCount()).toBe(1);
+  });
+
+  it('does not count a Space whose due_date is in the future', () => {
+    const space = createSpace({ title: 'Not due yet' });
+    updateSpace(space.id, { dueDate: '2099-01-01' });
+    expect(getNeedsAttentionCount()).toBe(0);
+  });
+
+  it('counts an overdue, unreached Milestone', () => {
+    const space = createSpace({ title: 'Has a Milestone' });
+    createBlock({
+      spaceId: space.id,
+      type: 'milestone',
+      content: { label: 'Ship it', targetDate: '2000-01-01', reached: false, reachedAt: null, note: '' },
+    });
+    expect(getNeedsAttentionCount()).toBe(1);
+  });
+
+  it('does not count a Milestone that was already reached, even past its target date', () => {
+    const space = createSpace({ title: 'Reached already' });
+    createBlock({
+      spaceId: space.id,
+      type: 'milestone',
+      content: { label: 'Shipped', targetDate: '2000-01-01', reached: true, reachedAt: '2000-01-02', note: '' },
+    });
+    expect(getNeedsAttentionCount()).toBe(0);
+  });
+
+  it('sums all three kinds together', () => {
+    const space = createSpace({ title: 'Everything at once' });
+    updateSpace(space.id, { dueDate: '2000-01-01' });
+    createBlock({ spaceId: space.id, type: 'list', content: { items: [{ id: '1', text: 'x', reviewBy: '2000-01-01' }] } });
+    createBlock({
+      spaceId: space.id,
+      type: 'milestone',
+      content: { label: 'x', targetDate: '2000-01-01', reached: false, reachedAt: null, note: '' },
+    });
+    expect(getNeedsAttentionCount()).toBe(3);
+  });
+
+  it('excludes the Test Space entirely', () => {
+    createSpace({ id: TEST_SPACE_ID, title: 'Test Space' });
+    updateSpace(TEST_SPACE_ID, { dueDate: '2000-01-01' });
+    createBlock({
+      spaceId: TEST_SPACE_ID,
+      type: 'milestone',
+      content: { label: 'x', targetDate: '2000-01-01', reached: false, reachedAt: null, note: '' },
+    });
+    expect(getNeedsAttentionCount()).toBe(0);
   });
 });

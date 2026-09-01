@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ToolsPage from './ToolsPage.jsx';
 import { blockRegistry } from '../registry/blocks.js';
@@ -47,6 +48,46 @@ describe('ToolsPage', () => {
       .map((k) => blockRegistry[k]?.label || viewRegistry[k]?.label || k)
       .join(', ');
     expect(screen.getByText(`Works with: ${expectedLabels}`)).toBeInTheDocument();
+  });
+});
+
+// api.js is deliberately never mocked in this file (see the comment at
+// the top) -- these tests lean on that: if a demo ever reached for the
+// real API instead of DemoBlock's own local state, the unmocked fetch()
+// call would blow up jsdom and fail the test loudly, rather than the
+// test having to assert a spy was never called.
+describe('ToolsPage: interactive demos', () => {
+  it('toggles a List demo\'s checkbox without persisting anything', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const listCard = screen.getByRole('heading', { name: 'List', level: 4 }).closest('.tool-card');
+    const [checkbox] = within(listCard).getAllByRole('checkbox');
+    expect(checkbox).toBeChecked();
+    await user.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('opens a Text demo for editing on click', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const textCard = screen.getByRole('heading', { name: 'Text', level: 4 }).closest('.tool-card');
+    await user.click(within(textCard).getByText(/A demo paragraph/));
+    expect(within(textCard).getByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('never mutates the registry\'s own shared demo data across renders', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderPage();
+    const firstListCard = screen.getByRole('heading', { name: 'List', level: 4 }).closest('.tool-card');
+    const [firstCheckbox] = within(firstListCard).getAllByRole('checkbox');
+    await user.click(firstCheckbox);
+    expect(firstCheckbox).not.toBeChecked();
+    unmount();
+
+    renderPage();
+    const secondListCard = screen.getByRole('heading', { name: 'List', level: 4 }).closest('.tool-card');
+    const [secondCheckbox] = within(secondListCard).getAllByRole('checkbox');
+    expect(secondCheckbox).toBeChecked();
   });
 });
 

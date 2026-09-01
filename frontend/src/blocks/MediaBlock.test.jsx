@@ -54,6 +54,23 @@ describe('MediaBlock: image', () => {
     render(<MediaBlock block={makeBlock({ mediaType: 'image', url: 'x.png', caption: '' }, { id: undefined })} />);
     expect(screen.queryByText('(add a caption)')).not.toBeInTheDocument();
   });
+
+  it('routes a caption edit through onSave instead, for an id-less demo/Comparison side', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MediaBlock
+        block={makeBlock({ mediaType: 'image', url: 'x.png', caption: '' }, { id: undefined })}
+        onSave={onSave}
+      />
+    );
+    await user.click(screen.getByText('(add a caption)'));
+    await user.type(screen.getByRole('textbox'), 'Demo caption');
+    await user.tab();
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ caption: 'Demo caption' })));
+    expect(api.updateBlockContent).not.toHaveBeenCalled();
+  });
 });
 
 describe('MediaBlock: unimplemented media types', () => {

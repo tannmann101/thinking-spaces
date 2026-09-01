@@ -13,8 +13,15 @@ import TextBlock from './TextBlock.jsx';
 import ReferenceBlock from './ReferenceBlock.jsx';
 import { updateBlockContent } from '../api.js';
 
-function ComparisonBlock({ block, onBlocksChanged }) {
-  const editable = Boolean(block.id);
+// onSave lets a parent override where an edit goes -- the Tools
+// catalog's own interactive demo (see ToolsPage.jsx's DemoBlock), same
+// pattern every other simple Block already follows (see
+// ReferenceBlock.jsx). A Comparison itself is never embedded inside
+// another Comparison, so this only matters for the demo case, not for
+// nesting -- the sides below (renderSide) still get their own onSave
+// pointed at this block's own persist, unrelated to this one.
+function ComparisonBlock({ block, onSave, onBlocksChanged }) {
+  const editable = Boolean(block.id) || Boolean(onSave);
   const [content, setContent] = useState(block.content);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState(content.contrastNote || '');
@@ -25,8 +32,12 @@ function ComparisonBlock({ block, onBlocksChanged }) {
   // there, same as every other small marker in this app.
   async function persist(newContent) {
     setContent(newContent);
-    await updateBlockContent(block.id, newContent);
-    onBlocksChanged?.();
+    if (onSave) {
+      await onSave(newContent);
+    } else {
+      await updateBlockContent(block.id, newContent);
+      onBlocksChanged?.();
+    }
   }
 
   function toggleContrast() {
@@ -44,20 +55,13 @@ function ComparisonBlock({ block, onBlocksChanged }) {
   function renderSide(sideKey) {
     const side = content[sideKey];
     const pseudoBlock = { content: side };
-    const onSave = editable
-      ? async (newSideContent) => {
-          const newContent = { ...content, [sideKey]: newSideContent };
-          setContent(newContent);
-          await updateBlockContent(block.id, newContent);
-          onBlocksChanged?.();
-        }
-      : undefined;
+    const sideOnSave = editable ? (newSideContent) => persist({ ...content, [sideKey]: newSideContent }) : undefined;
 
     if (side.kind === 'text') {
-      return <TextBlock block={pseudoBlock} onSave={onSave} />;
+      return <TextBlock block={pseudoBlock} onSave={sideOnSave} />;
     }
     if (side.kind === 'reference') {
-      return <ReferenceBlock block={pseudoBlock} onSave={onSave} />;
+      return <ReferenceBlock block={pseudoBlock} onSave={sideOnSave} />;
     }
     return <p>Unknown comparison side: {side.kind}</p>;
   }

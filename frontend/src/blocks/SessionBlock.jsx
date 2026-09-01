@@ -20,10 +20,11 @@ function formatDuration(minutes) {
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 }
 
-// onSave lets a parent block (Comparison) override where an edit goes,
-// same pattern every other simple Block already follows (see
-// ReferenceBlock.jsx). onBlocksChanged tells the page to refetch after
-// a standalone save.
+// onSave lets a parent override where an edit goes -- a Comparison
+// side, or the Tools catalog's own interactive demo (see ToolsPage.jsx's
+// DemoBlock) -- same pattern every other simple Block already follows
+// (see ReferenceBlock.jsx). onBlocksChanged tells the page to refetch
+// after a standalone save.
 function SessionBlock({ block, onSave, onBlocksChanged }) {
   const editable = Boolean(block.id) || Boolean(onSave);
   const { label, startedAt, endedAt, durationMinutes, note } = block.content;

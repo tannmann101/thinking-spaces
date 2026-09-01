@@ -17,8 +17,13 @@ import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
 import { CONFIDENCE_CYCLE, buildNewItem } from './listItems.js';
 
-function ListBlock({ block, onBlocksChanged }) {
-  const editable = Boolean(block.id);
+// onSave lets a parent override where an edit goes -- a Comparison side
+// (see ComparisonBlock.jsx) or the Tools catalog's own interactive demo
+// (see ToolsPage.jsx's DemoBlock), same pattern every other simple Block
+// already follows (see ReferenceBlock.jsx). onBlocksChanged tells
+// SpacePage to refetch after a standalone save.
+function ListBlock({ block, onSave, onBlocksChanged }) {
+  const editable = Boolean(block.id) || Boolean(onSave);
   const isSkeletonLane = Boolean(block.properties?.skeletonLane);
   const [items, setItems] = useState(block.content.items || []);
   const [editingField, setEditingField] = useState(null); // { itemId, field }
@@ -35,8 +40,13 @@ function ListBlock({ block, onBlocksChanged }) {
   async function saveItems(newItems) {
     setItems(newItems);
     if (!editable) return;
-    await updateBlockContent(block.id, { ...block.content, items: newItems });
-    onBlocksChanged?.();
+    const newContent = { ...block.content, items: newItems };
+    if (onSave) {
+      await onSave(newContent);
+    } else {
+      await updateBlockContent(block.id, newContent);
+      onBlocksChanged?.();
+    }
   }
 
   function addItem(event) {
@@ -109,8 +119,13 @@ function ListBlock({ block, onBlocksChanged }) {
     setEditingLabel(false);
     if (labelDraft === (block.content.laneLabel || '')) return;
     if (!editable) return;
-    await updateBlockContent(block.id, { ...block.content, laneLabel: labelDraft });
-    onBlocksChanged?.();
+    const newContent = { ...block.content, laneLabel: labelDraft };
+    if (onSave) {
+      await onSave(newContent);
+    } else {
+      await updateBlockContent(block.id, newContent);
+      onBlocksChanged?.();
+    }
   }
 
   function editableField(item, field, value, inputType = 'text') {

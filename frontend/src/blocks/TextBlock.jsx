@@ -55,9 +55,10 @@ function relineFromText(newText, oldLines) {
   });
 }
 
-// onSave lets a parent block (Comparison) override where an edit goes,
-// for a Text-shaped side that isn't a standalone row in the blocks
-// table. Without it, edits PATCH this block directly by its own id.
+// onSave lets a parent override where an edit goes -- a Comparison
+// side that isn't a standalone row in the blocks table, or the Tools
+// catalog's own interactive demo (see ToolsPage.jsx's DemoBlock).
+// Without it, edits PATCH this block directly by its own id.
 // onBlocksChanged is called after a standalone save, since promotion
 // may have just changed a *different* block (a Skeleton lane) that
 // this component has no other way to know about.

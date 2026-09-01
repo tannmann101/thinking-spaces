@@ -2360,11 +2360,13 @@ label {
   background: var(--bg);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
-  /* Demos render through the real, live components -- disable pointer
-     interaction so a click inside one can't be mistaken for an
-     editing gesture (they're already read-only via the id-less demo
-     block, this just keeps the cursor honest too). */
-  pointer-events: none;
+  /* Demos render through the real, live components and are genuinely
+     interactive (see ToolsPage.jsx's DemoBlock) -- no pointer-events
+     override here anymore. There was one, from when a demo was
+     deliberately inert; it silently survived past that, since jsdom's
+     test environment doesn't enforce real CSS pointer-events the way a
+     browser does, so nothing caught it disabling every demo's clicks
+     until a live check did. */
 }
 .tool-no-demo {
   margin: 0;

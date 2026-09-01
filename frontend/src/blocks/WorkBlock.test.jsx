@@ -43,11 +43,44 @@ describe('WorkBlock: statement', () => {
     expect(onBlocksChanged).toHaveBeenCalled();
   });
 
-  it('is not editable when the block has no id (a Tools-catalog demo)', async () => {
+  it('is not editable when the block has no id and no onSave override', async () => {
     const user = userEvent.setup();
     render(<WorkBlock block={makeBlock({ statement: 'Demo statement', support: [], confidence: 'tentative' }, { id: undefined })} statementLabel="Assessment" supportLabel="Rationale" />);
     await user.click(screen.getByText('Demo statement'));
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('routes a statement edit through onSave instead, for an id-less interactive demo', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <WorkBlock
+        block={makeBlock({ statement: 'Demo statement', support: [], confidence: 'tentative' }, { id: undefined })}
+        statementLabel="Assessment"
+        supportLabel="Rationale"
+        onSave={onSave}
+      />
+    );
+    await user.click(screen.getByText('Demo statement'));
+    const input = screen.getByDisplayValue('Demo statement');
+    await user.clear(input);
+    await user.type(input, 'Edited in the demo');
+    await user.tab();
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ statement: 'Edited in the demo' })));
+    expect(api.updateBlockContent).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch other Space blocks when there is no real id to fetch against', () => {
+    render(
+      <WorkBlock
+        block={makeBlock({ statement: 'x', support: [], confidence: 'tentative' }, { id: undefined, space_id: undefined })}
+        statementLabel="Assessment"
+        supportLabel="Rationale"
+        onSave={vi.fn()}
+      />
+    );
+    expect(api.getBlocksForSpace).not.toHaveBeenCalled();
   });
 });
 

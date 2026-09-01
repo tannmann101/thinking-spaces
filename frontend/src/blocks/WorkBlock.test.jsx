@@ -243,6 +243,6 @@ describe('WorkBlock: linked support points', () => {
 
     await user.click(screen.getByRole('button', { name: /Link a claim/ }));
     await waitFor(() => expect(api.getBlocksForSpace).toHaveBeenCalled());
-    expect(screen.getByText('No other claims yet to link to.')).toBeInTheDocument();
+    expect(screen.getByText(/Nothing to link to yet/)).toBeInTheDocument();
   });
 });

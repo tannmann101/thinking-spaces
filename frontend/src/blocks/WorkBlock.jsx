@@ -134,7 +134,13 @@ function SupportLinker({ spaceBlocks, excludeBlockId, onLink, onCancel }) {
 
   return (
     <div className="work-block-linker">
-      {candidates.length === 0 && <p className="list-workshop-empty">No other claims yet to link to.</p>}
+      {candidates.length === 0 && (
+        <p className="list-workshop-empty">
+          Nothing to link to yet -- a claim is another Work item&rsquo;s own statement (an Assessment, a
+          Hypothesis, ...) or an item filed into a Skeleton lane (Premises, Evidence, Open Questions). Add one
+          of those elsewhere in this Space first, then come back here.
+        </p>
+      )}
       <ul className="checkbox-list">
         {candidates.map((candidate) => (
           <li key={`${candidate.blockId}-${candidate.itemId || ''}`}>
@@ -283,7 +289,12 @@ function WorkBlock({ block, onSave, onBlocksChanged, statementLabel, supportLabe
             <button type="submit" className="btn-ghost-small" disabled={!newSupportText.trim()}>
               Add
             </button>
-            <button type="button" className="btn-ghost-small" onClick={() => setLinking(true)}>
+            <button
+              type="button"
+              className="btn-ghost-small"
+              onClick={() => setLinking(true)}
+              title="Point at another claim already in this Space -- a Work item's own statement, or an item filed into a Skeleton lane -- instead of retyping it here. Editing the original later updates this link automatically."
+            >
               🔗 Link a claim
             </button>
           </form>

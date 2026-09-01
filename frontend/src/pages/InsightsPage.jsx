@@ -47,6 +47,7 @@ function WorkMixSection({ workMix }) {
         {workMix.total} Work items across every Space -- what kind of thinking is actually
         happening, and how settled it feels.
       </p>
+      {workMix.reading && <p className="insight-reading">{workMix.reading}</p>}
       {workMix.total === 0 && <p className="insight-empty">No Work items yet.</p>}
       {workMix.total > 0 && (
         <div className="insight-columns">
@@ -78,6 +79,7 @@ function ThemesSection({ themes }) {
         A Category recurring across unrelated Spaces is a real cross-cutting theme; a Tension is
         an open conflict in your own reasoning.
       </p>
+      {themes.reading && <p className="insight-reading">{themes.reading}</p>}
       <div className="insight-columns">
         <div>
           <h3>Recurring Categories</h3>
@@ -122,6 +124,7 @@ function ActivitySection({ activity }) {
         Whether thinking is actually moving week to week, and which Spaces have gone quiet long
         enough to be worth a second look, regardless of their status.
       </p>
+      {activity.reading && <p className="insight-reading">{activity.reading}</p>}
       <div className="insight-columns">
         <div>
           <h3>Weekly activity</h3>
@@ -159,6 +162,7 @@ function ProvenanceSection({ provenance }) {
         How much of what exists was brought in versus produced by the app itself, and how much raw
         thinking has actually been distilled into a finished piece.
       </p>
+      {provenance.reading && <p className="insight-reading">{provenance.reading}</p>}
       <div className="insight-columns">
         <div>
           <h3>Where Spaces came from</h3>
@@ -197,6 +201,7 @@ function TimeSection({ time }) {
         Due dates, Milestones, Sessions, and Review, threaded together -- what's coming up, what's
         overdue, and how much has actually been logged.
       </p>
+      {time.reading && <p className="insight-reading">{time.reading}</p>}
       <div className="insight-columns">
         <div>
           <h3>Due dates</h3>

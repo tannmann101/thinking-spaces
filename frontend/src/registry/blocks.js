@@ -66,6 +66,7 @@ import InsightBlock from '../blocks/InsightBlock.jsx';
 import ImplicationBlock from '../blocks/ImplicationBlock.jsx';
 import HypothesisBlock from '../blocks/HypothesisBlock.jsx';
 import ObjectionBlock from '../blocks/ObjectionBlock.jsx';
+import FormulationBlock from '../blocks/FormulationBlock.jsx';
 import MilestoneBlock from '../blocks/MilestoneBlock.jsx';
 import SessionBlock from '../blocks/SessionBlock.jsx';
 
@@ -414,6 +415,36 @@ export const blockRegistry = {
       content: {
         statement: 'The contract renewal date assumed in that deduction may already have passed.',
         support: [{ id: 'demo-1', text: 'Worth confirming with billing before treating the deduction as settled.' }],
+        confidence: 'tentative',
+      },
+      properties: {},
+    },
+  },
+  // Problem Formulation, added at the person's request: the stage of
+  // thinking that comes before Assessment/Question/Analysis even make
+  // sense, because what the phenomenon actually IS hasn't been named
+  // yet. A Formulation is derived by reading something (an utterance, a
+  // behavior, a stated value, a phenomenon) through a specific
+  // interpretive lens rather than observed directly -- see the
+  // Skeleton & Tensions section on the Tools catalog page for how a
+  // Formulation's own Grounds can link to a claim surfaced by that
+  // lens. Lenses themselves (etymology, phenomenology, anthropology,
+  // history, epistemology, philosophy, ...) aren't a Block type -- they
+  // live as Resources (tag "lens"), so they're reusable across every
+  // phenomenon they get applied to rather than retyped fresh each time.
+  formulation: {
+    label: 'Formulation',
+    description:
+      'A working claim about what a phenomenon fundamentally is, derived through a specific interpretive lens, with a confidence marker for how settled the framing feels.',
+    family: 'work',
+    icon: '⊢',
+    component: FormulationBlock,
+    worksWith: ['question', 'analysis', 'deduction'],
+    demoBlock: {
+      type: 'formulation',
+      content: {
+        statement: 'This is fundamentally a status ritual, not a factual claim.',
+        support: [{ id: 'demo-1', text: 'Etymology: the word’s root already meant "to display," not "to inform."' }],
         confidence: 'tentative',
       },
       properties: {},

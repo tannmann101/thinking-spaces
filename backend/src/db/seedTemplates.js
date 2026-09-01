@@ -159,6 +159,44 @@ const TEMPLATES = [
       },
     ],
   },
+  // A 6th starting cluster, added at the person's request: the stage
+  // that comes before Assessment/Question/Analysis even make sense,
+  // because what the phenomenon actually IS hasn't been named yet. The
+  // "Lenses to Consider" list is seeded with the person's own habitual
+  // reading disciplines, checked off as each is actually applied --
+  // not a fixed/required list, just a starting reminder; any lens can
+  // be removed, and applying a lens usually means Referencing that
+  // lens's own Resource (tag "lens") from the Formulation block below,
+  // not just checking a box.
+  {
+    id: 'template-problem-formulation',
+    name: 'Problem Formulation',
+    blockArrangement: () => [
+      WRITING_SURFACE,
+      {
+        type: 'list',
+        content: {
+          laneLabel: 'Lenses to Consider',
+          items: [
+            { id: 'seed-lens-1', text: 'Phenomenology', checkbox: false },
+            { id: 'seed-lens-2', text: 'Philosophy', checkbox: false },
+            { id: 'seed-lens-3', text: 'History', checkbox: false },
+            { id: 'seed-lens-4', text: 'Etymology', checkbox: false },
+            { id: 'seed-lens-5', text: 'Anthropology', checkbox: false },
+            { id: 'seed-lens-6', text: 'Epistemology', checkbox: false },
+          ],
+        },
+        properties: {},
+        position: 1,
+      },
+      {
+        type: 'formulation',
+        content: { statement: '', support: [], confidence: 'tentative' },
+        properties: {},
+        position: 2,
+      },
+    ],
+  },
 ];
 
 export function seedTemplates() {

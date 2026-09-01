@@ -30,7 +30,11 @@ import { usePageTitle } from '../hooks/usePageTitle.js';
 // named "tool" would collide with the app's own capitalized "Tool"
 // concept (the Block/View catalog at /tools), even though they mean
 // completely different things.
-const RESOURCE_TYPE_SUGGESTIONS = ['book', 'person', 'account', 'app', 'place', 'media'];
+// "lens" added alongside the others for a specific kind of Resource: an
+// interpretive lens (etymology, phenomenology, anthropology, ...) worth
+// having on hand across many different Spaces, not just one -- see the
+// Formulation Work Type (registry/blocks.js) and CLAUDE.md.
+const RESOURCE_TYPE_SUGGESTIONS = ['book', 'person', 'account', 'app', 'place', 'media', 'lens'];
 
 // The four facets this flow homes in on, in order. Used both as the
 // question labels and, verbatim, as the new Space's starting Categories

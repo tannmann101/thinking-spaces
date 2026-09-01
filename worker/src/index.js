@@ -42,6 +42,14 @@ import {
 } from './db/workspaces.js';
 import { listProjectsForSpace, getProjectById, createProject, updateProject, deleteProject } from './db/projects.js';
 import { listTemplates, getTemplateById, createTemplate, updateTemplate, deleteTemplate } from './db/templates.js';
+import {
+  listResourceTemplates,
+  getResourceTemplateById,
+  getResourceTemplateByType,
+  createResourceTemplate,
+  updateResourceTemplate,
+  deleteResourceTemplate,
+} from './db/resourceTemplates.js';
 import { SKELETON_LANES, saveTextBlockWithPromotion, fileLineInLane, createTensionPair, getSkeletonSnapshot } from './db/skeleton.js';
 import { listTrailEntries, addManualTrailEntry, updateTrailEntry } from './db/trail.js';
 import { getReviewDraft, createReview } from './db/review.js';
@@ -303,6 +311,29 @@ async function handlePatchTemplate(request, env, id) {
   return json(await updateTemplate(env, id, { name: name.trim(), blockArrangement: blockArrangement || [] }));
 }
 
+// ---------- Resource Templates ----------
+
+async function handleCreateResourceTemplate(request, env) {
+  const body = (await readJson(request)) || {};
+  const { type, label, facets } = body;
+  if (!type || !type.trim() || !label || !label.trim()) return errorResponse('type and label are required');
+  return json(
+    await createResourceTemplate(env, { type: type.trim().toLowerCase(), label: label.trim(), facets: facets || [] }),
+    201
+  );
+}
+
+async function handlePatchResourceTemplate(request, env, id) {
+  const existing = await getResourceTemplateById(env, id);
+  if (!existing) return errorResponse('Resource Template not found', 404);
+  const body = (await readJson(request)) || {};
+  const { type, label, facets } = body;
+  if (!type || !type.trim() || !label || !label.trim()) return errorResponse('type and label are required');
+  return json(
+    await updateResourceTemplate(env, id, { type: type.trim().toLowerCase(), label: label.trim(), facets: facets || [] })
+  );
+}
+
 // ---------- Skeleton ----------
 
 async function handleFileLane(request, env, id) {
@@ -439,6 +470,26 @@ export default {
       if (m && method === 'PATCH') return await handlePatchTemplate(request, env, m[1]);
       if (m && method === 'DELETE') {
         await deleteTemplate(env, m[1]);
+        return json(null, 204);
+      }
+
+      // Resource Templates
+      if (path === '/api/resource-templates' && method === 'GET') {
+        const typeParam = url.searchParams.get('type');
+        if (typeParam) return json((await getResourceTemplateByType(env, typeParam)) || null);
+        return json(await listResourceTemplates(env));
+      }
+      if (path === '/api/resource-templates' && method === 'POST') return await handleCreateResourceTemplate(request, env);
+
+      m = path.match(/^\/api\/resource-templates\/([\w-]+)$/);
+      if (m && method === 'GET') {
+        const template = await getResourceTemplateById(env, m[1]);
+        if (!template) return errorResponse('Resource Template not found', 404);
+        return json(template);
+      }
+      if (m && method === 'PATCH') return await handlePatchResourceTemplate(request, env, m[1]);
+      if (m && method === 'DELETE') {
+        await deleteResourceTemplate(env, m[1]);
         return json(null, 204);
       }
 

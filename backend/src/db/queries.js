@@ -21,6 +21,7 @@
 export * from './queries/constants.js';
 export * from './queries/spaces.js';
 export * from './queries/templates.js';
+export * from './queries/resourceTemplates.js';
 export * from './queries/blocks.js';
 export * from './queries/workspaces.js';
 export * from './queries/projects.js';

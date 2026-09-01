@@ -152,6 +152,27 @@ export const updateTemplate = (id, { name, blockArrangement }) =>
   });
 export const deleteTemplate = (id) => request(`/templates/${id}`, { method: 'DELETE' });
 
+// Resource Template management -- a deliberately separate mechanism
+// from ordinary Templates above (see backend/src/db/schema.sql). Each
+// replaces CreateResource.jsx's generic descriptive facets with a
+// type-tailored set of its own.
+export const getResourceTemplates = () => request('/resource-templates');
+// null when no Resource Template matches this type -- CreateResource.jsx
+// falls back to its own generic facets in that case.
+export const getResourceTemplateByType = (type) => request(`/resource-templates?type=${encodeURIComponent(type)}`);
+export const getResourceTemplate = (id) => request(`/resource-templates/${id}`);
+export const createResourceTemplate = ({ type, label, facets }) =>
+  request('/resource-templates', {
+    method: 'POST',
+    body: JSON.stringify({ type, label, facets }),
+  });
+export const updateResourceTemplate = (id, { type, label, facets }) =>
+  request(`/resource-templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ type, label, facets }),
+  });
+export const deleteResourceTemplate = (id) => request(`/resource-templates/${id}`, { method: 'DELETE' });
+
 // Adding/removing/reordering blocks on an already-live Space.
 export const addBlockToSpace = (spaceId, { type, content, properties }) =>
   request(`/spaces/${spaceId}/blocks`, {

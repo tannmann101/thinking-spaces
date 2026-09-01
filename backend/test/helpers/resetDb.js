@@ -7,7 +7,16 @@ import { db } from '../../src/db/index.js';
 // rebuilding the schema from scratch each time. Foreign keys are
 // toggled off for the duration since deletion order across
 // spaces/blocks/workspaces/trail_entries would otherwise matter.
-const TABLES = ['trail_entries', 'blocks', 'workspaces', 'activity_log', 'spaces', 'templates'];
+const TABLES = [
+  'trail_entries',
+  'blocks',
+  'workspaces',
+  'projects',
+  'activity_log',
+  'spaces',
+  'templates',
+  'resource_templates',
+];
 
 export function resetDb() {
   db.pragma('foreign_keys = OFF');

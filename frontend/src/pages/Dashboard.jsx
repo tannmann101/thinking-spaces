@@ -217,11 +217,16 @@ function Dashboard() {
       )}
 
       {spaces && spaces.length > 0 && (() => {
-        const visibleSpaces = spaces.filter((space) => {
-          const matchesSearch = space.title.toLowerCase().includes(search.trim().toLowerCase());
-          const matchesStatus = !statusFilter || space.status === statusFilter;
-          return matchesSearch && matchesStatus;
-        });
+        // Matches the current search text only, independent of whatever
+        // status tab happens to be active -- this is what each tab's own
+        // count reflects ("if I click this, how many would show"), not a
+        // count compounded by the currently-active filter.
+        const searchMatches = spaces.filter((space) =>
+          space.title.toLowerCase().includes(search.trim().toLowerCase())
+        );
+        const visibleSpaces = searchMatches.filter(
+          (space) => !statusFilter || space.status === statusFilter
+        );
         return (
           <>
             <p className="space-search-row">
@@ -236,7 +241,7 @@ function Dashboard() {
                 className={`category-filter-tab${statusFilter === null ? ' category-filter-tab-active' : ''}`}
                 onClick={() => setStatusFilter(null)}
               >
-                All
+                All ({searchMatches.length})
               </span>
               {SPACE_STATUSES.map((status) => (
                 <span
@@ -244,7 +249,7 @@ function Dashboard() {
                   className={`category-filter-tab${statusFilter === status ? ' category-filter-tab-active' : ''}`}
                   onClick={() => setStatusFilter(statusFilter === status ? null : status)}
                 >
-                  {status}
+                  {status} ({searchMatches.filter((space) => space.status === status).length})
                 </span>
               ))}
             </p>

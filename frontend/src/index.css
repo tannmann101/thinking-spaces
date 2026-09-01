@@ -104,6 +104,13 @@ button {
   font-family: inherit;
 }
 
+code {
+  font-family: var(--mono);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+}
+
 ::selection {
   background: var(--maroon);
   color: #fff;
@@ -1772,6 +1779,11 @@ label {
   border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-top: 10px;
+}
+.new-block-type-description {
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+  margin: 4px 0 8px;
 }
 
 /* ---------- Space-level properties: status, tags, working-toward ---------- */

@@ -156,6 +156,16 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
           </optgroup>
         </select>
       </label>
+      {/* The dropdown itself can only show a bare label per option --
+          native <option>s don't support anything richer -- so picking
+          between, say, "Deduction" and "Implication" meant already
+          knowing the Tools catalog by heart. This mirrors the same
+          description text ToolsPage.jsx shows for the same registry
+          entry, right at the point of choosing instead of only
+          elsewhere in the app. */}
+      {blockRegistry[type]?.description && (
+        <p className="new-block-type-description">{blockRegistry[type].description}</p>
+      )}
       <br />
       {type !== 'list' ? (
         <textarea

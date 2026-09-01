@@ -201,12 +201,16 @@ describe('SpacePage: Categories', () => {
     renderPage();
     await screen.findByText('In Risk');
 
-    const riskTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent === 'Risk');
+    expect(screen.getByText('Risk (1)')).toBeInTheDocument();
+    expect(screen.getByText('Timing (1)')).toBeInTheDocument();
+    expect(screen.getByText('All (2)')).toBeInTheDocument();
+
+    const riskTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent.startsWith('Risk'));
     await user.click(riskTab);
     expect(screen.getByText('In Risk')).toBeInTheDocument();
     expect(screen.queryByText('In Timing')).not.toBeInTheDocument();
 
-    const allTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent === 'All');
+    const allTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent.startsWith('All'));
     await user.click(allTab);
     expect(screen.getByText('In Timing')).toBeInTheDocument();
   });
@@ -219,10 +223,10 @@ describe('SpacePage: block type filter', () => {
     ]);
     renderPage();
     await screen.findByText('Only text');
-    expect(screen.queryByText('All types')).not.toBeInTheDocument();
+    expect(screen.queryByText('All types (1)')).not.toBeInTheDocument();
   });
 
-  it('filters blocks by type once more than one type exists', async () => {
+  it('filters blocks by type once more than one type exists, each tab showing its own count', async () => {
     const user = userEvent.setup();
     api.getBlocksForSpace.mockResolvedValue([
       { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'A text block', tag: null }] }, properties: {}, updated_at: 'v1' },
@@ -230,9 +234,11 @@ describe('SpacePage: block type filter', () => {
     ]);
     renderPage();
     await screen.findByText('A text block');
-    expect(screen.getByText('All types')).toBeInTheDocument();
+    expect(screen.getByText('All types (2)')).toBeInTheDocument();
+    expect(screen.getByText('Text (1)')).toBeInTheDocument();
+    expect(screen.getByText('List (1)')).toBeInTheDocument();
 
-    const listTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent === 'List');
+    const listTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent.startsWith('List'));
     await user.click(listTab);
     expect(screen.queryByText('A text block')).not.toBeInTheDocument();
   });
@@ -250,6 +256,16 @@ describe('SpacePage: block feed actions', () => {
     await screen.findByText('No blocks yet.');
     await user.click(screen.getByRole('button', { name: '+ Add Block' }));
     await waitFor(() => expect(api.addBlockToSpace).toHaveBeenCalledWith('space-1', expect.objectContaining({ type: 'text' })));
+  });
+
+  it('shows the selected Tool\'s own description, updating as the type changes', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('No blocks yet.');
+    expect(screen.getByText('A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Block type:'), 'assessment');
+    expect(screen.getByText('A judgment on something, with supporting points and a confidence marker.')).toBeInTheDocument();
   });
 
   it('removes a block after confirming', async () => {

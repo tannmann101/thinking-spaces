@@ -661,7 +661,7 @@ function SpacePage() {
                 className={`category-filter-tab${activeCategory === null ? ' category-filter-tab-active' : ''}`}
                 onClick={() => setActiveCategory(null)}
               >
-                All
+                All ({blocks.length})
               </span>
               {space.categories.map((category) => (
                 <span
@@ -671,7 +671,7 @@ function SpacePage() {
                   }`}
                   onClick={() => setActiveCategory(category)}
                 >
-                  {category}
+                  {category} ({blocks.filter((block) => (block.properties?.categories || []).includes(category)).length})
                 </span>
               ))}
             </p>
@@ -689,7 +689,7 @@ function SpacePage() {
                 className={`category-filter-tab${activeType === null ? ' category-filter-tab-active' : ''}`}
                 onClick={() => setActiveType(null)}
               >
-                All types
+                All types ({blocks.length})
               </span>
               {[...new Set(blocks.map((block) => block.type))].map((type) => (
                 <span
@@ -697,7 +697,7 @@ function SpacePage() {
                   className={`category-filter-tab${activeType === type ? ' category-filter-tab-active' : ''}`}
                   onClick={() => setActiveType(activeType === type ? null : type)}
                 >
-                  {blockRegistry[type]?.label || type}
+                  {blockRegistry[type]?.label || type} ({blocks.filter((block) => block.type === type).length})
                 </span>
               ))}
             </p>

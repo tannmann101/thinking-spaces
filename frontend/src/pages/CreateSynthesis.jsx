@@ -116,6 +116,11 @@ function CreateSynthesis() {
         catalog, from any Space -- into a new, more polished piece: an essay, a definition, a
         story, a plain writing entry.
       </p>
+      <p className="mono-caption">
+        Once it feels settled, a Synthesis can be promoted to Resource status right from its own
+        Space page -- worth knowing going in, even though it's not something you'd do here at
+        creation.
+      </p>
 
       <form onSubmit={handleSubmit}>
         <div>

@@ -54,8 +54,10 @@ function getMilestoneStats(spaceId) {
   return { reached: row.reached, total: row.total };
 }
 
+// `accent` is deliberately absent -- it's superseded by `theme` and
+// nothing reads it anymore (see schema.sql's own note on the column).
 const SPACE_COLUMNS =
-  'id, title, status, template_id, tags, goal, categories, accent, origin, due_date, created_at, updated_at';
+  'id, title, status, template_id, tags, goal, categories, theme, origin, due_date, created_at, updated_at';
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
@@ -63,12 +65,17 @@ function withComputedSpaceFields(space) {
     ...space,
     tags: JSON.parse(space.tags ?? '[]'),
     categories: JSON.parse(space.categories ?? '[]'),
+    // The manual half of this Space's look, or null for "use whatever
+    // the computed default for this kind of Space is" -- resolved on
+    // the frontend (see theme/itemTheme.js), never here, since the
+    // defaults are a rendering concern rather than stored data.
+    theme: space.theme ? JSON.parse(space.theme) : null,
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: getRelationDensity(space.id),
     openTensionCount: getOpenTensionCount(space.id),
     // A Space is overdue purely by its own due_date having passed --
     // independent of status, same reasoning staleness (Insights) is
-    // independent of status: a Space can sit at "developing" forever
+    // independent of status: a Space can sit at "active" forever
     // without anyone touching it, and a due date can pass the same way.
     isOverdue: Boolean(space.due_date && space.due_date < todayString()),
     milestoneStats: getMilestoneStats(space.id),
@@ -121,7 +128,7 @@ export function createSpace({
   id = randomUUID(),
   title,
   templateId = null,
-  status = 'nascent',
+  status = 'active',
   tags = [],
   categories = [],
   origin = null,
@@ -136,18 +143,19 @@ export function createSpace({
   return { ...getSpaceById(id), changeSummary: summary };
 }
 
-// A Space's title, status, tags, goal, categories, accent, and due
+// A Space's title, status, tags, goal, categories, theme, and due
 // date are all edited through this one function. Any subset of fields
 // can be given; the rest keep their current value, same pattern as
 // updateTemplate (templates.js). categories are freely-named facets
 // specific to this Space's own topic (e.g. "Financial Impact") that its
 // own blocks get filed under -- not to be confused with tags, which
 // categorize the Space itself (e.g. "resource") among every other
-// Space. accent is Visual Identity's manual layer -- a hand-picked mark
-// drawn on top of the glyph's computed base, independent of every other
-// field here. dueDate is a real target date for the Space as a whole,
-// distinct from a List item's own `reviewBy`.
-export function updateSpace(id, { title, status, tags, goal, categories, accent, dueDate } = {}) {
+// Space. theme is the manual half of personalization -- any subset of
+// {accent, shape, density, typeface} overriding the look this kind of
+// Space would otherwise compute for itself; passing null clears it back
+// to that computed default. dueDate is a real target date for the Space
+// as a whole, distinct from a List item's own `reviewBy`.
+export function updateSpace(id, { title, status, tags, goal, categories, theme, dueDate } = {}) {
   const existing = db.prepare(`SELECT * FROM spaces WHERE id = ?`).get(id);
   if (!existing) return null;
 
@@ -157,15 +165,15 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent,
     tags: tags !== undefined ? JSON.stringify(tags) : existing.tags,
     goal: goal !== undefined ? goal : existing.goal,
     categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
-    accent: accent !== undefined ? accent : existing.accent,
+    theme: theme !== undefined ? (theme ? JSON.stringify(theme) : null) : existing.theme,
     due_date: dueDate !== undefined ? dueDate : existing.due_date,
   };
   db.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, due_date = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, theme = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
-  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.accent, next.due_date, id);
+  ).run(next.title, next.status, next.tags, next.goal, next.categories, next.theme, next.due_date, id);
   // Only a status change gets logged, not every title/tag/goal edit --
-  // status progression (nascent -> developing -> mature) is genuinely
+  // status progression (inactive -> active -> mature) is genuinely
   // trend-worthy; a renamed tag isn't.
   //
   // changeSummary (see changeSummary.js) is a lighter-weight cousin of
@@ -174,7 +182,7 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent,
   // status and due-date changes are the two edits on a Space with a
   // real implication worth naming (a due date showing up on the Week
   // digest, possibly already overdue). Every other field edit here
-  // (title, tags, goal, categories, accent) falls back to the toast's
+  // (title, tags, goal, categories, theme) falls back to the toast's
   // own generic "Saved", which is still an honest, non-misleading thing
   // to say about them.
   let changeSummary = null;
@@ -308,12 +316,37 @@ export function createSpaceWithSetup({
   return { ...getSpaceById(space.id), changeSummary: space.changeSummary };
 }
 
+// One-time data migration for the status vocabulary change. The
+// original four values were the app's own invention (nascent /
+// developing / mature / dormant); the five below are the person's own
+// words for how they actually think about a Space's state, which is
+// what the vocabulary is supposed to follow. Both of the old values
+// meaning "this is being worked on" collapse into `active` -- a
+// distinction between "just started" and "under way" wasn't one being
+// used in practice, and `interesting` (genuinely new) has no old value
+// to migrate from, so nothing maps onto it.
+//
+// Idempotent by construction: it only ever rewrites the two retired
+// values, so a second run finds nothing left to do. Runs at startup
+// alongside the other one-time migrations (see backend/src/index.js).
+const RETIRED_STATUS_MAP = {
+  nascent: 'active',
+  developing: 'active',
+};
+
+export function migrateSpaceStatuses() {
+  const statement = db.prepare(`UPDATE spaces SET status = ? WHERE status = ?`);
+  Object.entries(RETIRED_STATUS_MAP).forEach(([oldStatus, newStatus]) => {
+    statement.run(newStatus, oldStatus);
+  });
+}
+
 // Idempotent: creates the Test Space the first time the app runs, does
 // nothing on every run after that. Called once at startup.
 export function ensureTestSpaceExists() {
   const existing = getSpaceById(TEST_SPACE_ID);
   if (existing) return existing;
-  return createSpace({ id: TEST_SPACE_ID, title: 'Test Space', status: 'developing' });
+  return createSpace({ id: TEST_SPACE_ID, title: 'Test Space', status: 'active' });
 }
 
 // A "Relational Space" isn't a distinct schema -- CLAUDE.md is explicit

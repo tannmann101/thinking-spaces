@@ -41,7 +41,7 @@ async function getMilestoneStats(env, spaceId) {
 }
 
 const SPACE_COLUMNS =
-  'id, title, status, template_id, tags, goal, categories, accent, origin, due_date, created_at, updated_at';
+  'id, title, status, template_id, tags, goal, categories, theme, origin, due_date, created_at, updated_at';
 
 async function withComputedSpaceFields(env, space) {
   if (!space) return space;
@@ -49,6 +49,10 @@ async function withComputedSpaceFields(env, space) {
     ...space,
     tags: JSON.parse(space.tags ?? '[]'),
     categories: JSON.parse(space.categories ?? '[]'),
+    // Resolved on the frontend (theme/itemTheme.js), never here -- the
+    // per-kind defaults are a rendering concern, so only the override
+    // is ever stored.
+    theme: space.theme ? JSON.parse(space.theme) : null,
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: await getRelationDensity(env, space.id),
     openTensionCount: await getOpenTensionCount(env, space.id),
@@ -82,7 +86,7 @@ export async function getSpaceById(env, id) {
 
 export async function createSpace(
   env,
-  { id = crypto.randomUUID(), title, templateId = null, status = 'nascent', tags = [], categories = [], origin = null, dueDate = null }
+  { id = crypto.randomUUID(), title, templateId = null, status = 'active', tags = [], categories = [], origin = null, dueDate = null }
 ) {
   await env.DB.prepare(
     `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin, due_date)
@@ -95,7 +99,7 @@ export async function createSpace(
   return { ...(await getSpaceById(env, id)), changeSummary: summary };
 }
 
-export async function updateSpace(env, id, { title, status, tags, goal, categories, accent, dueDate } = {}) {
+export async function updateSpace(env, id, { title, status, tags, goal, categories, theme, dueDate } = {}) {
   const existing = await env.DB.prepare(`SELECT * FROM spaces WHERE id = ?`).bind(id).first();
   if (!existing) return null;
 
@@ -105,14 +109,14 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
     tags: tags !== undefined ? JSON.stringify(tags) : existing.tags,
     goal: goal !== undefined ? goal : existing.goal,
     categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
-    accent: accent !== undefined ? accent : existing.accent,
+    theme: theme !== undefined ? (theme ? JSON.stringify(theme) : null) : existing.theme,
     due_date: dueDate !== undefined ? dueDate : existing.due_date,
   };
   await env.DB.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, accent = ?, due_date = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, theme = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
   )
-    .bind(next.title, next.status, next.tags, next.goal, next.categories, next.accent, next.due_date, id)
+    .bind(next.title, next.status, next.tags, next.goal, next.categories, next.theme, next.due_date, id)
     .run();
   // changeSummary (see changeSummary.js) is a lighter-weight cousin of
   // the logActivity entry below -- a short sentence attached to the
@@ -208,7 +212,7 @@ export async function createSpaceWithSetup(
 export async function ensureTestSpaceExists(env) {
   const existing = await getSpaceById(env, TEST_SPACE_ID);
   if (existing) return existing;
-  return createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space', status: 'developing' });
+  return createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space', status: 'active' });
 }
 
 export async function createRelationalSpace(env, { title, spaceIds }) {

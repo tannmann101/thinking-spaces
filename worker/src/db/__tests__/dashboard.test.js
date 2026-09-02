@@ -180,22 +180,22 @@ describe('suggestSpaceToResurface', () => {
     await resetDb(env);
   });
 
-  it('suggests the longest-untouched nascent/dormant Space', async () => {
-    const older = await createSpace(env, { title: 'Old and forgotten' });
-    const newer = await createSpace(env, { title: 'Newer nascent' });
+  it('suggests the longest-untouched dormant/inactive Space', async () => {
+    const older = await createSpace(env, { title: 'Old and forgotten', status: 'inactive' });
+    const newer = await createSpace(env, { title: 'Newer dormant', status: 'dormant' });
     await env.DB.prepare(`UPDATE spaces SET updated_at = '2000-01-01 00:00:00' WHERE id = ?`).bind(older.id).run();
     await env.DB.prepare(`UPDATE spaces SET updated_at = '2099-01-01 00:00:00' WHERE id = ?`).bind(newer.id).run();
     expect((await suggestSpaceToResurface(env)).id).toBe(older.id);
   });
 
-  it('ignores a Space that is not nascent or dormant', async () => {
+  it('ignores a Space that is not dormant or inactive', async () => {
     const space = await createSpace(env, { title: 'Mature already' });
     await updateSpace(env, space.id, { status: 'mature' });
     expect(await suggestSpaceToResurface(env)).toBeNull();
   });
 
-  it('excludes the Test Space even if it is nascent', async () => {
-    await createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space' });
+  it('excludes the Test Space even if it is dormant', async () => {
+    await createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space', status: 'dormant' });
     expect(await suggestSpaceToResurface(env)).toBeNull();
   });
 

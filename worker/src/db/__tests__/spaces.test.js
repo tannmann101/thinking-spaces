@@ -27,7 +27,7 @@ describe('createSpace / getSpaceById', () => {
     const space = await createSpace(env, { title: 'A new train of thought' });
     expect(space).toMatchObject({
       title: 'A new train of thought',
-      status: 'nascent',
+      status: 'active',
       tags: [],
       categories: [],
       origin: null,
@@ -171,14 +171,14 @@ describe('updateSpace', () => {
     let { results } = await env.DB.prepare(`SELECT * FROM activity_log WHERE kind = 'space_status_changed'`).all();
     expect(results).toHaveLength(0);
 
-    await updateSpace(env, space.id, { status: 'developing' });
+    await updateSpace(env, space.id, { status: 'mature' });
     ({ results } = await env.DB.prepare(`SELECT * FROM activity_log WHERE kind = 'space_status_changed'`).all());
     expect(results).toHaveLength(1);
   });
 
   it('does not log a status change when the status is set to its current value', async () => {
-    const space = await createSpace(env, { title: 'X', status: 'developing' });
-    await updateSpace(env, space.id, { status: 'developing' });
+    const space = await createSpace(env, { title: 'X', status: 'mature' });
+    await updateSpace(env, space.id, { status: 'mature' });
     const { results } = await env.DB.prepare(`SELECT * FROM activity_log WHERE kind = 'space_status_changed'`).all();
     expect(results).toHaveLength(0);
   });
@@ -187,10 +187,27 @@ describe('updateSpace', () => {
     expect(await updateSpace(env, 'nonexistent', { title: 'x' })).toBeNull();
   });
 
+  it('round-trips a theme override as parsed JSON, and clears it back to the computed default with null', async () => {
+    const space = await createSpace(env, { title: 'Themed' });
+    expect(space.theme).toBeNull();
+
+    const themed = await updateSpace(env, space.id, { theme: { accent: 'teal', shape: 'notch' } });
+    expect(themed.theme).toEqual({ accent: 'teal', shape: 'notch' });
+    expect((await getSpaceById(env, space.id)).theme).toEqual({ accent: 'teal', shape: 'notch' });
+
+    expect((await updateSpace(env, space.id, { theme: null })).theme).toBeNull();
+  });
+
+  it('leaves an existing theme untouched when other fields are edited', async () => {
+    const space = await createSpace(env, { title: 'Themed' });
+    await updateSpace(env, space.id, { theme: { accent: 'gold' } });
+    expect((await updateSpace(env, space.id, { title: 'Renamed' })).theme).toEqual({ accent: 'gold' });
+  });
+
   it('attaches a changeSummary for a status change, but not for a plain title edit', async () => {
     const space = await createSpace(env, { title: 'X' });
     expect((await updateSpace(env, space.id, { title: 'Y' })).changeSummary).toBeUndefined();
-    expect((await updateSpace(env, space.id, { status: 'developing' })).changeSummary).toBe('Status changed to developing');
+    expect((await updateSpace(env, space.id, { status: 'mature' })).changeSummary).toBe('Status changed to mature');
   });
 
   it('attaches a changeSummary naming when a due date will show as overdue vs. upcoming', async () => {
@@ -346,7 +363,7 @@ describe('ensureTestSpaceExists', () => {
   it('creates the Test Space the first time', async () => {
     const space = await ensureTestSpaceExists(env);
     expect(space.id).toBe(TEST_SPACE_ID);
-    expect(space.status).toBe('developing');
+    expect(space.status).toBe('active');
   });
 
   it('is idempotent: a second call returns the same Space without erroring', async () => {

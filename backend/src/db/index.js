@@ -40,7 +40,12 @@ function ensureColumn(table, column, definition) {
 ensureColumn('spaces', 'tags', `TEXT NOT NULL DEFAULT '[]'`);
 ensureColumn('spaces', 'goal', 'TEXT');
 ensureColumn('spaces', 'categories', `TEXT NOT NULL DEFAULT '[]'`);
+// `accent` is superseded by `theme` and nothing reads it anymore -- kept
+// here (and in schema.sql) purely so an existing database that already
+// has the column keeps matching the declared schema. Dropping it would
+// be a destructive migration on real personal data for no gain.
 ensureColumn('spaces', 'accent', 'TEXT');
+ensureColumn('spaces', 'theme', 'TEXT');
 ensureColumn('spaces', 'origin', 'TEXT');
 ensureColumn('spaces', 'due_date', 'TEXT');
 ensureColumn('activity_log', 'block_id', 'TEXT');

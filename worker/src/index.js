@@ -30,6 +30,7 @@ import {
   updateBlockCategories,
   updateBlockWorkspaces,
   updateBlockProject,
+  updateBlockTheme,
   deleteBlock,
   moveBlockInSpace,
   getGraphData,
@@ -132,7 +133,7 @@ async function handleGetSpace(env, id) {
 
 async function handleUpdateSpace(request, env, id) {
   const body = (await readJson(request)) || {};
-  const { title, status, tags, goal, categories, accent, dueDate } = body;
+  const { title, status, tags, goal, categories, theme, dueDate } = body;
   if (title !== undefined && !title.trim()) return errorResponse('title cannot be empty');
   const updated = await updateSpace(env, id, {
     title: title !== undefined ? title.trim() : undefined,
@@ -140,7 +141,7 @@ async function handleUpdateSpace(request, env, id) {
     tags,
     goal,
     categories,
-    accent,
+    theme,
     dueDate,
   });
   if (!updated) return errorResponse('Space not found', 404);
@@ -213,9 +214,15 @@ async function handlePatchBlock(request, env, id) {
   const existing = await getBlockById(env, id);
   if (!existing) return errorResponse('Entry not found', 404);
   const body = (await readJson(request)) || {};
-  const { content, categories, workspaces, projectId } = body;
-  if (content === undefined && categories === undefined && workspaces === undefined && projectId === undefined) {
-    return errorResponse('content, categories, workspaces, or projectId is required');
+  const { content, categories, workspaces, projectId, theme } = body;
+  if (
+    content === undefined &&
+    categories === undefined &&
+    workspaces === undefined &&
+    projectId === undefined &&
+    theme === undefined
+  ) {
+    return errorResponse('content, categories, workspaces, projectId, or theme is required');
   }
   const changeSummary = content !== undefined ? describeBlockContentChange(existing, content) : null;
   let updated = existing;
@@ -223,6 +230,7 @@ async function handlePatchBlock(request, env, id) {
   if (categories !== undefined) updated = await updateBlockCategories(env, id, categories);
   if (workspaces !== undefined) updated = await updateBlockWorkspaces(env, id, workspaces);
   if (projectId !== undefined) updated = await updateBlockProject(env, id, projectId);
+  if (theme !== undefined) updated = await updateBlockTheme(env, id, theme);
   return json(changeSummary ? { ...updated, changeSummary } : updated);
 }
 

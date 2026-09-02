@@ -1,6 +1,6 @@
 // Creation Mode: pick a starting cluster (a Template, or blank), see
 // and add to its starting Tools, pull in existing Resources as
-// References, and personalize with tags and a "working toward" goal --
+// References, and set tags and a "working toward" goal --
 // all composed server-side by createSpaceWithSetup in one request. A
 // Template's own starting blocks are shown as a preview here (not
 // individually removable pre-creation, to keep this one slice
@@ -270,7 +270,13 @@ function CreateSpace() {
           </>
         )}
 
-        <h2>Personalize</h2>
+        {/* This was headed "Personalize", which promised something it
+            never delivered -- it's a goal line and a tag row, not a way
+            to make the Space its own thing. Real personalization is the
+            theme system (see theme/itemTheme.js), which lives on the
+            Space itself once it exists, where you can actually see what
+            you're changing. Named for what it is now. */}
+        <h2>Goal &amp; tags</h2>
         <p className="working-toward">
           Working toward:{' '}
           <input

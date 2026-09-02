@@ -25,9 +25,26 @@
   --maroon-bright: #c14a5d;
   --maroon-deep: #3a141a;
   --maroon-wash: rgba(138, 44, 59, 0.12);
-  --accent: #c9973b; /* Visual Identity's manual accent layer -- deliberately a
-                         warm gold, not a shade of maroon, so a hand-picked mark
-                         always reads as separate from the glyph's computed base */
+  --accent: #c9973b; /* the app's long-standing gold, still used wherever a
+                         "produced by the app" or "reached/running" meaning is
+                         already established (Provenance, Time states) */
+
+  /* The personalization palette (see theme/itemTheme.js). A closed set on
+     purpose: an open color picker would let the app drift out of its own
+     matte-black/oxblood identity within a week. All ten are tuned to sit at
+     roughly the same weight against the dark ground, so no item shouts
+     louder than another purely by hue -- distinction comes from the pairing
+     of hue and shape, not from one color being brighter. */
+  --theme-accent-neutral: #6f5c5e;
+  --theme-accent-maroon: #c14a5d;
+  --theme-accent-rust: #c2683f;
+  --theme-accent-clay: #b4574a;
+  --theme-accent-gold: #c9973b;
+  --theme-accent-amber: #cbab55;
+  --theme-accent-teal: #4f9a93;
+  --theme-accent-slate: #6d87a6;
+  --theme-accent-plum: #9a6ba6;
+  --theme-accent-moss: #789064;
 
   --display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --body: 'Source Serif 4', Georgia, serif;
@@ -982,17 +999,137 @@ label {
 .block-row[data-highlighted='true'] {
   background: rgba(201, 151, 59, 0.18); /* --accent at low opacity */
 }
-/* The same coarse family personality as .tool-card in the Tools
-   catalog, carried down into the actual feed -- a long Space used to
-   read as one undifferentiated wall of identical boxes regardless of
-   what was actually in it. General stays neutral (the foundational,
-   unmarked family); Work gets the app's own primary maroon; Time gets
-   the gold already reserved for Visual Identity's manual accent. */
-.block-row[data-family='work'] {
-  border-left-color: var(--maroon);
+/* Family color used to be set here directly (Work = maroon, Time =
+   gold, General = neutral). That's now handled by the theme system
+   below, which encodes the same family reading in its per-type default
+   accents while also distinguishing types *within* a family -- see
+   theme/itemTheme.js. data-family is still set on the element and still
+   used for grouping in the Tools catalog and the "+ Add Entry"
+   dropdown; it just no longer paints anything by itself. */
+
+/* ---------- Item themes -------------------------------------------------
+   Personalization, in four dimensions: color, shape, density, typeface.
+   Every kind of thing gets a distinct default (so a Hypothesis never
+   looks like a Milestone even before you touch anything), and any
+   individual item can override any subset by hand. The option lists and
+   the defaults live in one readable file, theme/itemTheme.js; this
+   section is only how each named option actually draws.
+
+   Selectors double up the attributes ([data-theme-shape='x']
+   [data-theme-accent]) purely for specificity: every themed element
+   carries all four attributes, so this always matches, and 0,2,0 beats
+   the single classes (.block-row, .tool-card, .digest) these rules need
+   to override -- without depending on source order. */
+
+/* Color. Each accent sets one variable that every shape below reads,
+   so a shape rule never has to know which hue it's drawing. */
+[data-theme-accent='neutral'] { --item-accent: var(--theme-accent-neutral); }
+[data-theme-accent='maroon'] { --item-accent: var(--theme-accent-maroon); }
+[data-theme-accent='rust'] { --item-accent: var(--theme-accent-rust); }
+[data-theme-accent='clay'] { --item-accent: var(--theme-accent-clay); }
+[data-theme-accent='gold'] { --item-accent: var(--theme-accent-gold); }
+[data-theme-accent='amber'] { --item-accent: var(--theme-accent-amber); }
+[data-theme-accent='teal'] { --item-accent: var(--theme-accent-teal); }
+[data-theme-accent='slate'] { --item-accent: var(--theme-accent-slate); }
+[data-theme-accent='plum'] { --item-accent: var(--theme-accent-plum); }
+[data-theme-accent='moss'] { --item-accent: var(--theme-accent-moss); }
+
+/* Shape -- the silhouette. This is the dimension doing most of the work
+   for telling two items apart at a glance; the eye groups colors but
+   reads outlines. Each resets the edges it doesn't use, so switching an
+   item's shape can never leave a stray border behind from the last one. */
+[data-theme-shape][data-theme-accent] {
+  border-left: 0;
+  border-top: 0;
+  border-bottom: 0;
+  border-radius: 0;
 }
-.block-row[data-family='time'] {
-  border-left-color: var(--accent);
+[data-theme-shape='plain'][data-theme-accent] {
+  border-left: 3px solid var(--item-accent);
+  padding-left: 14px;
+}
+[data-theme-shape='slab'][data-theme-accent] {
+  border-left: 7px solid var(--item-accent);
+  padding-left: 14px;
+}
+[data-theme-shape='bracket'][data-theme-accent] {
+  border-left: 2px solid var(--item-accent);
+  border-top: 2px solid var(--item-accent);
+  padding-left: 14px;
+  padding-top: 10px;
+}
+[data-theme-shape='rule'][data-theme-accent] {
+  border-top: 2px solid var(--item-accent);
+  padding-left: 0;
+  padding-top: 10px;
+}
+[data-theme-shape='notch'][data-theme-accent] {
+  border-left: 3px solid var(--item-accent);
+  padding-left: 14px;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+}
+[data-theme-shape='inset'][data-theme-accent] {
+  border: 1px solid var(--item-accent);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+}
+[data-theme-shape='underline'][data-theme-accent] {
+  border-bottom: 2px solid var(--item-accent);
+  padding-left: 0;
+  padding-bottom: 10px;
+}
+/* The one shape needing a drawn element rather than a border: a small
+   tab sitting above the item's own top-left corner. */
+[data-theme-shape='tab'][data-theme-accent] {
+  border-top: 2px solid var(--item-accent);
+  padding-left: 0;
+  padding-top: 12px;
+}
+[data-theme-shape='tab'][data-theme-accent]::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 34px;
+  height: 4px;
+  background: var(--item-accent);
+}
+
+/* Density -- how much room the item's content gets. Applied as a scale
+   on the block's own vertical rhythm rather than fixed pixel values, so
+   it composes with whatever padding the shape above already set. */
+[data-theme-density='compact'][data-theme-accent] {
+  line-height: 1.35;
+  margin-bottom: -4px;
+}
+[data-theme-density='normal'][data-theme-accent] {
+  line-height: 1.55;
+}
+[data-theme-density='roomy'][data-theme-accent] {
+  line-height: 1.75;
+  padding-top: 4px;
+  padding-bottom: 8px;
+}
+
+/* Typeface -- no new fonts, just deliberate assignment of the three the
+   app already loads. Set as a variable the item's own text picks up,
+   rather than forcing font-family onto every descendant (which would
+   override the mono used for chips, badges and timestamps). */
+[data-theme-typeface='body'][data-theme-accent] { --item-typeface: var(--body); }
+[data-theme-typeface='display'][data-theme-accent] { --item-typeface: var(--display); }
+[data-theme-typeface='mono'][data-theme-accent] { --item-typeface: var(--mono); }
+[data-theme-typeface][data-theme-accent] p,
+[data-theme-typeface][data-theme-accent] li,
+[data-theme-typeface][data-theme-accent] textarea {
+  font-family: var(--item-typeface);
+}
+/* Chips, badges, tags and timestamps stay mono regardless of the item's
+   own typeface -- they're chrome, not the item's content. */
+[data-theme-typeface][data-theme-accent] .block-type-tag,
+[data-theme-typeface][data-theme-accent] .mono-caption,
+[data-theme-typeface][data-theme-accent] .tag-chip,
+[data-theme-typeface][data-theme-accent] .category-chip {
+  font-family: var(--mono);
 }
 
 /* The per-Tool identity on top of the coarse family color -- which
@@ -2555,12 +2692,10 @@ label {
    app (Work's maroon is the app's own primary color; Time's gold is
    already Visual Identity's manual-accent hue) rather than inventing a
    third. General stays neutral -- the foundational, unmarked family. */
-.tool-card[data-family='work'] {
-  border-left-color: var(--maroon);
-}
-.tool-card[data-family='time'] {
-  border-left-color: var(--accent);
-}
+/* Family color on a Tool card now comes from the theme system too (see
+   the "Item themes" section) -- a catalog card renders its Tool's own
+   real default theme, so browsing the catalog shows you exactly what
+   that Tool will look like in a feed. */
 
 .tool-card-head {
   display: flex;
@@ -3241,6 +3376,72 @@ label {
 }
 .legend-swatch[data-family='time'] {
   border-left-color: var(--accent);
+}
+
+/* ---------- Theme picker (the manual half of personalization, see
+   components/ThemePicker.jsx) ---------- */
+
+.theme-picker-toggle {
+  background: none;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.theme-picker-toggle:hover {
+  border-color: var(--item-accent, var(--border));
+  color: var(--ink-dim);
+}
+.theme-picker {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  max-width: 520px;
+}
+.theme-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.theme-picker-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.theme-picker-label {
+  flex: 0 0 52px;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink-faint);
+}
+.theme-picker-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+/* Color is the one dimension shown rather than named -- a swatch says
+   more than the word "plum". */
+.theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+}
+.theme-swatch-active {
+  outline: 1px solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* ---------- Reports ---------- */

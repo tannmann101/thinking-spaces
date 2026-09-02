@@ -25,19 +25,30 @@
 // the same branch count don't all look identical -- that's a rendering
 // choice, not a data channel of its own.
 //
-// A further, deliberately different layer sits on top of all of these
-// computed dimensions: a manual accent (star/underline/triangle/dot),
-// hand-picked on the Space page (see AccentPicker in SpacePage.jsx) and
-// persisted as `spaces.accent`. It never replaces the computed base --
-// it draws in a separate color (--accent, distinct from the maroon the
-// computed shape uses) so it always reads as an added mark, not a
-// change to what the glyph is actually reporting.
+// The manual layer works differently now. There used to be a hand-picked
+// accent mark (star/underline/triangle/dot) drawn on top of the computed
+// shape, which turned out to be too thin to be worth having -- it marked
+// a Space without meaning anything. It's been absorbed into the real
+// personalization system (see theme/itemTheme.js): a Space's chosen
+// accent color now colors this whole glyph, so a personalized Space is
+// personalized here too, while the *shape* stays purely computed. Color
+// is yours; form still reports the data.
 
+// The person's own five words for how they actually think about a
+// Space's state, replacing the app's earlier invented four (nascent/
+// developing/mature/dormant) -- see migrateSpaceStatuses in
+// backend/src/db/queries/spaces.js for how existing rows moved over.
+// Ordered as an ascending scale of engagement, which is what the glyph
+// draws: fainter and thinner at the dormant end, fully filled in at the
+// mature end. `interesting` is the one that isn't purely a stage -- it
+// marks a Space worth returning to -- so it gets full opacity like
+// mature but keeps a lighter stroke.
 const STATUS_STYLE = {
-  nascent: { opacity: 0.4, strokeWidth: 1, tipFilled: false, grey: false },
-  developing: { opacity: 0.7, strokeWidth: 1.3, tipFilled: true, grey: false },
-  mature: { opacity: 1, strokeWidth: 1.8, tipFilled: true, grey: false },
   dormant: { opacity: 0.35, strokeWidth: 1, tipFilled: false, grey: true },
+  inactive: { opacity: 0.45, strokeWidth: 1, tipFilled: false, grey: false },
+  active: { opacity: 0.75, strokeWidth: 1.3, tipFilled: true, grey: false },
+  interesting: { opacity: 1, strokeWidth: 1.3, tipFilled: true, grey: false },
+  mature: { opacity: 1, strokeWidth: 1.8, tipFilled: true, grey: false },
 };
 
 // The canonical status list and order, for anything that needs to
@@ -46,69 +57,11 @@ const STATUS_STYLE = {
 // actually renders.
 export const SPACE_STATUSES = Object.keys(STATUS_STYLE);
 
+import { resolveSpaceTheme } from '../theme/itemTheme.js';
+
 const MAX_BRANCHES = 6;
 const MAX_CRACK_SEGMENTS = 4;
 const MAX_MILESTONE_DOTS = 4;
-
-// The fixed set of manual accents -- exported so AccentPicker's chip
-// row (SpacePage.jsx) can't drift out of sync with what this component
-// actually knows how to draw.
-export const SPACE_ACCENTS = ['star', 'underline', 'triangle', 'dot'];
-
-// A standard 5-point star polygon, alternating outer/inner radius per
-// point -- the one non-trivial shape among the four accents.
-function starPoints(cx, cy, outerR, innerR) {
-  const points = [];
-  const step = Math.PI / 5;
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? outerR : innerR;
-    const angle = i * step - Math.PI / 2;
-    points.push(`${(cx + Math.cos(angle) * r).toFixed(1)},${(cy + Math.sin(angle) * r).toFixed(1)}`);
-  }
-  return points.join(' ');
-}
-
-// Drawn in the top-right corner (star/triangle/dot) or under the whole
-// glyph (underline) at a size proportional to the glyph itself, so it
-// reads consistently whether this is a 30px Dashboard card or a 36px
-// Space-page glyph.
-function renderAccent(accent, size) {
-  if (!accent) return null;
-  const color = 'var(--accent)';
-  const markSize = size * 0.24;
-  const cx = size - markSize / 2 - 1;
-  const cy = markSize / 2 + 1;
-
-  switch (accent) {
-    case 'star':
-      return <polygon points={starPoints(cx, cy, markSize / 2, markSize / 4)} fill={color} />;
-    case 'triangle':
-      return (
-        <polygon
-          points={`${cx},${cy - markSize / 2} ${cx - markSize / 2},${cy + markSize / 2} ${
-            cx + markSize / 2
-          },${cy + markSize / 2}`}
-          fill={color}
-        />
-      );
-    case 'dot':
-      return <circle cx={cx} cy={cy} r={markSize / 2} fill={color} />;
-    case 'underline':
-      return (
-        <line
-          x1={size * 0.15}
-          y1={size - 0.5}
-          x2={size * 0.85}
-          y2={size - 0.5}
-          stroke={color}
-          strokeWidth={Math.max(1, size * 0.05)}
-          strokeLinecap="round"
-        />
-      );
-    default:
-      return null;
-  }
-}
 
 function hashString(text) {
   let hash = 0;
@@ -135,22 +88,26 @@ function buildCrackPoints(cx, baseY, forkY, segments, rand) {
 }
 
 function SpaceGlyph({ space, size = 28 }) {
-  const status = space.status || 'nascent';
+  const status = space.status || 'active';
   const relationDensity = space.relationDensity || 0;
   const openTensionCount = space.openTensionCount || 0;
   const isOverdue = Boolean(space.isOverdue);
   const milestoneStats = space.milestoneStats || { reached: 0, total: 0 };
-  const config = STATUS_STYLE[status] || STATUS_STYLE.nascent;
+  const config = STATUS_STYLE[status] || STATUS_STYLE.active;
   const rand = seededRandom(hashString(space.id));
 
   const cx = size / 2;
   const baseY = size - 2;
   const forkY = size * 0.55;
   const branchCount = Math.min(relationDensity, MAX_BRANCHES);
-  // Colors are the same CSS variables index.css defines for everything
-  // else -- dormant Spaces fall back to a neutral ink rather than the
-  // maroon accent, same "filled in" logic as before, just re-themed.
-  const strokeColor = config.grey ? 'var(--ink-faint)' : 'var(--maroon-bright)';
+  // The glyph draws in this Space's own themed accent (see
+  // theme/itemTheme.js), so a personalized Space is personalized here
+  // too -- while the *shape* keeps reporting purely computed data, which
+  // is the line this component has always held. A dormant Space still
+  // falls back to neutral ink regardless of theme: "asleep" reads as
+  // colorless no matter what color you picked.
+  const accent = resolveSpaceTheme(space).accent;
+  const strokeColor = config.grey ? 'var(--ink-faint)' : `var(--theme-accent-${accent})`;
 
   const branches = [];
   for (let i = 0; i < branchCount; i++) {
@@ -185,9 +142,7 @@ function SpaceGlyph({ space, size = 28 }) {
   // sighted user has no way to learn how to actually read it.
   const description = `Visual identity: ${status}, ${relationDensity} connections, ${openTensionCount} open tensions${
     isOverdue ? ', overdue' : ''
-  }${milestoneStats.total > 0 ? `, ${milestoneStats.reached}/${milestoneStats.total} milestones reached` : ''}${
-    space.accent ? `, ${space.accent} accent` : ''
-  }`;
+  }${milestoneStats.total > 0 ? `, ${milestoneStats.reached}/${milestoneStats.total} milestones reached` : ''}`;
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={description}>
@@ -254,7 +209,6 @@ function SpaceGlyph({ space, size = 28 }) {
           strokeWidth={1}
         />
       )}
-      {renderAccent(space.accent, size)}
     </svg>
   );
 }

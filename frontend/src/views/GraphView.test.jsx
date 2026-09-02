@@ -25,7 +25,7 @@ describe('GraphView', () => {
     const { container } = render(
       <MemoryRouter>
         <GraphView
-          spaces={[{ id: 'a', title: 'Space A', status: 'nascent' }, { id: 'b', title: 'Space B', status: 'mature' }]}
+          spaces={[{ id: 'a', title: 'Space A', status: 'active' }, { id: 'b', title: 'Space B', status: 'mature' }]}
           workspaces={[{ id: 'ws-1', space_id: 'a', name: 'A Workspace' }]}
           projects={[{ id: 'proj-1', space_id: 'b', name: 'A Project' }]}
           edges={[

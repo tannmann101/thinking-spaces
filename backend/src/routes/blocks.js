@@ -7,6 +7,7 @@ import {
   updateBlockCategories,
   updateBlockWorkspaces,
   updateBlockProject,
+  updateBlockTheme,
   saveTextBlockWithPromotion,
   addBlockToSpace,
   deleteBlock,
@@ -61,9 +62,15 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
   if (!existing) {
     return res.status(404).json({ error: 'Entry not found' });
   }
-  const { content, categories, workspaces, projectId } = req.body;
-  if (content === undefined && categories === undefined && workspaces === undefined && projectId === undefined) {
-    return res.status(400).json({ error: 'content, categories, workspaces, or projectId is required' });
+  const { content, categories, workspaces, projectId, theme } = req.body;
+  if (
+    content === undefined &&
+    categories === undefined &&
+    workspaces === undefined &&
+    projectId === undefined &&
+    theme === undefined
+  ) {
+    return res.status(400).json({ error: 'content, categories, workspaces, projectId, or theme is required' });
   }
   // Computed against the pre-update block, before any of the writes
   // below happen -- see changeSummary.js for why this only covers a
@@ -81,6 +88,9 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
   }
   if (projectId !== undefined) {
     updated = updateBlockProject(req.params.id, projectId);
+  }
+  if (theme !== undefined) {
+    updated = updateBlockTheme(req.params.id, theme);
   }
   res.json(changeSummary ? { ...updated, changeSummary } : updated);
 });

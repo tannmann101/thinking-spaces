@@ -85,7 +85,7 @@ spacesRouter.get('/spaces/:id', (req, res) => {
 // principle Pass 4 applied to blocks now applies to the Space's own
 // properties too. Any subset of fields can be sent.
 spacesRouter.patch('/spaces/:id', (req, res) => {
-  const { title, status, tags, goal, categories, accent, dueDate } = req.body;
+  const { title, status, tags, goal, categories, theme, dueDate } = req.body;
   if (title !== undefined && !title.trim()) {
     return res.status(400).json({ error: 'title cannot be empty' });
   }
@@ -95,7 +95,7 @@ spacesRouter.patch('/spaces/:id', (req, res) => {
     tags,
     goal,
     categories,
-    accent,
+    theme,
     dueDate,
   });
   if (!updated) {

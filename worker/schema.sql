@@ -31,13 +31,17 @@ CREATE TABLE IF NOT EXISTS spaces (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   template_id TEXT REFERENCES templates(id),
-  status TEXT NOT NULL DEFAULT 'nascent',
+  status TEXT NOT NULL DEFAULT 'active',
   tags TEXT NOT NULL DEFAULT '[]',       -- JSON array of strings, e.g. ["resource"]
   goal TEXT,                             -- what this Space is working towards
   categories TEXT NOT NULL DEFAULT '[]', -- JSON array of freely-named facets of this
                                           -- Space's own topic -- distinct from tags
-  accent TEXT,                           -- Visual Identity's manual accent layer:
-                                          -- 'star'/'underline'/'triangle'/'dot'/null
+  accent TEXT,                           -- SUPERSEDED by `theme` below; nothing reads it
+                                          -- anymore. Kept so existing rows keep loading.
+  theme TEXT,                            -- JSON {accent, shape, density, typeface} | null --
+                                          -- the manual half of personalization, overriding
+                                          -- the look this kind of Space computes for itself.
+                                          -- See frontend/src/theme/itemTheme.js.
   origin TEXT,                           -- 'external' | 'internal' | null -- Provenance
   due_date TEXT,                         -- 'YYYY-MM-DD' | null -- a real target date
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

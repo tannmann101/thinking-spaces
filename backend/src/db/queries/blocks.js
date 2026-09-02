@@ -340,3 +340,21 @@ export function updateBlockProject(id, projectId) {
   ).run(JSON.stringify(properties), id);
   return getBlockById(id);
 }
+
+// The manual half of this Tool's own look -- any subset of
+// {accent, shape, density, typeface} overriding the distinct default
+// its own type already computes (see frontend/src/theme/itemTheme.js).
+// Passing null clears the override entirely, putting the block back on
+// its type's default. Stored in `properties` alongside categories/
+// workspaces/projectId rather than as its own column, same reasoning
+// every other per-block attribute already follows: it's a property of
+// the block, not its content.
+export function updateBlockTheme(id, theme) {
+  const block = getBlockById(id);
+  if (!block) return null;
+  const properties = { ...block.properties, theme: theme || null };
+  db.prepare(
+    `UPDATE blocks SET properties = ?, updated_at = datetime('now') WHERE id = ?`
+  ).run(JSON.stringify(properties), id);
+  return getBlockById(id);
+}

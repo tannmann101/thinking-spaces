@@ -37,17 +37,25 @@ CREATE TABLE IF NOT EXISTS spaces (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   template_id TEXT REFERENCES templates(id),
-  status TEXT NOT NULL DEFAULT 'nascent',
+  status TEXT NOT NULL DEFAULT 'active',
   tags TEXT NOT NULL DEFAULT '[]', -- JSON array of strings, e.g. ["resource"]
   goal TEXT,                       -- what this Space is working towards; separate from its content
   categories TEXT NOT NULL DEFAULT '[]', -- JSON array of freely-named facets specific to this Space's
                                           -- own topic (e.g. ["Financial Impact", "Risk Tolerance"]) --
                                           -- distinct from tags, which categorize the Space itself
                                           -- (e.g. "resource") among every other Space
-  accent TEXT,                     -- Visual Identity's manual accent layer: one of a small fixed set
-                                    -- ('star'/'underline'/'triangle'/'dot'), hand-picked on the Space
-                                    -- page and drawn on top of SpaceGlyph's computed base -- never
-                                    -- replacing it. Null means no accent picked; that's the default.
+  accent TEXT,                     -- SUPERSEDED, retained only so existing rows keep loading. This was
+                                    -- Visual Identity's manual accent layer (a 'star'/'underline'/
+                                    -- 'triangle'/'dot' mark on the glyph). It was replaced by `theme`
+                                    -- below, which does the same job properly -- see the theming
+                                    -- Roadmap entry in CLAUDE.md. Nothing reads or writes it anymore.
+  theme TEXT,                      -- JSON {accent, shape, density, typeface} | null. The manual half
+                                    -- of personalization: every Space already gets a distinct look
+                                    -- computed from what it is (an ordinary Space vs. a Resource vs.
+                                    -- a Synthesis), and this overrides any subset of that by hand.
+                                    -- Null means "use the computed default for this kind of Space" --
+                                    -- see frontend/src/theme/itemTheme.js for the option lists and
+                                    -- the merge. A block's own override lives in properties.theme.
   origin TEXT,                     -- 'external' | 'internal' | null. Distinguishes a Space brought in
                                     -- from outside the app (a Resource) from one the app itself
                                     -- produced (a Synthesis, or anything later promoted to Resource

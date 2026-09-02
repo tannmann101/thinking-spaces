@@ -231,6 +231,14 @@ export const updateBlockProject = (blockId, projectId) =>
     method: 'PATCH',
     body: JSON.stringify({ projectId }),
   });
+// This Tool's own look -- any subset of {accent, shape, density,
+// typeface} overriding the distinct default its type already has, or
+// null to drop back onto that default. See theme/itemTheme.js.
+export const updateBlockTheme = (blockId, theme) =>
+  request(`/blocks/${blockId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ theme }),
+  });
 export const moveBlockInSpace = (spaceId, blockId, direction) =>
   request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
     method: 'POST',

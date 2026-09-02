@@ -180,22 +180,27 @@ describe('suggestSpaceToResurface', () => {
     resetDb();
   });
 
-  it('suggests the longest-untouched nascent/dormant Space', () => {
-    const older = createSpace({ title: 'Old and forgotten' });
-    const newer = createSpace({ title: 'Newer nascent' });
+  it('suggests the longest-untouched dormant/inactive Space', () => {
+    const older = createSpace({ title: 'Old and forgotten', status: 'inactive' });
+    const newer = createSpace({ title: 'Newer dormant', status: 'dormant' });
     db.prepare(`UPDATE spaces SET updated_at = '2000-01-01 00:00:00' WHERE id = ?`).run(older.id);
     db.prepare(`UPDATE spaces SET updated_at = '2099-01-01 00:00:00' WHERE id = ?`).run(newer.id);
     expect(suggestSpaceToResurface().id).toBe(older.id);
   });
 
-  it('ignores a Space that is not nascent or dormant', () => {
+  it('ignores a Space that is not dormant or inactive', () => {
     const space = createSpace({ title: 'Mature already' });
     updateSpace(space.id, { status: 'mature' });
     expect(suggestSpaceToResurface()).toBeNull();
   });
 
-  it('excludes the Test Space even if it is nascent', () => {
-    createSpace({ id: TEST_SPACE_ID, title: 'Test Space' });
+  it('ignores an active Space -- "active" is the new default, so this is the common case', () => {
+    createSpace({ title: 'Being worked on right now' });
+    expect(suggestSpaceToResurface()).toBeNull();
+  });
+
+  it('excludes the Test Space even if it is dormant', () => {
+    createSpace({ id: TEST_SPACE_ID, title: 'Test Space', status: 'dormant' });
     expect(suggestSpaceToResurface()).toBeNull();
   });
 

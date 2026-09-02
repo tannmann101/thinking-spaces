@@ -14,38 +14,61 @@
 
 import { Link } from 'react-router-dom';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
+import { defaultBlockTheme } from '../theme/itemTheme.js';
 
 const GLYPH_ROWS = [
   {
-    space: { id: 'legend-1', status: 'nascent', relationDensity: 0, openTensionCount: 0, milestoneStats: { reached: 0, total: 0 } },
-    text: 'More filled in (darker, thicker lines, solid tips) means further along: nascent, developing, then mature. A greyed-out trunk means dormant.',
+    space: { id: 'legend-1', status: 'inactive', relationDensity: 0, openTensionCount: 0, milestoneStats: { reached: 0, total: 0 } },
+    text: 'More filled in (darker, thicker lines, solid tips) means further along the scale: dormant, inactive, active, interesting, mature.',
   },
   {
-    space: { id: 'legend-2', status: 'developing', relationDensity: 4, openTensionCount: 0, milestoneStats: { reached: 0, total: 0 } },
+    space: { id: 'legend-2', status: 'active', relationDensity: 4, openTensionCount: 0, milestoneStats: { reached: 0, total: 0 } },
     text: 'Branches are References -- how many other Spaces this one connects to.',
   },
   {
-    space: { id: 'legend-3', status: 'developing', relationDensity: 2, openTensionCount: 2, milestoneStats: { reached: 0, total: 0 } },
+    space: { id: 'legend-3', status: 'active', relationDensity: 2, openTensionCount: 2, milestoneStats: { reached: 0, total: 0 } },
     text: 'A crack through the trunk means open Tensions -- more segments, more of them.',
   },
   {
-    space: { id: 'legend-4', status: 'developing', relationDensity: 2, openTensionCount: 0, isOverdue: true, milestoneStats: { reached: 0, total: 0 } },
+    space: { id: 'legend-4', status: 'active', relationDensity: 2, openTensionCount: 0, isOverdue: true, milestoneStats: { reached: 0, total: 0 } },
     text: 'A dashed trunk (instead of solid) means the Space is overdue.',
   },
   {
-    space: { id: 'legend-5', status: 'developing', relationDensity: 2, openTensionCount: 0, milestoneStats: { reached: 2, total: 4 } },
+    space: { id: 'legend-5', status: 'active', relationDensity: 2, openTensionCount: 0, milestoneStats: { reached: 2, total: 4 } },
     text: 'A column of small rings tracks Milestones, filled in from the bottom as each is reached.',
   },
   {
-    space: { id: 'legend-6', status: 'developing', relationDensity: 2, openTensionCount: 0, milestoneStats: { reached: 0, total: 0 }, accent: 'star' },
-    text: 'A gold mark in the corner is a hand-picked accent (star/underline/triangle/dot) -- layered on top, it never changes what the computed shape is reporting.',
+    space: {
+      id: 'legend-6',
+      status: 'active',
+      relationDensity: 2,
+      openTensionCount: 0,
+      milestoneStats: { reached: 0, total: 0 },
+      theme: { accent: 'teal' },
+    },
+    text: 'The color is yours -- whatever you themed this Space to (see "Look" on any Space page). The shape stays computed, so personalizing never hides what the glyph is reporting.',
   },
 ];
 
+// The three families, shown with the accent each one's Tools default
+// into -- pulled from the real defaults (see theme/itemTheme.js) rather
+// than restated here, so this can't drift from what actually renders.
 const FAMILY_ROWS = [
-  { family: 'general', label: 'General', text: 'Everyday building blocks -- Writing, List, Reference, Media, Comparison.' },
-  { family: 'work', label: 'Work', text: 'The individual acts of thinking -- Assessment, Question, Hypothesis, and the rest.' },
-  { family: 'time', label: 'Time', text: 'Due dates, Milestones, Sessions -- anything to do with when.' },
+  {
+    accent: defaultBlockTheme('text').accent,
+    label: 'General',
+    text: 'Everyday building blocks -- Writing, List, Reference, Media, Comparison.',
+  },
+  {
+    accent: defaultBlockTheme('assessment').accent,
+    label: 'Work',
+    text: 'The individual acts of thinking -- Assessment, Question, Hypothesis, and the rest.',
+  },
+  {
+    accent: defaultBlockTheme('milestone').accent,
+    label: 'Time',
+    text: 'Due dates, Milestones, Sessions -- anything to do with when.',
+  },
 ];
 
 function Legend({ onClose }) {
@@ -76,10 +99,17 @@ function Legend({ onClose }) {
 
         <section>
           <h3>Tool colors</h3>
+          <p className="legend-intro">
+            Every Tool type has its own distinct default look -- color, shape,
+            density and typeface -- so two entries never look alike just
+            because you wrote them both. These three are the broad families
+            those defaults sit in. Any single Space or Tool can be re-themed by
+            hand from its own &ldquo;Theme&rdquo; control.
+          </p>
           <ul className="legend-family-rows">
             {FAMILY_ROWS.map((row) => (
-              <li key={row.family}>
-                <span className="legend-swatch" data-family={row.family} />
+              <li key={row.label}>
+                <span className="legend-swatch" style={{ background: `var(--theme-accent-${row.accent})` }} />
                 <strong>{row.label}</strong> -- {row.text}
               </li>
             ))}

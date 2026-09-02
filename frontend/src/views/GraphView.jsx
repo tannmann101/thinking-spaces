@@ -63,7 +63,7 @@ const CLICK_DRAG_THRESHOLD = 4; // px of screen movement before a node-press cou
 const WORKSPACE_RADIUS = 5;
 const PROJECT_RADIUS = 5;
 
-const STATUS_OPACITY = { nascent: 0.5, developing: 0.75, mature: 1, dormant: 0.35 };
+const STATUS_OPACITY = { dormant: 0.35, inactive: 0.5, active: 0.75, interesting: 0.9, mature: 1 };
 
 function seededPosition(index, count) {
   const angle = (2 * Math.PI * index) / Math.max(count, 1);

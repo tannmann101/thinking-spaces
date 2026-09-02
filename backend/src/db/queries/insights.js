@@ -211,7 +211,7 @@ export function getThemeInsights() {
 // log.js's listGlobalActivity already reads from, just bucketed by
 // week instead of listed individually) -- plus which Spaces have gone
 // quiet long enough to be worth a second look, independent of their
-// manually-set status (a Space can sit at "developing" indefinitely
+// manually-set status (a Space can sit at "active" indefinitely
 // without anyone touching it).
 export function getActivityTrendInsights(weeks = 8) {
   const weeklyCounts = db

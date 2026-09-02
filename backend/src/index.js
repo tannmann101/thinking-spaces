@@ -15,7 +15,12 @@ import { insightsRouter } from './routes/insights.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { linkPreviewRouter } from './routes/linkPreview.js';
 import { uploadsRouter } from './routes/uploads.js';
-import { ensureTestSpaceExists, migrateTextBlockLines, migrateWorkItemSupport } from './db/queries.js';
+import {
+  ensureTestSpaceExists,
+  migrateTextBlockLines,
+  migrateWorkItemSupport,
+  migrateSpaceStatuses,
+} from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
 import { seedTemplates } from './db/seedTemplates.js';
 import { seedResourceTemplates } from './db/seedResourceTemplates.js';
@@ -27,6 +32,9 @@ ensureTestSpaceExists();
 // pre-existing rows left to do, and is a no-op once they're all done.
 migrateTextBlockLines();
 migrateWorkItemSupport();
+// Rewrites the two retired status values (nascent/developing) onto the
+// current five-value vocabulary -- see migrateSpaceStatuses.
+migrateSpaceStatuses();
 seedTemplates();
 seedResourceTemplates();
 seedTestSpaceBlocks();

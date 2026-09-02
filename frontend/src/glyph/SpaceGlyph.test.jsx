@@ -5,10 +5,10 @@ import SpaceGlyph from './SpaceGlyph.jsx';
 function makeSpace(overrides = {}) {
   return {
     id: 'space-1',
-    status: 'developing',
+    status: 'active',
     relationDensity: 2,
     openTensionCount: 1,
-    accent: null,
+    theme: null,
     ...overrides,
   };
 }
@@ -17,26 +17,29 @@ describe('SpaceGlyph', () => {
   it('renders an accessible label describing status, connections, and open tensions', () => {
     const { container } = render(<SpaceGlyph space={makeSpace()} />);
     const svg = container.querySelector('svg');
-    expect(svg).toHaveAttribute('aria-label', 'Visual identity: developing, 2 connections, 1 open tensions');
+    expect(svg).toHaveAttribute('aria-label', 'Visual identity: active, 2 connections, 1 open tensions');
   });
 
   it('includes a native <title> element with the same text, so a mouse hover explains the glyph too', () => {
     const { container } = render(<SpaceGlyph space={makeSpace()} />);
     const title = container.querySelector('svg > title');
-    expect(title).toHaveTextContent('Visual identity: developing, 2 connections, 1 open tensions');
+    expect(title).toHaveTextContent('Visual identity: active, 2 connections, 1 open tensions');
   });
 
-  it('mentions the manual accent in the description when one is set', () => {
-    const { container } = render(<SpaceGlyph space={makeSpace({ accent: 'star' })} />);
-    expect(container.querySelector('svg > title')).toHaveTextContent(
-      'Visual identity: developing, 2 connections, 1 open tensions, star accent'
-    );
+  it('draws in the Space\'s own themed accent, so a personalized Space is personalized here too', () => {
+    const { container } = render(<SpaceGlyph space={makeSpace({ theme: { accent: 'teal' } })} />);
+    expect(container.querySelector('line')).toHaveAttribute('stroke', 'var(--theme-accent-teal)');
+  });
+
+  it('falls back to its type\'s default accent when the Space has no theme override', () => {
+    const { container } = render(<SpaceGlyph space={makeSpace({ theme: null })} />);
+    expect(container.querySelector('line')).toHaveAttribute('stroke', 'var(--theme-accent-neutral)');
   });
 
   it('mentions overdue in the description, and draws the trunk dashed, when the Space is overdue', () => {
     const { container } = render(<SpaceGlyph space={makeSpace({ isOverdue: true })} />);
     expect(container.querySelector('svg > title')).toHaveTextContent(
-      'Visual identity: developing, 2 connections, 1 open tensions, overdue'
+      'Visual identity: active, 2 connections, 1 open tensions, overdue'
     );
     const trunk = container.querySelector('svg > line');
     expect(trunk).toHaveAttribute('stroke-dasharray', '2,1.5');
@@ -51,7 +54,7 @@ describe('SpaceGlyph', () => {
   it('mentions Milestone progress in the description, and draws one ring per Milestone', () => {
     const { container } = render(<SpaceGlyph space={makeSpace({ milestoneStats: { reached: 1, total: 3 } })} />);
     expect(container.querySelector('svg > title')).toHaveTextContent(
-      'Visual identity: developing, 2 connections, 1 open tensions, 1/3 milestones reached'
+      'Visual identity: active, 2 connections, 1 open tensions, 1/3 milestones reached'
     );
     // 3 Milestone rings plus the branch-tip circles already drawn for
     // relationDensity: 2 -- scoped to just the rings' own filled state

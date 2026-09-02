@@ -293,3 +293,17 @@ export async function updateBlockProject(env, id, projectId) {
     .run();
   return getBlockById(env, id);
 }
+
+// The manual half of this Tool's own look -- any subset of {accent,
+// shape, density, typeface} overriding its type's distinct default, or
+// null to clear back onto that default. See
+// frontend/src/theme/itemTheme.js.
+export async function updateBlockTheme(env, id, theme) {
+  const block = await getBlockById(env, id);
+  if (!block) return null;
+  const properties = { ...block.properties, theme: theme || null };
+  await env.DB.prepare(`UPDATE blocks SET properties = ?, updated_at = datetime('now') WHERE id = ?`)
+    .bind(JSON.stringify(properties), id)
+    .run();
+  return getBlockById(env, id);
+}

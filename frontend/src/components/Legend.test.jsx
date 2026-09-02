@@ -26,12 +26,12 @@ describe('Legend', () => {
     // word with the row explaining it (e.g. "overdue"), which would
     // otherwise trip a multiple-match error.
     const rowText = [...document.querySelectorAll('.legend-glyph-rows li > span')].map((el) => el.textContent).join(' | ');
-    expect(rowText).toMatch(/further along: nascent, developing, then mature/);
+    expect(rowText).toMatch(/dormant, inactive, active, interesting, mature/);
     expect(rowText).toMatch(/Branches are References/);
     expect(rowText).toMatch(/open Tensions/);
     expect(rowText).toMatch(/overdue/);
     expect(rowText).toMatch(/Milestones, filled in/);
-    expect(rowText).toMatch(/hand-picked accent/);
+    expect(rowText).toMatch(/The color is yours/);
   });
 
   it('renders the three family colors and links to the Tools catalog for the full icon glossary', () => {

@@ -26,6 +26,7 @@ import {
   getBlockReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
+import { resolveBlockTheme, themeAttributes } from '../theme/itemTheme.js';
 import { viewRegistry } from '../registry/views.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
@@ -243,6 +244,7 @@ function WorkspacePage() {
                       className="block-row"
                       data-family={entry?.family}
                       data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
+                      {...themeAttributes(resolveBlockTheme(block))}
                     >
                       {entry && !isFocused && (
                         <p className="block-type-tag">

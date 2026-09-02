@@ -24,11 +24,11 @@ function makeSpace(overrides = {}) {
   return {
     id: 'space-1',
     title: 'My Space',
-    status: 'nascent',
+    status: 'active',
     tags: [],
     categories: [],
     goal: null,
-    accent: null,
+    theme: null,
     origin: null,
     due_date: null,
     isOverdue: false,
@@ -79,12 +79,12 @@ describe('SpacePage: loading and errors', () => {
 });
 
 describe('SpacePage: details panel', () => {
-  it('groups the accent/working-toward/due-date/tags/categories fields into one panel', async () => {
+  it('groups the theme/working-toward/due-date/tags/categories fields into one panel', async () => {
     renderPage();
     await screen.findByText('My Space');
     const panel = document.querySelector('.space-details-panel');
     expect(panel).toBeInTheDocument();
-    expect(panel.querySelector('.category-row')).toBeInTheDocument(); // AccentPicker
+    expect(panel.querySelector('.category-row')).toBeInTheDocument(); // SpaceThemePicker
     expect(panel.querySelector('.working-toward')).toBeInTheDocument();
     expect(panel.querySelector('.due-date-row')).toBeInTheDocument();
     expect(panel.querySelector('.tag-row')).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('SpacePage: adaptive density', () => {
     ['tags', { tags: ['resource'] }],
     ['categories', { categories: ['Risk'] }],
     ['a goal', { goal: 'Ship it' }],
-    ['an accent', { accent: 'star' }],
+    ['a theme override', { theme: { accent: 'teal' } }],
   ])('starts the details panel expanded when the Space has %s set, same as due date', async (label, overrides) => {
     api.getSpace.mockResolvedValue(makeSpace(overrides));
     renderPage();
@@ -202,9 +202,9 @@ describe('SpacePage: identity fields', () => {
   it('cycles the status on click', async () => {
     const user = userEvent.setup();
     renderPage();
-    const pill = await screen.findByTitle('Click to cycle: nascent -> developing -> mature -> dormant');
+    const pill = await screen.findByTitle('Click to cycle: dormant -> inactive -> active -> interesting -> mature');
     await user.click(pill);
-    await waitFor(() => expect(api.updateSpace).toHaveBeenCalledWith('space-1', { status: 'developing' }));
+    await waitFor(() => expect(api.updateSpace).toHaveBeenCalledWith('space-1', { status: 'interesting' }));
   });
 
   it('shows a TEST SPACE flag and hides the delete control for the Test Space', async () => {

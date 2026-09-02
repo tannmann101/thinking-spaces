@@ -11,6 +11,7 @@ import {
   createReview,
 } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
+import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
@@ -466,7 +467,7 @@ function Dashboard() {
             {visibleSpaces.length > 0 && (
               <ul className="space-list">
                 {visibleSpaces.map((space) => (
-                  <li key={space.id} className="space-card">
+                  <li key={space.id} className="space-card" {...themeAttributes(resolveSpaceTheme(space))}>
                     <SpaceGlyph space={space} size={30} />
                     <div className="space-main">
                       <div className="space-title">

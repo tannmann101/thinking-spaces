@@ -161,7 +161,7 @@ export function getWeekCalendar() {
   }));
 }
 
-// One suggestion for "maybe revisit this": the nascent/dormant Space
+// One suggestion for "maybe revisit this": the dormant/inactive Space
 // that's gone the longest without an update. Not random -- the most
 // neglected one is the one most likely to actually be forgotten.
 export function suggestSpaceToResurface() {
@@ -169,7 +169,7 @@ export function suggestSpaceToResurface() {
     .prepare(
       `SELECT id, title, status, updated_at
        FROM spaces
-       WHERE status IN ('nascent', 'dormant') AND id != ?
+       WHERE status IN ('dormant', 'inactive') AND id != ?
        ORDER BY updated_at ASC
        LIMIT 1`
     )

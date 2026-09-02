@@ -23,6 +23,7 @@ import {
   getProjectReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
+import { resolveBlockTheme, themeAttributes } from '../theme/itemTheme.js';
 import { viewRegistry } from '../registry/views.js';
 import { newSessionSpec } from '../blocks/sessionActions.js';
 import BlockPreview from '../blocks/BlockPreview.jsx';
@@ -237,6 +238,7 @@ function ProjectPage() {
                     className="block-row"
                     data-family={entry?.family}
                     data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
+                    {...themeAttributes(resolveBlockTheme(block))}
                   >
                     {entry && (
                       <p className="block-type-tag">

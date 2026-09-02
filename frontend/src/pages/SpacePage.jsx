@@ -12,6 +12,7 @@ import {
   updateBlockCategories,
   updateBlockWorkspaces,
   updateBlockProject,
+  updateBlockTheme,
   getWorkspacesForSpace,
   createWorkspace,
   getProjectsForSpace,
@@ -23,7 +24,9 @@ import {
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
-import SpaceGlyph, { SPACE_STATUSES, SPACE_ACCENTS } from '../glyph/SpaceGlyph.jsx';
+import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
+import ThemePicker from '../components/ThemePicker.jsx';
+import { resolveBlockTheme, resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
 import TrailSpine from '../trail/TrailSpine.jsx';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import { newSessionSpec } from '../blocks/sessionActions.js';
@@ -110,40 +113,27 @@ function StatusPill({ space, onChanged }) {
       className="status-pill status-pill-clickable"
       data-status={space.status}
       onClick={cycle}
-      title="Click to cycle: nascent -> developing -> mature -> dormant"
+      title={`Click to cycle: ${SPACE_STATUSES.join(' -> ')}`}
     >
       {space.status}
     </span>
   );
 }
 
-// Visual Identity's manual layer: a small fixed set of hand-picked
-// marks (star/underline/triangle/dot), layered on top of SpaceGlyph's
-// computed base -- never replacing it, and never more than one at a
-// time, since this is a single accent field on the Space, not a
-// freely-named set like tags or Categories. Reuses the same
-// chip-toggle pattern TextWorkshop's tag/lane popovers already use.
-function AccentPicker({ space, onChanged }) {
-  async function setAccent(accent) {
-    await updateSpace(space.id, { accent: space.accent === accent ? null : accent });
+// This Space's own look. Replaces the old AccentPicker, which only ever
+// set a small decorative mark on the glyph -- see theme/itemTheme.js for
+// what a theme actually covers now and why the manual override is kept
+// separate from the computed default.
+function SpaceThemePicker({ space, onChanged }) {
+  async function save(theme) {
+    await updateSpace(space.id, { theme });
     onChanged();
   }
 
   return (
     <p className="category-row">
-      <span className="category-row-label">Accent:</span>
-      {SPACE_ACCENTS.map((accent) => (
-        <span
-          key={accent}
-          className={`category-chip category-chip-toggle${
-            space.accent === accent ? ' category-chip-active' : ''
-          }`}
-          onClick={() => setAccent(accent)}
-          title={space.accent === accent ? `Remove ${accent} accent` : `Set ${accent} accent`}
-        >
-          {accent}
-        </span>
-      ))}
+      <span className="category-row-label">Look:</span>
+      <ThemePicker item={space} kind="space" onSave={save} />
     </p>
   );
 }
@@ -596,7 +586,7 @@ function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
 // shouldn't carry the same visual weight. True once any of the fields
 // the details panel below holds has actually been set, or once
 // promotion is something to act on -- a genuinely "light" Space (just
-// a title, still nascent, nothing else touched) starts with that panel
+// a title, no metadata, nothing else touched) starts with that panel
 // collapsed instead of expanded, so capturing a fast thought doesn't
 // look and feel as heavy as a Space that's actually accumulated
 // metadata. Computed once, from the Space as first loaded -- see the
@@ -605,7 +595,7 @@ function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
 function spaceHasMetadata(space) {
   const isPromotable = space.origin === 'internal' && space.tags.includes('synthesis') && !space.tags.includes('resource');
   return Boolean(
-    space.accent ||
+    space.theme ||
       space.goal ||
       space.due_date ||
       space.tags.length > 0 ||
@@ -856,7 +846,7 @@ function SpacePage() {
 
       {space && (
         <>
-          <div className="space-header">
+          <div className="space-header" {...themeAttributes(resolveSpaceTheme(space))}>
             <h1>
               <SpaceGlyph space={space} size={36} />
               <EditableTitle space={space} onChanged={refetchAll} />
@@ -886,7 +876,7 @@ function SpacePage() {
               onToggle={(event) => setDetailsOpen(event.target.open)}
             >
               <summary>Details</summary>
-              <AccentPicker space={space} onChanged={refetchAll} />
+              <SpaceThemePicker space={space} onChanged={refetchAll} />
               <WorkingToward space={space} onChanged={refetchAll} />
               <DueDate space={space} onChanged={refetchAll} />
               <TagEditor space={space} onChanged={refetchAll} />
@@ -1027,6 +1017,7 @@ function SpacePage() {
                       className="block-row"
                       data-family={entry?.family}
                       data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
+                      {...themeAttributes(resolveBlockTheme(block))}
                     >
                       {entry && (
                         <p className="block-type-tag">
@@ -1062,7 +1053,15 @@ function SpacePage() {
                         onChanged={refetchAll}
                       />
                       <div className="block-report-row">
-                        <ReportButton fetchReport={() => getBlockReport(block.id)} />
+                        <ReportButton fetchReport={() => getBlockReport(block.id)} />{' '}
+                        <ThemePicker
+                          item={block}
+                          kind="block"
+                          onSave={async (theme) => {
+                            await updateBlockTheme(block.id, theme);
+                            refetchAll();
+                          }}
+                        />
                       </div>
                       <div className="block-controls">
                         <button

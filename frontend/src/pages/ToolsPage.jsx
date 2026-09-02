@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { blockRegistry } from '../registry/blocks.js';
 import { viewRegistry } from '../registry/views.js';
 import { SKELETON_LANE_LABELS } from '../registry/skeleton.js';
+import { defaultBlockTheme, themeAttributes } from '../theme/itemTheme.js';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -52,10 +53,18 @@ function DemoBlock({ entry }) {
   );
 }
 
-function ToolCard({ entry, kind }) {
+function ToolCard({ entry, kind, type }) {
   const Demo = entry.component;
+  // A catalog card renders its Tool's own real default theme, so browsing
+  // the catalog shows exactly what that Tool looks like in a real feed.
+  // Views have no theme of their own (they're read-only lenses rendered
+  // inside a themed block), so they fall back to the neutral default.
   return (
-    <div className="tool-card" data-family={entry.family}>
+    <div
+      className="tool-card"
+      data-family={entry.family}
+      {...themeAttributes(defaultBlockTheme(type))}
+    >
       <div className="tool-card-head">
         {entry.icon && <span className="tool-card-icon">{entry.icon}</span>}
         <h4>{entry.label}</h4>
@@ -102,7 +111,7 @@ function ToolsPage() {
         {Object.entries(blockRegistry)
           .filter(([, entry]) => entry.family === 'general')
           .map(([key, entry]) => (
-            <ToolCard key={key} entry={entry} kind="Entry" />
+            <ToolCard key={key} type={key} entry={entry} kind="Entry" />
           ))}
       </div>
 
@@ -111,7 +120,7 @@ function ToolsPage() {
         {Object.entries(blockRegistry)
           .filter(([, entry]) => entry.family === 'work')
           .map(([key, entry]) => (
-            <ToolCard key={key} entry={entry} kind="Entry" />
+            <ToolCard key={key} type={key} entry={entry} kind="Entry" />
           ))}
       </div>
 
@@ -120,14 +129,14 @@ function ToolsPage() {
         {Object.entries(blockRegistry)
           .filter(([, entry]) => entry.family === 'time')
           .map(([key, entry]) => (
-            <ToolCard key={key} entry={entry} kind="Entry" />
+            <ToolCard key={key} type={key} entry={entry} kind="Entry" />
           ))}
       </div>
 
       <h2>Views</h2>
       <div className="tool-grid">
         {Object.entries(viewRegistry).map(([key, entry]) => (
-          <ToolCard key={key} entry={entry} kind="View" />
+          <ToolCard key={key} type={key} entry={entry} kind="View" />
         ))}
       </div>
 

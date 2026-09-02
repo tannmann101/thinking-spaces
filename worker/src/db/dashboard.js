@@ -147,7 +147,7 @@ export async function suggestSpaceToResurface(env) {
   const row = await env.DB.prepare(
     `SELECT id, title, status, updated_at
      FROM spaces
-     WHERE status IN ('nascent', 'dormant') AND id != ?
+     WHERE status IN ('dormant', 'inactive') AND id != ?
      ORDER BY updated_at ASC
      LIMIT 1`
   )

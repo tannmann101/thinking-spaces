@@ -12,7 +12,7 @@ function makeSpace(overrides = {}) {
   return {
     id: 'space-1',
     title: 'A Space',
-    status: 'nascent',
+    status: 'active',
     tags: [],
     due_date: null,
     isOverdue: false,
@@ -107,11 +107,11 @@ describe('Dashboard: search and status filter', () => {
   it('filters by status when a status chip is clicked, and toggles off on a second click', async () => {
     const user = userEvent.setup();
     api.getSpaces.mockResolvedValue([
-      makeSpace({ id: 'a', title: 'Nascent one', status: 'nascent' }),
+      makeSpace({ id: 'a', title: 'Inactive one', status: 'inactive' }),
       makeSpace({ id: 'b', title: 'Mature one', status: 'mature' }),
     ]);
     renderDashboard();
-    await screen.findByText('Nascent one');
+    await screen.findByText('Inactive one');
     // Both the filter chip and the Mature Space's own status-pill show
     // the word "mature" -- scope to the filter strip specifically. The
     // chip also carries a count now, so match on a prefix rather than
@@ -121,16 +121,16 @@ describe('Dashboard: search and status filter', () => {
     );
 
     await user.click(matureChip);
-    expect(screen.queryByText('Nascent one')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inactive one')).not.toBeInTheDocument();
     expect(screen.getByText('Mature one')).toBeInTheDocument();
 
     await user.click(matureChip);
-    expect(screen.getByText('Nascent one')).toBeInTheDocument();
+    expect(screen.getByText('Inactive one')).toBeInTheDocument();
   });
 
   it('shows a count on each status tab, reflecting the current search text', async () => {
     api.getSpaces.mockResolvedValue([
-      makeSpace({ id: 'a', title: 'Alpha', status: 'nascent' }),
+      makeSpace({ id: 'a', title: 'Alpha', status: 'inactive' }),
       makeSpace({ id: 'b', title: 'Beta', status: 'mature' }),
       makeSpace({ id: 'c', title: 'Gamma', status: 'mature' }),
     ]);
@@ -139,8 +139,8 @@ describe('Dashboard: search and status filter', () => {
     const tabs = [...document.querySelectorAll('.category-filter-tab')].map((el) => el.textContent);
     expect(tabs).toContain('All (3)');
     expect(tabs).toContain('mature (2)');
-    expect(tabs).toContain('nascent (1)');
-    expect(tabs).toContain('developing (0)');
+    expect(tabs).toContain('inactive (1)');
+    expect(tabs).toContain('active (0)');
   });
 });
 

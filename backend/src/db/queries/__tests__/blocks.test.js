@@ -17,6 +17,7 @@ import {
   updateBlockCategories,
   updateBlockWorkspaces,
   updateBlockProject,
+  updateBlockTheme,
 } from '../blocks.js';
 import { createSpace } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
@@ -261,6 +262,25 @@ describe('blocks.js', () => {
     it('returns null for a nonexistent block rather than throwing', () => {
       expect(updateBlockCategories('nonexistent', ['X'])).toBeNull();
       expect(updateBlockWorkspaces('nonexistent', ['y'])).toBeNull();
+    });
+  });
+
+  describe('updateBlockTheme', () => {
+    it('stores a theme override alongside other properties, not instead of them', () => {
+      const block = createBlock({ spaceId: space.id, type: 'assessment', content: {}, properties: { categories: ['X'] } });
+      const updated = updateBlockTheme(block.id, { accent: 'teal' });
+      expect(updated.properties.theme).toEqual({ accent: 'teal' });
+      expect(updated.properties.categories).toEqual(['X']);
+    });
+
+    it('clears the override when passed null, dropping the block back onto its type default', () => {
+      const block = createBlock({ spaceId: space.id, type: 'assessment', content: {}, properties: {} });
+      updateBlockTheme(block.id, { accent: 'teal' });
+      expect(updateBlockTheme(block.id, null).properties.theme).toBeNull();
+    });
+
+    it('returns null for a nonexistent block', () => {
+      expect(updateBlockTheme('nonexistent', { accent: 'teal' })).toBeNull();
     });
   });
 

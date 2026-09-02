@@ -10,6 +10,7 @@ import {
   createSpaceWithSetup,
   ensureTestSpaceExists,
   createRelationalSpace,
+  migrateSpaceStatuses,
 } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
 import { createProject } from '../projects.js';
@@ -27,7 +28,7 @@ describe('createSpace / getSpaceById', () => {
     const space = createSpace({ title: 'A new train of thought' });
     expect(space).toMatchObject({
       title: 'A new train of thought',
-      status: 'nascent',
+      status: 'active',
       tags: [],
       categories: [],
       origin: null,
@@ -170,13 +171,13 @@ describe('updateSpace', () => {
     updateSpace(space.id, { title: 'Y' });
     expect(db.prepare(`SELECT * FROM activity_log WHERE kind = 'space_status_changed'`).all()).toHaveLength(0);
 
-    updateSpace(space.id, { status: 'developing' });
+    updateSpace(space.id, { status: 'mature' });
     expect(db.prepare(`SELECT * FROM activity_log WHERE kind = 'space_status_changed'`).all()).toHaveLength(1);
   });
 
   it('does not log a status change when the status is set to its current value', () => {
-    const space = createSpace({ title: 'X', status: 'developing' });
-    updateSpace(space.id, { status: 'developing' });
+    const space = createSpace({ title: 'X', status: 'mature' });
+    updateSpace(space.id, { status: 'mature' });
     expect(db.prepare(`SELECT * FROM activity_log WHERE kind = 'space_status_changed'`).all()).toHaveLength(0);
   });
 
@@ -184,10 +185,27 @@ describe('updateSpace', () => {
     expect(updateSpace('nonexistent', { title: 'x' })).toBeNull();
   });
 
+  it('round-trips a theme override as parsed JSON, and clears it back to the computed default with null', () => {
+    const space = createSpace({ title: 'Themed' });
+    expect(space.theme).toBeNull();
+
+    const themed = updateSpace(space.id, { theme: { accent: 'teal', shape: 'notch' } });
+    expect(themed.theme).toEqual({ accent: 'teal', shape: 'notch' });
+    expect(getSpaceById(space.id).theme).toEqual({ accent: 'teal', shape: 'notch' });
+
+    expect(updateSpace(space.id, { theme: null }).theme).toBeNull();
+  });
+
+  it('leaves an existing theme untouched when other fields are edited', () => {
+    const space = createSpace({ title: 'Themed' });
+    updateSpace(space.id, { theme: { accent: 'gold' } });
+    expect(updateSpace(space.id, { title: 'Renamed' }).theme).toEqual({ accent: 'gold' });
+  });
+
   it('attaches a changeSummary for a status change, but not for a plain title edit', () => {
     const space = createSpace({ title: 'X' });
     expect(updateSpace(space.id, { title: 'Y' }).changeSummary).toBeUndefined();
-    expect(updateSpace(space.id, { status: 'developing' }).changeSummary).toBe('Status changed to developing');
+    expect(updateSpace(space.id, { status: 'mature' }).changeSummary).toBe('Status changed to mature');
   });
 
   it('attaches a changeSummary naming when a due date will show as overdue vs. upcoming', () => {
@@ -340,7 +358,7 @@ describe('ensureTestSpaceExists', () => {
   it('creates the Test Space the first time', () => {
     const space = ensureTestSpaceExists();
     expect(space.id).toBe(TEST_SPACE_ID);
-    expect(space.status).toBe('developing');
+    expect(space.status).toBe('active');
   });
 
   it('is idempotent: a second call returns the same Space without erroring', () => {
@@ -366,5 +384,41 @@ describe('createRelationalSpace', () => {
     expect(blocks.filter((block) => block.type === 'text')).toHaveLength(1);
     const referenceTargets = blocks.filter((block) => block.type === 'reference').map((block) => block.content.target_space_id);
     expect(referenceTargets.sort()).toEqual([a.id, b.id].sort());
+  });
+});
+
+describe('migrateSpaceStatuses', () => {
+  beforeEach(() => {
+    resetDb();
+  });
+
+  // The two retired values can't go through createSpace anymore, so
+  // these are inserted directly -- exactly the shape a real row written
+  // before the vocabulary change already has.
+  function insertWithStatus(id, status) {
+    db.prepare(`INSERT INTO spaces (id, title, status) VALUES (?, ?, ?)`).run(id, `Space ${id}`, status);
+  }
+
+  it('rewrites both retired values onto "active"', () => {
+    insertWithStatus('a', 'nascent');
+    insertWithStatus('b', 'developing');
+    migrateSpaceStatuses();
+    expect(getSpaceById('a').status).toBe('active');
+    expect(getSpaceById('b').status).toBe('active');
+  });
+
+  it('leaves the values that survived the rename alone', () => {
+    insertWithStatus('c', 'mature');
+    insertWithStatus('d', 'dormant');
+    migrateSpaceStatuses();
+    expect(getSpaceById('c').status).toBe('mature');
+    expect(getSpaceById('d').status).toBe('dormant');
+  });
+
+  it('is idempotent -- a second run finds nothing left to rewrite', () => {
+    insertWithStatus('e', 'nascent');
+    migrateSpaceStatuses();
+    migrateSpaceStatuses();
+    expect(getSpaceById('e').status).toBe('active');
   });
 });

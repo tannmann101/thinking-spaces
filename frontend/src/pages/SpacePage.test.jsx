@@ -85,6 +85,16 @@ describe('SpacePage: details panel', () => {
   });
 });
 
+describe('SpacePage: Think label', () => {
+  it('shows a plain, non-collapsible "Think" label above the working feed', async () => {
+    renderPage();
+    await screen.findByText('My Space');
+    const label = screen.getByText('Think');
+    expect(label.tagName).toBe('H2');
+    expect(label.closest('details')).toBeNull();
+  });
+});
+
 describe('SpacePage: adaptive density', () => {
   it('starts the details panel collapsed for a Space with no metadata set', async () => {
     renderPage();
@@ -130,6 +140,44 @@ describe('SpacePage: adaptive density', () => {
     expect(panel.open).toBe(false);
     await user.click(screen.getByText('Details'));
     expect(panel.open).toBe(true);
+  });
+
+  // Organize (Workspaces+Projects) and Trail gained the same adaptive
+  // treatment as the Details panel in the coherence-audit pass -- both
+  // used to render at full size even when completely empty, forever.
+  it('starts the Organize panel collapsed when the Space has no Workspaces or Projects', async () => {
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-organize-panel').open).toBe(false));
+  });
+
+  it('starts the Organize panel expanded once the Space has a Workspace', async () => {
+    api.getWorkspacesForSpace.mockResolvedValue([{ id: 'ws-1', space_id: 'space-1', name: 'Focus' }]);
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-organize-panel').open).toBe(true));
+  });
+
+  it('starts the Organize panel expanded once the Space has a Project', async () => {
+    api.getProjectsForSpace.mockResolvedValue([{ id: 'pr-1', space_id: 'space-1', name: 'Ship it' }]);
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-organize-panel').open).toBe(true));
+  });
+
+  it('starts the Trail panel collapsed when the Space has no history yet', async () => {
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-trail-panel').open).toBe(false));
+  });
+
+  it('starts the Trail panel expanded once the Space has any history', async () => {
+    api.getTrailEntries.mockResolvedValue([
+      { id: 't1', kind: 'auto', summary: 'Added a text entry', note: null, created_at: '2024-01-01 00:00:00' },
+    ]);
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-trail-panel').open).toBe(true));
   });
 });
 

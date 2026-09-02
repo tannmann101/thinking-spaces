@@ -261,17 +261,15 @@ function TrailSpine({ spaceId, entries, onEntryAdded }) {
     onEntryAdded();
   }
 
+  // The "Trail" heading and its framing sentence used to live here,
+  // wrapped in their own .trail-section div -- both moved out to
+  // SpacePage.jsx once Trail became one of the Space page's three
+  // adaptive-density panels (see space-collapsible-panel in index.css
+  // and the Roadmap entry on the coherence audit's second thread),
+  // since a <details>'s own <summary> now provides that same label and
+  // an extra inner heading would just duplicate it.
   return (
-    <div className="trail-section">
-      <h3>Trail</h3>
-      {/* A coherence audit found this was the one of six "what's going
-          on" surfaces with no framing copy at all -- see the matching
-          comment on Dashboard.jsx for the other three. This is the
-          only one scoped to a single Space rather than the whole app. */}
-      <p className="trail-intro">
-        This Space's own narrative, in order -- for the complete record across every Space, see
-        the Log; for trends, see Insights.
-      </p>
+    <>
       <ReviewStarter spaceId={spaceId} onReviewCreated={onEntryAdded} />
       {entries.length === 0 && <p>No history yet.</p>}
       {entries.length > 0 && (
@@ -292,7 +290,7 @@ function TrailSpine({ spaceId, entries, onEntryAdded }) {
           Add
         </button>
       </form>
-    </div>
+    </>
   );
 }
 

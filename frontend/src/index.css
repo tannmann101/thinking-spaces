@@ -892,7 +892,14 @@ label {
    same family as .view-card/.digest/.work-block -- each row inside
    keeps its own existing spacing, this just gives the group a visible
    boundary instead of leaving it as bare rows loose under the title. */
-.space-details-panel {
+/* Shared bordered-box treatment for every adaptive-density panel on
+   the Space page -- the Details panel originally had this to itself,
+   but a coherence audit found two more sections (Workspaces+Projects,
+   Trail) that should adapt the same way, so this is now a shared class
+   rather than three near-identical rule sets. Each panel keeps its own
+   class too (space-details-panel/space-organize-panel/space-trail-panel)
+   purely so tests can still target one specifically. */
+.space-collapsible-panel {
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
@@ -903,13 +910,13 @@ label {
    panel's own <summary> (added for adaptive density -- see
    spaceHasMetadata in SpacePage.jsx) is unconditionally the first
    child now, so ":first-child" would never match a <p> at all. */
-.space-details-panel > p:first-of-type {
+.space-collapsible-panel > p:first-of-type {
   margin-top: 6px;
 }
-.space-details-panel > p:last-of-type {
+.space-collapsible-panel > p:last-of-type {
   margin-bottom: 6px;
 }
-.space-details-panel summary {
+.space-collapsible-panel summary {
   font-size: var(--fs-md);
   font-family: var(--mono);
   text-transform: uppercase;
@@ -919,9 +926,32 @@ label {
   cursor: pointer;
   padding: 6px 0;
 }
-.space-details-panel[open] summary {
+.space-collapsible-panel[open] summary {
   border-bottom: 1px solid var(--border-soft);
   margin-bottom: 4px;
+}
+/* Organize nests WorkspaceList/ProjectList, which already carry their
+   own .workspace-section bordered box -- inside a collapsible panel
+   that's now one nested border too many, so it's suppressed only here. */
+.space-organize-panel .workspace-section {
+  background: none;
+  border: none;
+  padding: 8px 0 0;
+  margin: 0;
+}
+/* Think is deliberately NOT one of the collapsible panels above -- see
+   the Roadmap entry in CLAUDE.md: hiding the working feed by default
+   would defeat the reason the page exists. This is a plain visual
+   label, same small-mono-uppercase treatment as a collapsible panel's
+   own <summary> for consistency, but with no fold behavior at all. */
+.space-section-label {
+  font-size: var(--fs-md);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--ink-dim);
+  font-weight: 500;
+  margin: 20px 0 10px;
 }
 .skeleton-strip {
   font-family: var(--mono);
@@ -1883,18 +1913,14 @@ label {
 
 /* ---------- Trail ---------- */
 
-.trail-section {
-  margin-top: 32px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-soft);
-}
-.trail-section h3 {
-  font-size: var(--fs-md);
-  font-family: var(--mono);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--ink-dim);
-  font-weight: 500;
+/* The "Trail" heading and its surrounding section chrome now live on
+   SpacePage.jsx's own .space-collapsible-panel/.space-trail-panel <details>
+   (see the coherence-audit Roadmap entry) -- TrailSpine.jsx itself no
+   longer wraps its content in its own bordered/titled section. */
+.trail-intro {
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+  margin: 4px 0 12px;
 }
 .trail-list {
   list-style: none;

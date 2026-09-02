@@ -614,6 +614,20 @@ function spaceHasMetadata(space) {
   );
 }
 
+// Same adaptive-density reasoning as spaceHasMetadata above, applied to
+// the two other panels a coherence audit found should adapt the same
+// way -- a Space that's never created a Workspace or a Project
+// shouldn't show two full, empty boxed sections by default (they used
+// to, always, on every Space, forever -- a real bug this closes) and a
+// Space with no Trail history yet shouldn't open onto an empty list.
+function spaceHasOrganization(workspaces, projects) {
+  return workspaces.length > 0 || projects.length > 0;
+}
+
+function spaceHasHistory(trail) {
+  return trail.length > 0;
+}
+
 function SpacePage() {
   const { id } = useParams();
   const { confirm: confirmDialog, promptToMatch } = useConfirmDialog();
@@ -643,6 +657,13 @@ function SpacePage() {
   // <details> below every time anything else on the page changed.
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsInitialized = useRef(false);
+  // Same pattern, for the Organize (Workspaces+Projects) and Trail
+  // panels the coherence audit added -- see spaceHasOrganization/
+  // spaceHasHistory above.
+  const [organizeOpen, setOrganizeOpen] = useState(false);
+  const organizeInitialized = useRef(false);
+  const [trailOpen, setTrailOpen] = useState(false);
+  const trailInitialized = useRef(false);
 
   const refetchTrail = useCallback(() => {
     getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
@@ -674,6 +695,8 @@ function SpacePage() {
   // state happened to be set for that first one.
   useEffect(() => {
     detailsInitialized.current = false;
+    organizeInitialized.current = false;
+    trailInitialized.current = false;
   }, [id]);
 
   useEffect(() => {
@@ -682,6 +705,20 @@ function SpacePage() {
       setDetailsOpen(spaceHasMetadata(space));
     }
   }, [space]);
+
+  useEffect(() => {
+    if (workspaces && projects && !organizeInitialized.current) {
+      organizeInitialized.current = true;
+      setOrganizeOpen(spaceHasOrganization(workspaces, projects));
+    }
+  }, [workspaces, projects]);
+
+  useEffect(() => {
+    if (trail && !trailInitialized.current) {
+      trailInitialized.current = true;
+      setTrailOpen(spaceHasHistory(trail));
+    }
+  }, [trail]);
 
   // Adding/removing/reordering blocks on a live Space -- the same
   // ordinary edit whether the Space was created a minute ago or a year
@@ -765,7 +802,7 @@ function SpacePage() {
                 visual weight as one that's actually accumulated
                 metadata -- see spaceHasMetadata/detailsOpen above. */}
             <details
-              className="space-details-panel"
+              className="space-collapsible-panel space-details-panel"
               open={detailsOpen}
               onToggle={(event) => setDetailsOpen(event.target.open)}
             >
@@ -791,11 +828,34 @@ function SpacePage() {
               </p>
             )}
 
-            {blocks && <SkeletonCompletenessStrip blocks={blocks} />}
           </div>
 
-          {workspaces && <WorkspaceList space={space} workspaces={workspaces} onChanged={refetchAll} />}
-          {projects && <ProjectList space={space} projects={projects} onChanged={refetchAll} />}
+          {/* Organize: Workspaces and Projects together, in one
+              adaptive-density panel -- both used to render at full
+              size (heading, intro sentence, "+ New" form) even on a
+              Space that had created neither, forever. See
+              spaceHasOrganization/organizeOpen above. */}
+          {workspaces && projects && (
+            <details
+              className="space-collapsible-panel space-organize-panel"
+              open={organizeOpen}
+              onToggle={(event) => setOrganizeOpen(event.target.open)}
+            >
+              <summary>Organize</summary>
+              <WorkspaceList space={space} workspaces={workspaces} onChanged={refetchAll} />
+              <ProjectList space={space} projects={projects} onChanged={refetchAll} />
+            </details>
+          )}
+
+          {/* Think: the Space's actual working content -- Skeleton
+              completeness, the Category/Type filters, the block feed
+              itself, and the "+ Add Entry" form. Deliberately a plain
+              label, not a collapsible panel like Organize/Trail --
+              hiding this by default would hide the reason the page
+              exists. See the coherence-audit Roadmap entry. */}
+          <h2 className="space-section-label">Think</h2>
+
+          {blocks && <SkeletonCompletenessStrip blocks={blocks} />}
 
           {/* Filtering by Category is the "zoom in on one aspect of the
               topic" the flat feed couldn't offer -- but it only narrows
@@ -967,7 +1027,24 @@ function SpacePage() {
             </>
           )}
 
-          {trail && <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />}
+          {/* Trail: same adaptive-density treatment as Organize above --
+              a brand-new Space with no history yet starts collapsed
+              instead of opening onto an empty list. See
+              spaceHasHistory/trailOpen above. */}
+          {trail && (
+            <details
+              className="space-collapsible-panel space-trail-panel"
+              open={trailOpen}
+              onToggle={(event) => setTrailOpen(event.target.open)}
+            >
+              <summary>Trail</summary>
+              <p className="trail-intro">
+                This Space's own narrative, in order -- for the complete record across every
+                Space, see the Log; for trends, see Insights.
+              </p>
+              <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />
+            </details>
+          )}
 
           {!space.isTestSpace && (
             <p className="danger-zone">

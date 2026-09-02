@@ -361,6 +361,20 @@ function Dashboard() {
       <Sidebar current="dashboard" />
       <main className="app-content">
 
+      <h1>Dashboard</h1>
+      {/* A coherence audit found six different pages answering "what's
+          going on" (this one, Insights, the Log, a Space's own Trail,
+          Review, and on-demand Reports) with no page ever saying how it
+          relates to the others -- that hierarchy only existed in
+          CLAUDE.md's own Roadmap prose. This line, and the matching ones
+          on Insights/the Log/Trail, are the fix: each names what it is
+          and points at its two nearest neighbors, in a closed loop
+          rather than every page just describing itself in isolation. */}
+      <p>
+        Where you land -- create Spaces, see what needs attention, and browse everything you've
+        built. For trends across all of it, see Insights; for the complete history, see the Log.
+      </p>
+
       <p className="dashboard-create-row">
         <Link to="/spaces/new" className="new-space-btn">
           + New Space
@@ -380,7 +394,7 @@ function Dashboard() {
       <Link to="/insights" className="insights-banner">
         <span className="insights-banner-title">Insights</span>
         <span className="insights-banner-sub">
-          What's actually going on across every Space -- Work Types, themes, activity, provenance.
+          Aggregate trends across every Space -- Work Types, themes, activity, provenance.
         </span>
       </Link>
 

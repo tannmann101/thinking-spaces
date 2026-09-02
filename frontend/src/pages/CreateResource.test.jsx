@@ -140,6 +140,152 @@ describe('CreateResource: touches / touched by', () => {
   });
 });
 
+describe('CreateResource: Source -- paste a link', () => {
+  it('fetches a preview on blur and shows it, without blocking submission', async () => {
+    const user = userEvent.setup();
+    api.getLinkPreview.mockResolvedValue({
+      title: 'A Great Article',
+      description: 'Some description.',
+      image: 'https://example.com/cover.jpg',
+      siteName: 'example.com',
+      url: 'https://example.com/article',
+    });
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Paste a link' }));
+    await user.type(screen.getByLabelText('URL'), 'https://example.com/article');
+    await user.tab();
+
+    expect(await screen.findByText('A Great Article')).toBeInTheDocument();
+    expect(screen.getByText('Some description.')).toBeInTheDocument();
+    expect(api.getLinkPreview).toHaveBeenCalledWith('https://example.com/article');
+  });
+
+  it('shows an error but still allows submitting when the preview fetch fails', async () => {
+    const user = userEvent.setup();
+    api.getLinkPreview.mockRejectedValue(new Error('That URL cannot be fetched.'));
+    api.createSpace.mockResolvedValue({ id: 'link-space' });
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Paste a link' }));
+    await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'A Link');
+    await user.type(screen.getByLabelText('URL'), 'http://localhost');
+    await user.tab();
+
+    expect(await screen.findByText(/Could not fetch a preview/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Resource' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Create Resource' }));
+    await waitFor(() => expect(api.createSpace).toHaveBeenCalled());
+    const payload = api.createSpace.mock.calls[0][0];
+    expect(payload.extraBlocks[0]).toMatchObject({
+      type: 'media',
+      content: { mediaType: 'link', url: 'http://localhost', linkTitle: null },
+      properties: { categories: ['Source'] },
+    });
+    expect(payload.categories).toEqual(['Source', 'Touches / Touched By']);
+  });
+
+  it('disables submit until a URL is entered', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Paste a link' }));
+    await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'A Link');
+    expect(screen.getByRole('button', { name: 'Create Resource' })).toBeDisabled();
+    await user.type(screen.getByLabelText('URL'), 'https://example.com');
+    expect(screen.getByRole('button', { name: 'Create Resource' })).toBeEnabled();
+  });
+});
+
+describe('CreateResource: Source -- upload a file', () => {
+  it('uploads on file selection and includes it in the submitted payload', async () => {
+    const user = userEvent.setup();
+    api.uploadFile.mockResolvedValue({
+      filename: 'abc.pdf',
+      originalName: 'Notes.pdf',
+      mimeType: 'application/pdf',
+      size: 2048,
+      url: '/api/uploads/abc.pdf',
+    });
+    api.createSpace.mockResolvedValue({ id: 'file-space' });
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload a file' }));
+    await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'A File');
+
+    const file = new File(['content'], 'Notes.pdf', { type: 'application/pdf' });
+    const input = document.querySelector('input[type="file"]');
+    await user.upload(input, file);
+
+    expect(await screen.findByText(/Uploaded: Notes.pdf/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Resource' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Create Resource' }));
+    await waitFor(() => expect(api.createSpace).toHaveBeenCalled());
+    const payload = api.createSpace.mock.calls[0][0];
+    expect(payload.extraBlocks[0]).toMatchObject({
+      type: 'media',
+      content: { mediaType: 'document', url: '/api/uploads/abc.pdf', fileName: 'Notes.pdf', fileType: 'application/pdf' },
+      properties: { categories: ['Source'] },
+    });
+  });
+
+  it('uses mediaType "image" for an uploaded image file', async () => {
+    const user = userEvent.setup();
+    api.uploadFile.mockResolvedValue({
+      filename: 'abc.png',
+      originalName: 'Photo.png',
+      mimeType: 'image/png',
+      size: 1024,
+      url: '/api/uploads/abc.png',
+    });
+    api.createSpace.mockResolvedValue({ id: 'img-space' });
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload a file' }));
+    await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'A Photo');
+
+    const file = new File(['content'], 'Photo.png', { type: 'image/png' });
+    await user.upload(document.querySelector('input[type="file"]'), file);
+    await screen.findByText(/Uploaded: Photo.png/);
+
+    await user.click(screen.getByRole('button', { name: 'Create Resource' }));
+    await waitFor(() => expect(api.createSpace).toHaveBeenCalled());
+    expect(api.createSpace.mock.calls[0][0].extraBlocks[0].content.mediaType).toBe('image');
+  });
+
+  it('shows an upload error and keeps submit disabled', async () => {
+    const user = userEvent.setup();
+    api.uploadFile.mockRejectedValue(new Error('Unsupported file type.'));
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload a file' }));
+    await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'Bad File');
+
+    // A real server-side rejection (e.g. a .pdf whose actual content isn't
+    // recognizable as one) -- named with an accepted extension so
+    // userEvent.upload's own accept-attribute filtering lets it through
+    // at all, matching a case the frontend can't catch client-side.
+    const file = new File(['content'], 'corrupt.pdf', { type: 'application/octet-stream' });
+    await user.upload(document.querySelector('input[type="file"]'), file);
+
+    expect(await screen.findByText(/Could not upload that file: Unsupported file type\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Resource' })).toBeDisabled();
+  });
+
+  it('disables submit while a file is still uploading', async () => {
+    const user = userEvent.setup();
+    let resolveUpload;
+    api.uploadFile.mockReturnValue(new Promise((resolve) => { resolveUpload = resolve; }));
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload a file' }));
+    await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'Slow File');
+
+    const file = new File(['content'], 'Notes.pdf', { type: 'application/pdf' });
+    await user.upload(document.querySelector('input[type="file"]'), file);
+    expect(await screen.findByText('Uploading...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Resource' })).toBeDisabled();
+
+    resolveUpload({ filename: 'x.pdf', originalName: 'Notes.pdf', mimeType: 'application/pdf', size: 1, url: '/api/uploads/x.pdf' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Create Resource' })).toBeEnabled());
+  });
+});
+
 describe('CreateResource: submitting', () => {
   it('disables submit until a title is entered', async () => {
     const user = userEvent.setup();

@@ -1,11 +1,11 @@
-// Renders one Media block. Image is fully implemented (embeds
-// content.url in an <img>, with an editable caption); audio and
-// sketch-embed are stubbed -- there's no creation UI for any Block
-// type yet, and building out playback/embedding for those before
-// they're needed would be getting ahead of the roadmap.
+// Renders one Media block. Image, link, and document are fully
+// implemented; audio and sketch-embed are still stubbed -- building out
+// playback/embedding for those before they're needed would be getting
+// ahead of the roadmap.
 
 import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
+import DocumentPreview from './mediaDocument.jsx';
 
 // onSave lets a parent override where an edit goes -- a Comparison side
 // or the Tools catalog's own interactive demo (see ToolsPage.jsx's
@@ -59,6 +59,33 @@ function MediaBlock({ block, onSave, onBlocksChanged }) {
           )}
           <figcaption>{captionNode}</figcaption>
         </figure>
+      </div>
+    );
+  }
+
+  if (mediaType === 'link') {
+    const { linkTitle, linkDescription, linkImage, linkSiteName } = block.content;
+    return (
+      <div className="media-block media-block-link">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="media-link-card">
+          {linkImage && <img src={linkImage} alt="" className="media-link-image" />}
+          <div className="media-link-body">
+            <div className="media-link-title">{linkTitle || url}</div>
+            {linkDescription && <div className="media-link-description">{linkDescription}</div>}
+            {linkSiteName && <div className="media-link-site">{linkSiteName}</div>}
+          </div>
+        </a>
+        <figcaption>{captionNode}</figcaption>
+      </div>
+    );
+  }
+
+  if (mediaType === 'document') {
+    const { fileName, fileType } = block.content;
+    return (
+      <div className="media-block media-block-document">
+        <DocumentPreview url={url} fileName={fileName} fileType={fileType} />
+        <figcaption>{captionNode}</figcaption>
       </div>
     );
   }

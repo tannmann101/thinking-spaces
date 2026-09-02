@@ -283,3 +283,32 @@ export const createRelationalSpace = ({ title, spaceIds }) =>
     method: 'POST',
     body: JSON.stringify({ title, spaceIds }),
   });
+
+// Content ingestion (see CLAUDE.md): fetches a URL server-side (the
+// browser can't read another site's HTML directly, since that page's own
+// CORS headers block it) and returns its Open Graph/meta-tag fields, used
+// by CreateResource.jsx to build a 'link' Media block without ever
+// storing the page's own HTML.
+export const getLinkPreview = (url) =>
+  request('/link-preview', {
+    method: 'POST',
+    body: JSON.stringify({ url }),
+  });
+
+// File upload bypasses request()'s own JSON Content-Type header --
+// multipart form data sets its own boundary-carrying Content-Type, which
+// fetch only gets right when it's left unset and FormData is passed
+// directly as the body. Not wired through the shared onMutation listener
+// either, for the same reason POST already isn't: a successful upload is
+// followed by a Resource being created, an obvious enough change on its
+// own. Returns { filename, originalName, mimeType, size, url }.
+export async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/uploads', { method: 'POST', body: formData });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Upload failed (${res.status})`);
+  }
+  return res.json();
+}

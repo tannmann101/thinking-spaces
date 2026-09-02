@@ -60,6 +60,7 @@ import { getWorkMixInsights, getThemeInsights, getActivityTrendInsights, getProv
 import { getSpaceReport, getWorkspaceReport, getProjectReport, getBlockReport } from './db/reports.js';
 import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from './db/dashboard.js';
 import { renderReportText } from './reportFormat.js';
+import { isSafeUrl, extractLinkMeta } from './linkPreview.js';
 
 function json(data, status = 200) {
   return new Response(data === null ? null : JSON.stringify(data), {
@@ -361,6 +362,34 @@ async function handleCreateTensionPair(request, env, id) {
   return json(await createTensionPair(env, id, { label: label.trim(), statementA, statementB }), 201);
 }
 
+// ---------- Link preview ----------
+// Mirrors backend/src/routes/linkPreview.js exactly -- fetches a URL
+// server-side and pulls a title/description/image out of it via the pure
+// functions in linkPreview.js. No upload route on this side yet: file
+// storage needs R2 (Cloudflare's object storage), which this session
+// can't provision without the person's help -- see CLAUDE.md Open.
+async function handleLinkPreview(request) {
+  const body = (await readJson(request)) || {};
+  const { url } = body;
+  if (!url || typeof url !== 'string') return errorResponse('url is required');
+  if (!isSafeUrl(url)) return errorResponse('That URL cannot be fetched.');
+
+  try {
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ThinkingSpacesBot/1.0)' },
+      signal: AbortSignal.timeout(8000),
+      redirect: 'follow',
+    });
+    if (!response.ok) return errorResponse(`The page returned ${response.status}.`, 502);
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/html')) return errorResponse('That link does not point to a web page.', 502);
+    const html = await response.text();
+    return json(extractLinkMeta(html, response.url || url));
+  } catch (err) {
+    return errorResponse(`Could not fetch that link: ${err.message}`, 502);
+  }
+}
+
 // ---------- Router ----------
 
 export default {
@@ -532,6 +561,8 @@ export default {
       if (path === '/api/activity' && method === 'GET') {
         return json({ entries: await listGlobalActivity(env), stats: await getActivityStats(env) });
       }
+
+      if (path === '/api/link-preview' && method === 'POST') return await handleLinkPreview(request);
 
       return errorResponse('not found', 404);
     } catch (err) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getHealth, getSpaces, createSpace, deleteSpace, updateSpace, setMutationListener } from './api.js';
+import { getHealth, getSpaces, createSpace, deleteSpace, updateSpace, setMutationListener, getLinkPreview, uploadFile } from './api.js';
 
 // Every exported function in api.js funnels through one private
 // request() helper -- these tests exercise that helper's actual
@@ -113,5 +113,55 @@ describe('api.js mutation listener (drives Toast.jsx)', () => {
     setMutationListener(listener);
     await expect(updateSpace('some-id', { title: 'x' })).rejects.toThrow();
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('api.js getLinkPreview', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('POSTs the url and resolves with the preview fields', async () => {
+    mockFetchOnce(jsonResponse({ title: 'A Page', description: null, image: null, siteName: 'example.com', url: 'https://example.com' }));
+    const result = await getLinkPreview('https://example.com');
+    const [path, options] = global.fetch.mock.calls[0];
+    expect(path).toBe('/api/link-preview');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({ url: 'https://example.com' });
+    expect(result.title).toBe('A Page');
+  });
+
+  it('surfaces the server\'s own error message when the link cannot be fetched', async () => {
+    mockFetchOnce(jsonResponse({ error: 'That URL cannot be fetched.' }, { ok: false, status: 400 }));
+    await expect(getLinkPreview('http://localhost')).rejects.toThrow('That URL cannot be fetched.');
+  });
+});
+
+describe('api.js uploadFile', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('posts the file as multipart form data to /api/uploads', async () => {
+    mockFetchOnce(jsonResponse({ filename: 'abc.pdf', originalName: 'notes.pdf', mimeType: 'application/pdf', size: 123, url: '/api/uploads/abc.pdf' }));
+    const file = new File(['content'], 'notes.pdf', { type: 'application/pdf' });
+    const result = await uploadFile(file);
+    const [path, options] = global.fetch.mock.calls[0];
+    expect(path).toBe('/api/uploads');
+    expect(options.method).toBe('POST');
+    expect(options.body).toBeInstanceOf(FormData);
+    expect(result.url).toBe('/api/uploads/abc.pdf');
+  });
+
+  it('throws using the server\'s own error message when the upload is rejected', async () => {
+    mockFetchOnce(jsonResponse({ error: 'Unsupported file type.' }, { ok: false, status: 400 }));
+    const file = new File(['x'], 'virus.exe', { type: 'application/octet-stream' });
+    await expect(uploadFile(file)).rejects.toThrow('Unsupported file type.');
   });
 });

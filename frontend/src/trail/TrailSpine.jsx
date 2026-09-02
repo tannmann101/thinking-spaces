@@ -264,6 +264,14 @@ function TrailSpine({ spaceId, entries, onEntryAdded }) {
   return (
     <div className="trail-section">
       <h3>Trail</h3>
+      {/* A coherence audit found this was the one of six "what's going
+          on" surfaces with no framing copy at all -- see the matching
+          comment on Dashboard.jsx for the other three. This is the
+          only one scoped to a single Space rather than the whole app. */}
+      <p className="trail-intro">
+        This Space's own narrative, in order -- for the complete record across every Space, see
+        the Log; for trends, see Insights.
+      </p>
       <ReviewStarter spaceId={spaceId} onReviewCreated={onEntryAdded} />
       {entries.length === 0 && <p>No history yet.</p>}
       {entries.length > 0 && (

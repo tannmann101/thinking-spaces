@@ -1896,6 +1896,11 @@ label {
   color: var(--ink-dim);
   font-weight: 500;
 }
+.trail-intro {
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+  margin: 4px 0 12px;
+}
 .trail-list {
   list-style: none;
   margin: 0;

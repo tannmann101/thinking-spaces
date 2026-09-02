@@ -400,6 +400,6 @@ describe('Dashboard: navigation', () => {
   it('shows the Insights banner linking to /insights', async () => {
     renderDashboard();
     await screen.findByText('No spaces yet. Create your first one to get started.');
-    expect(screen.getByRole('link', { name: /What's actually going on/ })).toHaveAttribute('href', '/insights');
+    expect(screen.getByRole('link', { name: /Aggregate trends across every Space/ })).toHaveAttribute('href', '/insights');
   });
 });

@@ -83,7 +83,17 @@ function LogPage() {
       <Sidebar current="log" />
       <main className="app-content">
       <h1>Log</h1>
-      <p>Everything that's happened, across every Space, oldest and newest in one place.</p>
+      {/* See the matching comment on Dashboard.jsx -- one honest line
+          per page in a closed loop, naming what this page is and
+          pointing at its two nearest neighbors. Also fixes a small
+          clarity gap the same audit found: the old copy said "oldest
+          and newest in one place," but the feed below has always shown
+          newest first. */}
+      <p>
+        The complete structural record across every Space, newest first -- every Tool and Space
+        created or removed, merged with each Space's own Trail. For trends distilled from all of
+        it, see Insights; for one Space's own narrative, see its Trail.
+      </p>
 
       {error && <p>Could not load the Log: {error}</p>}
       {!error && !activity && <p>Loading...</p>}

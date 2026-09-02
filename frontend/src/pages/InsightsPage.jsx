@@ -310,7 +310,16 @@ function InsightsPage() {
       <Sidebar current="insights" />
       <main className="app-content">
       <h1>Insights</h1>
-      <p>What's actually going on across every Space -- the thinking, not just the record of it.</p>
+      {/* See the matching comment on Dashboard.jsx -- one honest line
+          per page in a closed loop, naming what this page is and
+          pointing at its two nearest neighbors, since the six pages
+          that each answer "what's going on" never said how they relate
+          to each other anywhere but CLAUDE.md's own Roadmap prose. */}
+      <p>
+        Aggregate trends across every Space -- Work Types, themes, activity, provenance. For a
+        quick day-to-day glance, see the Dashboard; for the complete event-by-event record, see
+        the Log.
+      </p>
 
       {error && <p>Could not load Insights: {error}</p>}
       {!error && !insights && <p>Loading...</p>}

@@ -196,6 +196,32 @@ describe('getProvenanceInsights', () => {
     expect(getProvenanceInsights().workItemCount).toBe(1);
   });
 
+  it('counts distinct Work items actually used in a Synthesis, reading properties.sourceItemIds off Source Material blocks', () => {
+    const source = createSpace({ title: 'Source' });
+    const itemA = createBlock({ spaceId: source.id, type: 'assessment', content: { statement: 'a' } });
+    const itemB = createBlock({ spaceId: source.id, type: 'question', content: { statement: 'b' } });
+    createBlock({ spaceId: source.id, type: 'insight', content: { statement: 'c' } }); // never used
+
+    const synthesisOne = createSpace({ title: 'Synthesis One', tags: ['synthesis'] });
+    createBlock({
+      spaceId: synthesisOne.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      properties: { categories: ['Source Material'], sourceItemIds: [itemA.id, itemB.id] },
+    });
+    const synthesisTwo = createSpace({ title: 'Synthesis Two', tags: ['synthesis'] });
+    createBlock({
+      spaceId: synthesisTwo.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      // Reusing itemA -- used in two Syntheses, but should still only
+      // count once toward the distinct total.
+      properties: { categories: ['Source Material'], sourceItemIds: [itemA.id] },
+    });
+
+    expect(getProvenanceInsights().distilledWorkItemCount).toBe(2);
+  });
+
   it('excludes the Test Space from every count', () => {
     createSpace({ id: TEST_SPACE_ID, title: 'Test Space', tags: ['synthesis'], origin: 'internal' });
     const insights = getProvenanceInsights();
@@ -210,7 +236,7 @@ describe('getProvenanceInsights', () => {
     createBlock({ spaceId: space.id, type: 'assessment', content: { statement: 'x' } });
     const reading = getProvenanceInsights().reading;
     expect(reading).toContain('33%');
-    expect(reading).toContain('0% as many Syntheses');
+    expect(reading).toContain('0% of raw Work items have actually been distilled');
   });
 
   it('reading is null when there are no Spaces at all', () => {

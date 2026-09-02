@@ -19,7 +19,7 @@ function makeInsights(overrides = {}) {
     workMix: { total: 0, byType: [], byConfidence: [] },
     themes: { recurringCategories: [], openTensionCount: 0, openTensions: [] },
     activity: { weeklyCounts: [], staleThresholdDays: 30, staleSpaces: [] },
-    provenance: { byOrigin: { external: 0, internal: 0, none: 0 }, workItemCount: 0, synthesisCount: 0, promotedCount: 0 },
+    provenance: { byOrigin: { external: 0, internal: 0, none: 0 }, workItemCount: 0, distilledWorkItemCount: 0, synthesisCount: 0, promotedCount: 0 },
     time: {
       dueDates: { overdue: [], upcoming: [] },
       milestones: { total: 0, reachedCount: 0, overdueMilestones: [] },
@@ -63,6 +63,7 @@ describe('InsightsPage: interpretive readings', () => {
         provenance: {
           byOrigin: { external: 1, internal: 0, none: 0 },
           workItemCount: 0,
+          distilledWorkItemCount: 0,
           synthesisCount: 0,
           promotedCount: 0,
           reading: 'Most of what\'s here was brought in from outside.',
@@ -155,14 +156,23 @@ describe('InsightsPage: Activity & staleness', () => {
 });
 
 describe('InsightsPage: Provenance funnel', () => {
-  it('shows the Work -> Synthesis -> Resource funnel numbers', async () => {
+  it('shows the Work -> Synthesis -> Resource funnel numbers, using distinct distilled Work items (not raw Synthesis count) for the middle step', async () => {
     api.getInsights.mockResolvedValue(
-      makeInsights({ provenance: { byOrigin: { external: 2, internal: 1, none: 3 }, workItemCount: 10, synthesisCount: 4, promotedCount: 1 } })
+      makeInsights({
+        provenance: {
+          byOrigin: { external: 2, internal: 1, none: 3 },
+          workItemCount: 10,
+          distilledWorkItemCount: 6,
+          synthesisCount: 4,
+          promotedCount: 1,
+        },
+      })
     );
     renderPage();
     await screen.findByRole('heading', { name: /Provenance/ });
     const funnelNumbers = [...document.querySelectorAll('.insight-funnel-number')].map((el) => el.textContent);
-    expect(funnelNumbers).toEqual(['10', '4', '1']);
+    expect(funnelNumbers).toEqual(['10', '6', '1']);
+    expect(screen.getByText(/across 4 Syntheses/)).toBeInTheDocument();
   });
 });
 

@@ -135,10 +135,30 @@ function summarizeBlockContent(block) {
 // Hypothesis all go through this same function), since they're all
 // just rows in the same `blocks` table with a type-specific content
 // shape. See summarizeBlockContent above for the type-switched part.
+// The reverse of CreateSynthesis.jsx's own lineage-recording: given a
+// Work item's block id, finds every Synthesis Space whose own "Source
+// Material" block lists it in properties.sourceItemIds. A Work item
+// can feed more than one Synthesis, so this returns every match, not
+// just the first. Only meaningful for a Work-type block -- gated by
+// getBlockReport below rather than here, so this stays a plain lookup.
+function findSynthesesUsingWorkItem(blockId) {
+  return db
+    .prepare(
+      `SELECT spaces.id AS space_id, spaces.title AS space_title
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+       JOIN json_each(blocks.properties, '$.sourceItemIds') AS item
+       WHERE blocks.type = 'text' AND item.value = ?`
+    )
+    .all(blockId);
+}
+
 export function getBlockReport(blockId) {
   const block = getBlockById(blockId);
   if (!block) return null;
   const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(block.space_id);
+
+  const usedInSyntheses = WORK_TYPES.includes(block.type) ? findSynthesesUsingWorkItem(blockId) : [];
 
   const workspaceIds = block.properties?.workspaces || [];
   const workspaceNames =
@@ -157,6 +177,9 @@ export function getBlockReport(blockId) {
     ...(project ? [`Project: ${project.name}`] : []),
     ...(block.properties?.skeletonLane ? [`Skeleton section: ${block.properties.skeletonLane}`] : []),
     ...(block.properties?.skeletonRole ? [`Skeleton role: ${block.properties.skeletonRole}`] : []),
+    ...(usedInSyntheses.length > 0
+      ? [`Used in Synthesis: ${usedInSyntheses.map((row) => row.space_title).join(', ')}`]
+      : []),
   ];
 
   const sections = [

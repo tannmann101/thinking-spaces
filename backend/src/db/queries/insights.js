@@ -82,7 +82,7 @@ function buildActivityReading(weeklyCounts, staleSpaces, staleThresholdDays) {
   return parts.length > 0 ? parts.join(' ') : null;
 }
 
-function buildProvenanceReading(byOrigin, workItemCount, synthesisCount) {
+function buildProvenanceReading(byOrigin, workItemCount, distilledWorkItemCount) {
   const totalSpaces = byOrigin.external + byOrigin.internal + byOrigin.none;
   if (totalSpaces === 0) return null;
   const parts = [];
@@ -95,9 +95,9 @@ function buildProvenanceReading(byOrigin, workItemCount, synthesisCount) {
     );
   }
   if (workItemCount > 0) {
-    const distilledShare = Math.round((synthesisCount / workItemCount) * 100);
+    const distilledShare = Math.round((distilledWorkItemCount / workItemCount) * 100);
     parts.push(
-      `Roughly ${distilledShare}% as many Syntheses exist as raw Work items -- most thinking is still scattered claims waiting to be pulled together.`
+      `${distilledShare}% of raw Work items have actually been distilled into a Synthesis so far -- the rest is still scattered claims waiting to be pulled together.`
     );
   }
   return parts.length > 0 ? parts.join(' ') : null;
@@ -254,11 +254,11 @@ export function getActivityTrendInsights(weeks = 8) {
 // split Provenance introduced: how much of what exists was brought in
 // versus produced, and how much of the raw thinking has actually been
 // distilled into a finished piece versus still sitting as scattered
-// claims. Deliberately just counts, not item-level tracking -- Synthesis
-// copies its sources' text rather than keeping a live link back to the
-// specific Work item ids used, so "which claims fed which Synthesis"
-// isn't a question the current data can answer; how many of each exist
-// is.
+// claims. distilledWorkItemCount reads real item-level lineage
+// (CreateSynthesis.jsx persists properties.sourceItemIds on each
+// Synthesis's own Source Material block) -- "which claims fed which
+// Synthesis" used to not be a question the data could answer at all,
+// back when Synthesis only copied its sources' text in.
 export function getProvenanceInsights() {
   const originRows = db
     .prepare(`SELECT origin, COUNT(*) AS count FROM spaces WHERE id != ? GROUP BY origin`)
@@ -290,12 +290,33 @@ export function getProvenanceInsights() {
     .prepare(`SELECT COUNT(*) AS count FROM blocks WHERE type IN (${placeholders}) AND space_id != ?`)
     .get(...WORK_TYPES, TEST_SPACE_ID).count;
 
+  // How many *distinct* Work items have actually been used in at least
+  // one Synthesis -- a real subset of workItemCount, unlike
+  // synthesisCount (how many Synthesis pieces exist, not how many raw
+  // items fed them). Reads every Synthesis's own "Source Material"
+  // block, which CreateSynthesis.jsx now persists as
+  // properties.sourceItemIds (an array of the source Work items' own
+  // block ids) rather than only copying their text in -- see the
+  // comment on that block's own creation for why this used to be
+  // uncomputable. A Work item used in more than one Synthesis is only
+  // counted once, which is what DISTINCT is for.
+  const distilledWorkItemCount = db
+    .prepare(
+      `SELECT COUNT(DISTINCT item.value) AS count
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+       JOIN json_each(blocks.properties, '$.sourceItemIds') AS item
+       WHERE blocks.type = 'text' AND spaces.id != ?`
+    )
+    .get(TEST_SPACE_ID).count;
+
   return {
     byOrigin,
     synthesisCount,
     promotedCount,
     workItemCount,
-    reading: buildProvenanceReading(byOrigin, workItemCount, synthesisCount),
+    distilledWorkItemCount,
+    reading: buildProvenanceReading(byOrigin, workItemCount, distilledWorkItemCount),
   };
 }
 

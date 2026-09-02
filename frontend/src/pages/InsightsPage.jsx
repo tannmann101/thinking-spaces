@@ -176,7 +176,12 @@ function ProvenanceSection({ provenance }) {
             <span className="insight-funnel-number">{provenance.workItemCount}</span> Work items
           </p>
           <p className="insight-funnel">
-            <span className="insight-funnel-number">{provenance.synthesisCount}</span> compiled into a Synthesis
+            <span className="insight-funnel-number">{provenance.distilledWorkItemCount}</span> compiled into a
+            Synthesis
+            <span className="insight-detail">
+              {' '}
+              (across {provenance.synthesisCount} Synthes{provenance.synthesisCount === 1 ? 'is' : 'es'})
+            </span>
           </p>
           <p className="insight-funnel">
             <span className="insight-funnel-number">{provenance.promotedCount}</span> promoted to Resource status

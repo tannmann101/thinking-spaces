@@ -197,6 +197,32 @@ describe('getProvenanceInsights', () => {
     expect((await getProvenanceInsights(env)).workItemCount).toBe(1);
   });
 
+  it('counts distinct Work items actually used in a Synthesis, reading properties.sourceItemIds off Source Material blocks', async () => {
+    const source = await createSpace(env, { title: 'Source' });
+    const itemA = await createBlock(env, { spaceId: source.id, type: 'assessment', content: { statement: 'a' } });
+    const itemB = await createBlock(env, { spaceId: source.id, type: 'question', content: { statement: 'b' } });
+    await createBlock(env, { spaceId: source.id, type: 'insight', content: { statement: 'c' } }); // never used
+
+    const synthesisOne = await createSpace(env, { title: 'Synthesis One', tags: ['synthesis'] });
+    await createBlock(env, {
+      spaceId: synthesisOne.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      properties: { categories: ['Source Material'], sourceItemIds: [itemA.id, itemB.id] },
+    });
+    const synthesisTwo = await createSpace(env, { title: 'Synthesis Two', tags: ['synthesis'] });
+    await createBlock(env, {
+      spaceId: synthesisTwo.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      // Reusing itemA -- used in two Syntheses, but should still only
+      // count once toward the distinct total.
+      properties: { categories: ['Source Material'], sourceItemIds: [itemA.id] },
+    });
+
+    expect((await getProvenanceInsights(env)).distilledWorkItemCount).toBe(2);
+  });
+
   it('excludes the Test Space from every count', async () => {
     await createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space', tags: ['synthesis'], origin: 'internal' });
     const insights = await getProvenanceInsights(env);
@@ -211,7 +237,7 @@ describe('getProvenanceInsights', () => {
     await createBlock(env, { spaceId: space.id, type: 'assessment', content: { statement: 'x' } });
     const reading = (await getProvenanceInsights(env)).reading;
     expect(reading).toContain('33%');
-    expect(reading).toContain('0% as many Syntheses');
+    expect(reading).toContain('0% of raw Work items have actually been distilled');
   });
 
   it('reading is null when there are no Spaces at all', async () => {

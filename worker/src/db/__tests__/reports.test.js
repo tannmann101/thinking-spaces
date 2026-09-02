@@ -78,6 +78,42 @@ describe('getBlockReport', () => {
     expect(membership.lines).toEqual(['Project: Ship it']);
   });
 
+  it('includes a "Used in Synthesis" membership line for a Work item referenced by a Source Material block\'s sourceItemIds, across every Space it feeds', async () => {
+    const block = await createBlock(env, { spaceId: space.id, type: 'assessment', content: { statement: 'x' } });
+    const synthesisOne = await createSpace(env, { title: 'Synthesis One' });
+    await createBlock(env, {
+      spaceId: synthesisOne.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      properties: { categories: ['Source Material'], sourceItemIds: [block.id] },
+    });
+    const synthesisTwo = await createSpace(env, { title: 'Synthesis Two' });
+    await createBlock(env, {
+      spaceId: synthesisTwo.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      properties: { categories: ['Source Material'], sourceItemIds: [block.id] },
+    });
+
+    const report = await getBlockReport(env, block.id);
+    const membership = report.sections.find((s) => s.heading === 'Membership');
+    expect(membership.lines).toEqual(['Used in Synthesis: Synthesis One, Synthesis Two']);
+  });
+
+  it('never shows a "Used in Synthesis" line for a non-Work block, even if it happens to share an id coincidentally', async () => {
+    const block = await createBlock(env, { spaceId: space.id, type: 'text', content: { text: 'not a Work item' } });
+    const synthesis = await createSpace(env, { title: 'A Synthesis' });
+    await createBlock(env, {
+      spaceId: synthesis.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      properties: { categories: ['Source Material'], sourceItemIds: [block.id] },
+    });
+    const report = await getBlockReport(env, block.id);
+    const membership = report.sections.find((s) => s.heading === 'Membership');
+    expect(membership).toBeUndefined();
+  });
+
   it('reports a Milestone\'s target/reached status', async () => {
     const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: { label: 'Ship it', targetDate: '2024-01-01', reached: true, reachedAt: '2024-01-02', note: null } });
     const report = await getBlockReport(env, block.id);

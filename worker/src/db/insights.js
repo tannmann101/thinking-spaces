@@ -60,7 +60,7 @@ function buildActivityReading(weeklyCounts, staleSpaces, staleThresholdDays) {
   return parts.length > 0 ? parts.join(' ') : null;
 }
 
-function buildProvenanceReading(byOrigin, workItemCount, synthesisCount) {
+function buildProvenanceReading(byOrigin, workItemCount, distilledWorkItemCount) {
   const totalSpaces = byOrigin.external + byOrigin.internal + byOrigin.none;
   if (totalSpaces === 0) return null;
   const parts = [];
@@ -73,9 +73,9 @@ function buildProvenanceReading(byOrigin, workItemCount, synthesisCount) {
     );
   }
   if (workItemCount > 0) {
-    const distilledShare = Math.round((synthesisCount / workItemCount) * 100);
+    const distilledShare = Math.round((distilledWorkItemCount / workItemCount) * 100);
     parts.push(
-      `Roughly ${distilledShare}% as many Syntheses exist as raw Work items -- most thinking is still scattered claims waiting to be pulled together.`
+      `${distilledShare}% of raw Work items have actually been distilled into a Synthesis so far -- the rest is still scattered claims waiting to be pulled together.`
     );
   }
   return parts.length > 0 ? parts.join(' ') : null;
@@ -239,12 +239,30 @@ export async function getProvenanceInsights(env) {
     .bind(...WORK_TYPES, TEST_SPACE_ID)
     .first();
 
+  // How many *distinct* Work items have actually been used in at least
+  // one Synthesis -- a real subset of workItemCount, unlike
+  // synthesisCount (how many Synthesis pieces exist, not how many raw
+  // items fed them). Reads every Synthesis's own "Source Material"
+  // block, which CreateSynthesis.jsx persists as
+  // properties.sourceItemIds (an array of the source Work items' own
+  // block ids).
+  const distilledWorkItemCount = await env.DB.prepare(
+    `SELECT COUNT(DISTINCT item.value) AS count
+     FROM blocks
+     JOIN spaces ON spaces.id = blocks.space_id
+     JOIN json_each(blocks.properties, '$.sourceItemIds') AS item
+     WHERE blocks.type = 'text' AND spaces.id != ?`
+  )
+    .bind(TEST_SPACE_ID)
+    .first();
+
   return {
     byOrigin,
     synthesisCount: synthesisCount.count,
     promotedCount: promotedCount.count,
     workItemCount: workItemCount.count,
-    reading: buildProvenanceReading(byOrigin, workItemCount.count, synthesisCount.count),
+    distilledWorkItemCount: distilledWorkItemCount.count,
+    reading: buildProvenanceReading(byOrigin, workItemCount.count, distilledWorkItemCount.count),
   };
 }
 

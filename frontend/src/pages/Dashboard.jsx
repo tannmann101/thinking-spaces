@@ -35,9 +35,9 @@ function OverdueReviews({ items }) {
         <span className="digest-icon">!</span>Overdue for review
       </summary>
       <ul>
-        {items.map(({ spaceId, spaceTitle, item }) => (
+        {items.map(({ spaceId, spaceTitle, blockId, item }) => (
           <li key={item.id}>
-            <Link to={`/spaces/${spaceId}`}>{spaceTitle}</Link>: {item.text} (was due {item.reviewBy})
+            <Link to={`/spaces/${spaceId}?highlight=${blockId}`}>{spaceTitle}</Link>: {item.text} (was due {item.reviewBy})
           </li>
         ))}
       </ul>
@@ -90,6 +90,15 @@ function computeActiveSpaceIds(days) {
 // so the four item kinds below stay consistent rather than each formatting it separately.
 function projectSuffix(projectName) {
   return projectName ? ` (${projectName})` : '';
+}
+
+// A Milestone/Session week-item carries its own block id (see
+// getWeekCalendar), so it can deep-link straight to that entry rather
+// than just the Space -- a Trail item or a due-date item has no single
+// block behind it (Trail is Skeleton-wide, a due date is a Space's own
+// field), so those fall back to a plain Space link.
+function spaceLink(item) {
+  return item.blockId ? `/spaces/${item.spaceId}?highlight=${item.blockId}` : `/spaces/${item.spaceId}`;
 }
 
 function WeekCalendarDigest({ days, onDataChanged }) {
@@ -165,6 +174,7 @@ function WeekCalendarDigest({ days, onDataChanged }) {
                 key: `reached-${index}-${i}`,
                 spaceId: m.spaceId,
                 spaceTitle: m.spaceTitle,
+                blockId: m.id,
                 text: `reached: ${m.label}${projectSuffix(m.projectName)}`,
               })),
             ...day.sessions
@@ -173,6 +183,7 @@ function WeekCalendarDigest({ days, onDataChanged }) {
                 key: `session-${index}-${i}`,
                 spaceId: s.spaceId,
                 spaceTitle: s.spaceTitle,
+                blockId: s.id,
                 text: `logged ${s.durationMinutes ?? '?'} min${s.label ? `: ${s.label}` : ''}${projectSuffix(s.projectName)}`,
               })),
           ];
@@ -189,6 +200,7 @@ function WeekCalendarDigest({ days, onDataChanged }) {
                 key: `target-${index}-${i}`,
                 spaceId: m.spaceId,
                 spaceTitle: m.spaceTitle,
+                blockId: m.id,
                 text: `target: ${m.label}${projectSuffix(m.projectName)}`,
                 action: { label: 'Mark reached', onClick: () => markMilestoneReached(m) },
               })),
@@ -198,6 +210,7 @@ function WeekCalendarDigest({ days, onDataChanged }) {
                 key: `running-${index}-${i}`,
                 spaceId: s.spaceId,
                 spaceTitle: s.spaceTitle,
+                blockId: s.id,
                 text: `session running${s.label ? `: ${s.label}` : ''}${projectSuffix(s.projectName)}`,
                 action: { label: 'Stop', onClick: () => stopSession(s) },
               })),
@@ -215,12 +228,12 @@ function WeekCalendarDigest({ days, onDataChanged }) {
                 <ul>
                   {pastItems.map((item) => (
                     <li key={item.key} className="week-item week-item-past">
-                      <Link to={`/spaces/${item.spaceId}`}>{item.spaceTitle}</Link>: {item.text}
+                      <Link to={spaceLink(item)}>{item.spaceTitle}</Link>: {item.text}
                     </li>
                   ))}
                   {upcomingItems.map((item) => (
                     <li key={item.key} className="week-item week-item-upcoming">
-                      <Link to={`/spaces/${item.spaceId}`}>{item.spaceTitle}</Link>: {item.text}
+                      <Link to={spaceLink(item)}>{item.spaceTitle}</Link>: {item.text}
                       {item.action && (
                         <button type="button" className="week-item-action" onClick={item.action.onClick}>
                           {item.action.label}

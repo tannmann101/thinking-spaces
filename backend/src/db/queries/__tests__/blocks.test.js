@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { db } from '../../index.js';
 import {
   listBlocksForSpace,
   listBacklinksForSpace,
@@ -81,6 +82,12 @@ describe('blocks.js', () => {
       const second = addBlockToSpace(space.id, { type: 'text', content: { text: 'two' } });
       expect(first.position).toBe(0);
       expect(second.position).toBe(1);
+    });
+
+    it('logs the new block\'s own id, so deep-linking can jump straight to it', () => {
+      const block = addBlockToSpace(space.id, { type: 'text', content: { text: 'x' } });
+      const logged = db.prepare(`SELECT * FROM activity_log WHERE kind = 'block_added'`).get();
+      expect(logged.block_id).toBe(block.id);
     });
   });
 

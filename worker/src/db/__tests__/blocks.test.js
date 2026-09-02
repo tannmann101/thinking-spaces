@@ -82,6 +82,12 @@ describe('blocks.js', () => {
       expect(first.position).toBe(0);
       expect(second.position).toBe(1);
     });
+
+    it('logs the new block\'s own id, so deep-linking can jump straight to it', async () => {
+      const block = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'x' } });
+      const logged = await env.DB.prepare(`SELECT * FROM activity_log WHERE kind = 'block_added'`).first();
+      expect(logged.block_id).toBe(block.id);
+    });
   });
 
   describe('listBlocksForSpace', () => {

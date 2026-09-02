@@ -969,6 +969,18 @@ label {
   position: relative;
   border-left: 3px solid var(--border-soft);
   padding-left: 14px;
+  transition: background-color 1.5s ease;
+}
+/* A one-shot flash for a block reached via a Dashboard/Log/Insights
+   deep link (?highlight=<blockId> -- see SpacePage.jsx) -- the caller
+   sets this attribute briefly, and the transition above (already
+   present unconditionally, so it applies in both directions) fades it
+   back out once the attribute is removed. The global
+   prefers-reduced-motion rule already disables this transition
+   app-wide, so a reduced-motion viewer just sees a plain, brief
+   highlight with no animation. */
+.block-row[data-highlighted='true'] {
+  background: rgba(201, 151, 59, 0.18); /* --accent at low opacity */
 }
 /* The same coarse family personality as .tool-card in the Tools
    catalog, carried down into the actual feed -- a long Space used to

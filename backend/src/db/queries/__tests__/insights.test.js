@@ -81,7 +81,7 @@ describe('getThemeInsights', () => {
 
   it('counts every item in every Tensions lane as an open Tension', () => {
     const space = createSpace({ title: 'Has tensions' });
-    createBlock({
+    const block = createBlock({
       spaceId: space.id,
       type: 'list',
       content: { items: [{ id: '1', text: 'Cost vs. speed' }], laneLabel: 'Tensions' },
@@ -89,7 +89,12 @@ describe('getThemeInsights', () => {
     });
     const insights = getThemeInsights();
     expect(insights.openTensionCount).toBe(1);
-    expect(insights.openTensions[0]).toMatchObject({ spaceId: space.id, spaceTitle: 'Has tensions', label: 'Cost vs. speed' });
+    expect(insights.openTensions[0]).toMatchObject({
+      spaceId: space.id,
+      spaceTitle: 'Has tensions',
+      blockId: block.id,
+      label: 'Cost vs. speed',
+    });
   });
 
   it('excludes the Test Space from both facets', () => {
@@ -236,13 +241,14 @@ describe('getTimeInsights', () => {
   it('counts reached Milestones and flags overdue unreached ones', () => {
     const space = createSpace({ title: 'Has Milestones' });
     createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Done', targetDate: '2020-01-01', reached: true, reachedAt: '2020-01-01', note: null } });
-    createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Overdue', targetDate: '2000-01-01', reached: false, reachedAt: null, note: null } });
+    const overdueBlock = createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Overdue', targetDate: '2000-01-01', reached: false, reachedAt: null, note: null } });
     createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Future', targetDate: '2099-01-01', reached: false, reachedAt: null, note: null } });
 
     const insights = getTimeInsights();
     expect(insights.milestones.total).toBe(3);
     expect(insights.milestones.reachedCount).toBe(1);
     expect(insights.milestones.overdueMilestones.map((m) => m.label)).toEqual(['Overdue']);
+    expect(insights.milestones.overdueMilestones[0].blockId).toBe(overdueBlock.id);
   });
 
   it('sums minutes across completed Sessions and counts running ones separately', () => {

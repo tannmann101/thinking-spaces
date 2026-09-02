@@ -20,9 +20,9 @@ import { TEST_SPACE_ID } from './constants.js';
 // logging helper. Not part of the public queries.js barrel: it never
 // was exported outside this file before the split, and routes still
 // have no reason to call it directly.
-export function logActivity({ spaceId = null, spaceTitle = null, kind, summary }) {
+export function logActivity({ spaceId = null, spaceTitle = null, blockId = null, kind, summary }) {
   if (spaceId === TEST_SPACE_ID) return;
   db.prepare(
-    `INSERT INTO activity_log (id, space_id, space_title, kind, summary) VALUES (?, ?, ?, ?, ?)`
-  ).run(randomUUID(), spaceId, spaceTitle, kind, summary);
+    `INSERT INTO activity_log (id, space_id, space_title, block_id, kind, summary) VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(randomUUID(), spaceId, spaceTitle, blockId, kind, summary);
 }

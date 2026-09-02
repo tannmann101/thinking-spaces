@@ -11,16 +11,21 @@ import { TEST_SPACE_ID } from './constants.js';
 // has no such guard at write time, since Trail is scoped to whatever
 // Space it's viewed from and the Test Space legitimately uses it while
 // demoing Skeleton promotion).
+// block_id rides along so the Log can link a 'block_added' entry
+// straight to that block (see SpacePage's ?highlight= deep-linking) --
+// null for every other kind, including the whole trail_entries half of
+// the union, since a Trail entry is about the Skeleton as a whole, not
+// one block.
 export function listGlobalActivity(limit = 300) {
   return db
     .prepare(
-      `SELECT id, space_id, space_title, kind, summary, created_at
+      `SELECT id, space_id, space_title, block_id, kind, summary, created_at
        FROM (
-         SELECT id, space_id, space_title, kind, summary, created_at
+         SELECT id, space_id, space_title, block_id, kind, summary, created_at
          FROM activity_log
          UNION ALL
          SELECT trail_entries.id, trail_entries.space_id, spaces.title AS space_title,
-                'trail_' || trail_entries.kind AS kind, trail_entries.summary, trail_entries.created_at
+                NULL AS block_id, 'trail_' || trail_entries.kind AS kind, trail_entries.summary, trail_entries.created_at
          FROM trail_entries
          JOIN spaces ON spaces.id = trail_entries.space_id
          WHERE spaces.id != ?

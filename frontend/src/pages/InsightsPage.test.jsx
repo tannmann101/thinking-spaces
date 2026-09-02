@@ -124,7 +124,7 @@ describe('InsightsPage: Themes', () => {
         themes: {
           recurringCategories: [{ name: 'Risk', spaceCount: 2, spaceTitles: ['Space A', 'Space B'] }],
           openTensionCount: 1,
-          openTensions: [{ spaceId: 'sp-1', spaceTitle: 'Space A', label: 'Conflicting claims' }],
+          openTensions: [{ spaceId: 'sp-1', spaceTitle: 'Space A', blockId: 'block-1', label: 'Conflicting claims' }],
         },
       })
     );
@@ -133,7 +133,7 @@ describe('InsightsPage: Themes', () => {
     expect(screen.getByText(/Space A, Space B/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Open Tensions (1)' })).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Space A' });
-    expect(link).toHaveAttribute('href', '/spaces/sp-1');
+    expect(link).toHaveAttribute('href', '/spaces/sp-1?highlight=block-1');
   });
 });
 
@@ -175,7 +175,7 @@ describe('InsightsPage: Time', () => {
             overdue: [{ id: 'sp-3', title: 'Late Space', due_date: '2020-01-01' }],
             upcoming: [{ id: 'sp-4', title: 'Soon Space', due_date: '2030-01-01' }],
           },
-          milestones: { total: 2, reachedCount: 1, overdueMilestones: [{ spaceId: 'sp-5', spaceTitle: 'M Space', label: 'Ship v1', targetDate: '2020-01-01' }] },
+          milestones: { total: 2, reachedCount: 1, overdueMilestones: [{ spaceId: 'sp-5', spaceTitle: 'M Space', blockId: 'block-5', label: 'Ship v1', targetDate: '2020-01-01' }] },
           sessions: { completedCount: 2, totalMinutesLogged: 90, runningCount: 1 },
           review: { reviewStaleThresholdDays: 14, neverReviewed: [{ id: 'sp-6', title: 'Unreviewed' }], staleReviews: [{ id: 'sp-7', title: 'Stale Review', days_since: 20 }] },
         },

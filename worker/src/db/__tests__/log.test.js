@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
 import { listGlobalActivity, getActivityStats } from '../log.js';
 import { createSpace } from '../spaces.js';
+import { addBlockToSpace } from '../blocks.js';
 import { logTrailEntry } from '../trail.js';
 import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
@@ -36,6 +37,16 @@ describe('listGlobalActivity', () => {
   it('respects the limit parameter', async () => {
     for (let i = 0; i < 5; i += 1) await createSpace(env, { title: `Space ${i}` });
     expect(await listGlobalActivity(env, 2)).toHaveLength(2);
+  });
+
+  it('carries block_id for a block_added entry, and null for everything else', async () => {
+    const space = await createSpace(env, { title: 'A Space' }); // space_created, block_id null
+    const block = await addBlockToSpace(env, space.id, { type: 'text', content: {} }); // block_added, block_id set
+    await logTrailEntry(env, { spaceId: space.id, kind: 'auto', summary: 'x' }); // trail_auto, block_id null
+    const entries = await listGlobalActivity(env);
+    expect(entries.find((e) => e.kind === 'block_added').block_id).toBe(block.id);
+    expect(entries.find((e) => e.kind === 'space_created').block_id).toBeNull();
+    expect(entries.find((e) => e.kind === 'trail_auto').block_id).toBeNull();
   });
 });
 

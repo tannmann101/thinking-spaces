@@ -210,6 +210,7 @@ export async function addBlockToSpace(env, spaceId, { type, content = {}, proper
   await logActivity(env, {
     spaceId,
     spaceTitle: space?.title ?? null,
+    blockId: block.id,
     kind: 'block_added',
     summary: `Added a ${type} entry to "${space?.title ?? spaceId}"`,
   });

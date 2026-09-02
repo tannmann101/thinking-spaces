@@ -15,14 +15,14 @@ describe('listOverdueReviews', () => {
 
   it('finds a List item with a reviewBy date in the past', async () => {
     const space = await createSpace(env, { title: 'Has a stale item' });
-    await createBlock(env, {
+    const block = await createBlock(env, {
       spaceId: space.id,
       type: 'list',
       content: { items: [{ id: '1', text: 'Meeting notes', reviewBy: '2000-01-01' }] },
     });
     const overdue = await listOverdueReviews(env);
     expect(overdue).toHaveLength(1);
-    expect(overdue[0]).toMatchObject({ spaceId: space.id, spaceTitle: 'Has a stale item' });
+    expect(overdue[0]).toMatchObject({ spaceId: space.id, spaceTitle: 'Has a stale item', blockId: block.id });
     expect(overdue[0].item.text).toBe('Meeting notes');
   });
 

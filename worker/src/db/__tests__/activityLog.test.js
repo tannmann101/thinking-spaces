@@ -33,6 +33,14 @@ describe('logActivity', () => {
     expect(rows[0].space_title).toBeNull();
   });
 
+  it('records a blockId when given one, and leaves it null otherwise', async () => {
+    await logActivity(env, { spaceId: 'sp-1', blockId: 'block-1', kind: 'block_added', summary: 'x' });
+    await logActivity(env, { spaceId: 'sp-1', kind: 'space_status_changed', summary: 'y' });
+    const rows = await allActivity();
+    expect(rows.find((r) => r.kind === 'block_added').block_id).toBe('block-1');
+    expect(rows.find((r) => r.kind === 'space_status_changed').block_id).toBeNull();
+  });
+
   it('silently refuses to log anything for the Test Space', async () => {
     await logActivity(env, { spaceId: TEST_SPACE_ID, spaceTitle: 'Test Space', kind: 'space_created', summary: 'should not appear' });
     expect(await allActivity()).toHaveLength(0);

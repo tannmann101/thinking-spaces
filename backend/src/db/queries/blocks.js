@@ -227,6 +227,7 @@ export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }
   logActivity({
     spaceId,
     spaceTitle: space?.title ?? null,
+    blockId: block.id,
     kind: 'block_added',
     summary: `Added a ${type} entry to "${space?.title ?? spaceId}"`,
   });

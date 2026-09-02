@@ -104,7 +104,7 @@ function ThemesSection({ themes }) {
             <ul className="insight-plain-list">
               {themes.openTensions.map((tension, i) => (
                 <li key={i}>
-                  <Link to={`/spaces/${tension.spaceId}`}>{tension.spaceTitle}</Link>: {tension.label}
+                  <Link to={`/spaces/${tension.spaceId}?highlight=${tension.blockId}`}>{tension.spaceTitle}</Link>: {tension.label}
                 </li>
               ))}
             </ul>
@@ -242,7 +242,7 @@ function TimeSection({ time }) {
             <ul className="insight-plain-list">
               {time.milestones.overdueMilestones.map((milestone, index) => (
                 <li key={index}>
-                  <Link to={`/spaces/${milestone.spaceId}`}>{milestone.spaceTitle}</Link>: {milestone.label}
+                  <Link to={`/spaces/${milestone.spaceId}?highlight=${milestone.blockId}`}>{milestone.spaceTitle}</Link>: {milestone.label}
                   <span className="insight-detail"> -- target {milestone.targetDate}</span>
                 </li>
               ))}

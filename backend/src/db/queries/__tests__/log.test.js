@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../index.js';
 import { listGlobalActivity, getActivityStats } from '../log.js';
 import { createSpace } from '../spaces.js';
+import { addBlockToSpace } from '../blocks.js';
 import { logTrailEntry } from '../trail.js';
 import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
@@ -34,6 +35,16 @@ describe('listGlobalActivity', () => {
   it('respects the limit parameter', () => {
     for (let i = 0; i < 5; i += 1) createSpace({ title: `Space ${i}` });
     expect(listGlobalActivity(2)).toHaveLength(2);
+  });
+
+  it('carries block_id for a block_added entry, and null for everything else', () => {
+    const space = createSpace({ title: 'A Space' }); // space_created, block_id null
+    const block = addBlockToSpace(space.id, { type: 'text', content: {} }); // block_added, block_id set
+    logTrailEntry({ spaceId: space.id, kind: 'auto', summary: 'x' }); // trail_auto, block_id null
+    const entries = listGlobalActivity();
+    expect(entries.find((e) => e.kind === 'block_added').block_id).toBe(block.id);
+    expect(entries.find((e) => e.kind === 'space_created').block_id).toBeNull();
+    expect(entries.find((e) => e.kind === 'trail_auto').block_id).toBeNull();
   });
 });
 

@@ -181,7 +181,7 @@ export function getThemeInsights() {
   // filter.
   const tensionRows = db
     .prepare(
-      `SELECT blocks.space_id, spaces.title AS space_title, blocks.content
+      `SELECT blocks.id AS block_id, blocks.space_id, spaces.title AS space_title, blocks.content
        FROM blocks
        JOIN spaces ON spaces.id = blocks.space_id
        WHERE blocks.type = 'list' AND json_extract(blocks.properties, '$.skeletonLane') = 'tensions'
@@ -193,6 +193,7 @@ export function getThemeInsights() {
     return (content.items || []).map((item) => ({
       spaceId: row.space_id,
       spaceTitle: row.space_title,
+      blockId: row.block_id,
       label: item.text,
     }));
   });
@@ -316,7 +317,7 @@ export function getTimeInsights() {
 
   const milestoneRows = db
     .prepare(
-      `SELECT blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
+      `SELECT blocks.id AS block_id, blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
        FROM blocks JOIN spaces ON spaces.id = blocks.space_id
        WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
     )
@@ -325,6 +326,7 @@ export function getTimeInsights() {
     ...JSON.parse(row.content),
     spaceId: row.space_id,
     spaceTitle: row.space_title,
+    blockId: row.block_id,
   }));
   const reachedCount = milestones.filter((milestone) => milestone.reached).length;
   const overdueMilestones = milestones.filter(

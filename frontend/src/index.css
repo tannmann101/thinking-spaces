@@ -1700,6 +1700,93 @@ label {
   color: var(--ink-faint);
 }
 
+/* ---------- Media: link preview + uploaded-document rendering, shared
+   between the ordinary MediaBlock feed row and the Media Workshop. A
+   link card mirrors the shape most sites' own Open Graph previews take
+   (image, title, description, site name); a document gets an inline
+   preview when its type allows one (PDF/Markdown/.txt) and a plain
+   download link otherwise (Office docs) -- see CLAUDE.md's
+   content-ingestion entry for why extraction stops at "store & view." ---------- */
+
+.media-link-card {
+  display: flex;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.media-link-card:hover {
+  border-color: var(--maroon);
+}
+.media-link-image {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.media-link-body {
+  min-width: 0;
+}
+.media-link-title {
+  font-family: var(--display);
+  font-size: var(--fs-body-lg);
+  color: var(--ink);
+}
+.media-link-description {
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.media-link-site {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--ink-faint);
+}
+
+.media-document,
+.media-workshop-document {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.media-document-pdf-frame,
+.media-workshop-document-pdf-frame {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.media-document-text,
+.media-workshop-document-text {
+  max-height: 320px;
+  overflow: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.media-document-download,
+.media-workshop-document-download {
+  align-self: flex-start;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--maroon-bright);
+}
+
 /* ---------- Comparison block ---------- */
 
 .contrast-flag {

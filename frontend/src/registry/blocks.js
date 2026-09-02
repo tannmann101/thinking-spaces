@@ -89,9 +89,10 @@ export const TEXT_ATTRIBUTION_TAGS = ['quote', 'paraphrase', 'reflection', 'infe
 // `certain` added to round the scale out.
 export const CONFIDENCE_LEVELS = ['questioned', 'tentative', 'moderate', 'solid', 'certain'];
 
-// The only kinds a Media block's content.mediaType can hold. Only
-// 'image' actually renders anything yet -- see MediaBlock.jsx.
-export const MEDIA_TYPES = ['image', 'audio', 'sketch'];
+// The only kinds a Media block's content.mediaType can hold. 'image',
+// 'link', and 'document' render real content; 'audio' and 'sketch' are
+// still stubs -- see MediaBlock.jsx.
+export const MEDIA_TYPES = ['image', 'link', 'document', 'audio', 'sketch'];
 
 // A self-contained SVG data URI so the Media demo renders with no
 // dependency on external network access -- same trick the seeded demo
@@ -166,7 +167,8 @@ export const blockRegistry = {
   },
   media: {
     label: 'Media',
-    description: 'An image, audio clip, or embedded sketch. Only images render for now.',
+    description:
+      'An image, a link preview, an uploaded file, an audio clip, or an embedded sketch. Images, links, and files render inline; audio and sketch are still placeholders.',
     family: 'general',
     icon: '▣',
     component: MediaBlock,

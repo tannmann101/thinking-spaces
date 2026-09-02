@@ -58,8 +58,8 @@ describe('shared constant lists', () => {
     expect(TEXT_ATTRIBUTION_TAGS).toEqual(['quote', 'paraphrase', 'reflection', 'inference']);
   });
 
-  it('MEDIA_TYPES has exactly the three media kinds', () => {
-    expect(MEDIA_TYPES).toEqual(['image', 'audio', 'sketch']);
+  it('MEDIA_TYPES has exactly the five media kinds', () => {
+    expect(MEDIA_TYPES).toEqual(['image', 'link', 'document', 'audio', 'sketch']);
   });
 });
 

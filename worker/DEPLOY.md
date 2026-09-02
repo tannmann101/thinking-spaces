@@ -114,3 +114,22 @@ database with `wrangler d1 execute`, same as `backend/src/db/index.js`'s
 own `ensureColumn` migrations do for the Node side -- just applied once
 by hand here instead of automatically at every boot, since a Worker has
 no boot to run them at.
+
+## Not yet done: file uploads need R2
+
+`backend/`'s content-ingestion feature (see `CLAUDE.md`) added two
+pieces: a link-preview route (`POST /link-preview`, no storage needed --
+already ported to `worker/src/linkPreview.js` and wired into
+`worker/src/index.js`) and a file-upload route (`POST /uploads`,
+`GET /uploads/:filename`, storing files on the local filesystem under
+`backend/data/uploads/`). The upload route was deliberately *not*
+ported here -- a Worker has no local filesystem to write to, so it needs
+R2 (Cloudflare's S3-compatible object storage) instead, which requires
+creating a bucket and adding an R2 binding to `wrangler.toml`, the same
+kind of one-time Cloudflare-account setup the original D1 database
+needed. Not done yet since this session has no live Cloudflare access of
+its own (see `CLAUDE.md`'s Open list) -- once a bucket exists, port
+`backend/src/routes/uploads.js`'s two routes into `worker/src/index.js`
+using `env.UPLOADS.put()`/`.get()` in place of `fs.writeFileSync`/
+`res.sendFile`, keeping the same UUID-filename and file-type-allowlist
+logic.

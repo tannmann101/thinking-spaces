@@ -73,6 +73,76 @@ describe('MediaBlock: image', () => {
   });
 });
 
+describe('MediaBlock: link', () => {
+  it('renders a link card with the fetched preview fields', () => {
+    render(
+      <MediaBlock
+        block={makeBlock({
+          mediaType: 'link',
+          url: 'https://example.com/article',
+          caption: '',
+          linkTitle: 'A Great Article',
+          linkDescription: 'Some description.',
+          linkImage: 'https://example.com/cover.jpg',
+          linkSiteName: 'example.com',
+        })}
+      />
+    );
+    const link = screen.getByRole('link', { name: /A Great Article/ });
+    expect(link).toHaveAttribute('href', 'https://example.com/article');
+    expect(screen.getByText('Some description.')).toBeInTheDocument();
+    expect(screen.getByText('example.com')).toBeInTheDocument();
+    // The link's own text already names the page, so the thumbnail is
+    // decorative (alt="") -- that gives it an accessible role of
+    // "presentation", not "img", hence the plain DOM query here.
+    expect(document.querySelector('img')).toHaveAttribute('src', 'https://example.com/cover.jpg');
+  });
+
+  it('falls back to the raw url as the title when no preview title was captured', () => {
+    render(<MediaBlock block={makeBlock({ mediaType: 'link', url: 'https://example.com/x', caption: '' })} />);
+    expect(screen.getByRole('link', { name: 'https://example.com/x' })).toBeInTheDocument();
+  });
+});
+
+describe('MediaBlock: document', () => {
+  it('renders a PDF inline preview plus a download link', () => {
+    render(
+      <MediaBlock
+        block={makeBlock({
+          mediaType: 'document',
+          url: '/api/uploads/abc.pdf',
+          caption: '',
+          fileName: 'Notes.pdf',
+          fileType: 'application/pdf',
+        })}
+      />
+    );
+    expect(document.querySelector('iframe')).toHaveAttribute('src', '/api/uploads/abc.pdf');
+    expect(screen.getByRole('link', { name: /Download Notes.pdf/ })).toBeInTheDocument();
+  });
+
+  it('shows a download-only placeholder for a file type with no inline preview', () => {
+    render(
+      <MediaBlock
+        block={makeBlock({
+          mediaType: 'document',
+          url: '/api/uploads/abc.docx',
+          caption: '',
+          fileName: 'Notes.docx',
+          fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        })}
+      />
+    );
+    expect(screen.getByText(/no inline preview for this file type/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Download Notes.docx/ })).toBeInTheDocument();
+  });
+
+  it('shows a placeholder when no file has been uploaded yet', () => {
+    render(<MediaBlock block={makeBlock({ mediaType: 'document', url: '', caption: '' })} />);
+    expect(screen.getByText('No file uploaded yet')).toBeInTheDocument();
+  });
+});
+
 describe('MediaBlock: unimplemented media types', () => {
   it('shows a placeholder for audio', () => {
     render(<MediaBlock block={makeBlock({ mediaType: 'audio', caption: '' })} />);

@@ -29,10 +29,21 @@
 // every type: it's a mechanical capability (create a Reference to an
 // existing Space), not a description that varies by what kind of thing
 // this is.
+//
+// Content ingestion (see CLAUDE.md) added two alternatives to the
+// guided-questions flow above, chosen via the Source toggle below: paste
+// a link (fetched server-side for an Open Graph preview, see
+// api.getLinkPreview) or upload a file (see api.uploadFile). Either one
+// produces a single 'media' block (mediaType 'link'/'image'/'document')
+// filed under a "Source" Category, in place of the three facet-driven
+// Text blocks -- store & view only, no text extraction from an uploaded
+// file's contents. Type tags and Touches/Touched-By stay identical
+// across all three source kinds, since sub-typing and cross-Space
+// relations are orthogonal to how the content actually got in here.
 
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createSpace, getSpaces, getResourceTemplateByType } from '../api.js';
+import { createSpace, getSpaces, getResourceTemplateByType, getLinkPreview, uploadFile } from '../api.js';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -77,6 +88,20 @@ function CreateResource() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  // Source: which of the three ways this Resource's own content actually
+  // gets in. 'guided' is the original facet-questions flow above; 'link'
+  // and 'file' each produce one Media block instead (see the header
+  // comment for why).
+  const [sourceKind, setSourceKind] = useState('guided');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkPreview, setLinkPreview] = useState(null);
+  const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
+  const [linkPreviewError, setLinkPreviewError] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [sourceCaption, setSourceCaption] = useState('');
 
   useEffect(() => {
     getSpaces().then(setAllSpaces).catch(() => setAllSpaces([]));
@@ -148,24 +173,110 @@ function CreateResource() {
     setSelectedRelations((current) => ({ ...current, [spaceId]: note }));
   }
 
+  // Fetches on blur rather than as-you-type, same "one discrete action,
+  // not a request per keystroke" reasoning the rest of the app already
+  // follows for save-on-blur fields. A failed fetch doesn't block
+  // submission -- see canSubmit below -- the link itself is still worth
+  // saving even with no preview metadata.
+  async function fetchLinkPreview() {
+    const url = linkUrl.trim();
+    if (!url) return;
+    setLinkPreviewLoading(true);
+    setLinkPreviewError(null);
+    try {
+      const preview = await getLinkPreview(url);
+      setLinkPreview(preview);
+    } catch (err) {
+      setLinkPreview(null);
+      setLinkPreviewError(err.message);
+    } finally {
+      setLinkPreviewLoading(false);
+    }
+  }
+
+  async function handleFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    setUploadedFile(null);
+    try {
+      const result = await uploadFile(file);
+      setUploadedFile(result);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const canSubmit =
+    Boolean(title.trim()) &&
+    !submitting &&
+    (sourceKind === 'guided' ||
+      (sourceKind === 'link' && Boolean(linkUrl.trim())) ||
+      (sourceKind === 'file' && Boolean(uploadedFile) && !uploading));
+
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!title.trim()) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
 
-    const extraBlocks = [
-      ...activeFacets.map((facet) => ({
-        type: 'text',
-        content: { tag: null, text: (facetValues[facet.name] || '').trim() },
-        properties: { categories: [facet.name] },
-      })),
-      ...Object.entries(selectedRelations).map(([targetSpaceId, note]) => ({
-        type: 'reference',
-        content: { target_space_id: targetSpaceId, note: note.trim() || null },
-        properties: { categories: [TOUCHES] },
-      })),
-    ];
+    const relationBlocks = Object.entries(selectedRelations).map(([targetSpaceId, note]) => ({
+      type: 'reference',
+      content: { target_space_id: targetSpaceId, note: note.trim() || null },
+      properties: { categories: [TOUCHES] },
+    }));
+
+    let extraBlocks;
+    let categories;
+
+    if (sourceKind === 'link') {
+      extraBlocks = [
+        {
+          type: 'media',
+          content: {
+            mediaType: 'link',
+            url: linkUrl.trim(),
+            caption: sourceCaption.trim(),
+            linkTitle: linkPreview?.title || null,
+            linkDescription: linkPreview?.description || null,
+            linkImage: linkPreview?.image || null,
+            linkSiteName: linkPreview?.siteName || null,
+          },
+          properties: { categories: ['Source'] },
+        },
+        ...relationBlocks,
+      ];
+      categories = ['Source', TOUCHES];
+    } else if (sourceKind === 'file') {
+      extraBlocks = [
+        {
+          type: 'media',
+          content: {
+            mediaType: uploadedFile.mimeType.startsWith('image/') ? 'image' : 'document',
+            url: uploadedFile.url,
+            caption: sourceCaption.trim(),
+            fileName: uploadedFile.originalName,
+            fileType: uploadedFile.mimeType,
+          },
+          properties: { categories: ['Source'] },
+        },
+        ...relationBlocks,
+      ];
+      categories = ['Source', TOUCHES];
+    } else {
+      extraBlocks = [
+        ...activeFacets.map((facet) => ({
+          type: 'text',
+          content: { tag: null, text: (facetValues[facet.name] || '').trim() },
+          properties: { categories: [facet.name] },
+        })),
+        ...relationBlocks,
+      ];
+      categories = [...activeFacets.map((facet) => facet.name), TOUCHES];
+    }
 
     try {
       const space = await createSpace({
@@ -174,7 +285,7 @@ function CreateResource() {
         extraBlocks,
         resourceSpaceIds: [],
         tags: ['resource', ...typeTags],
-        categories: [...activeFacets.map((facet) => facet.name), TOUCHES],
+        categories,
         goal: null,
         origin: 'external',
       });
@@ -193,7 +304,8 @@ function CreateResource() {
       <p>
         A Resource is something outside (or alongside) your thinking that's worth having on hand --
         a book, a person, an account, an app, anything. This homes in on what it actually is, rather
-        than starting from a blank Text/List page.
+        than starting from a blank Text/List page. Answer a few guided questions, paste a link, or
+        upload a file (a PDF, a Markdown/.txt note, an image, or an Office document).
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -251,25 +363,122 @@ function CreateResource() {
             </button>
           ))}
         </p>
-        {resourceTemplate && (
-          <p className="resource-template-active">
-            Using the <strong>{resourceTemplate.label}</strong> template's own questions below.
-          </p>
+        <h2>Source</h2>
+        <p>How does this Resource's own content actually get in here?</p>
+        <p className="category-chip-row">
+          <button
+            type="button"
+            className={`category-chip category-chip-toggle${sourceKind === 'guided' ? ' category-chip-active' : ''}`}
+            onClick={() => setSourceKind('guided')}
+          >
+            Guided questions
+          </button>
+          <button
+            type="button"
+            className={`category-chip category-chip-toggle${sourceKind === 'link' ? ' category-chip-active' : ''}`}
+            onClick={() => setSourceKind('link')}
+          >
+            Paste a link
+          </button>
+          <button
+            type="button"
+            className={`category-chip category-chip-toggle${sourceKind === 'file' ? ' category-chip-active' : ''}`}
+            onClick={() => setSourceKind('file')}
+          >
+            Upload a file
+          </button>
+        </p>
+
+        {sourceKind === 'guided' && (
+          <>
+            {resourceTemplate && (
+              <p className="resource-template-active">
+                Using the <strong>{resourceTemplate.label}</strong> template's own questions below.
+              </p>
+            )}
+
+            {activeFacets.map((facet) => (
+              <div key={facet.name}>
+                <h2>{facet.name}</h2>
+                <p>{facet.prompt}</p>
+                <textarea
+                  value={facetValues[facet.name] || ''}
+                  rows={3}
+                  className="field-full"
+                  placeholder="(optional -- can be filled in later)"
+                  onChange={(event) => setFacetValues((current) => ({ ...current, [facet.name]: event.target.value }))}
+                />
+              </div>
+            ))}
+          </>
         )}
 
-        {activeFacets.map((facet) => (
-          <div key={facet.name}>
-            <h2>{facet.name}</h2>
-            <p>{facet.prompt}</p>
-            <textarea
-              value={facetValues[facet.name] || ''}
-              rows={3}
+        {sourceKind === 'link' && (
+          <div className="resource-source-link">
+            <label htmlFor="link-url">URL</label>
+            <br />
+            <input
+              id="link-url"
+              type="url"
+              value={linkUrl}
               className="field-full"
-              placeholder="(optional -- can be filled in later)"
-              onChange={(event) => setFacetValues((current) => ({ ...current, [facet.name]: event.target.value }))}
+              placeholder="https://..."
+              onChange={(event) => setLinkUrl(event.target.value)}
+              onBlur={fetchLinkPreview}
+            />
+            {linkPreviewLoading && <p className="mono-caption">Fetching a preview...</p>}
+            {linkPreviewError && (
+              <p className="mono-caption">Could not fetch a preview ({linkPreviewError}) -- the link will still be saved as-is.</p>
+            )}
+            {linkPreview && (
+              <div className="media-link-card">
+                {linkPreview.image && <img src={linkPreview.image} alt="" className="media-link-image" />}
+                <div className="media-link-body">
+                  <div className="media-link-title">{linkPreview.title}</div>
+                  {linkPreview.description && <div className="media-link-description">{linkPreview.description}</div>}
+                  {linkPreview.siteName && <div className="media-link-site">{linkPreview.siteName}</div>}
+                </div>
+              </div>
+            )}
+            <label htmlFor="link-note">Note (optional)</label>
+            <br />
+            <textarea
+              id="link-note"
+              value={sourceCaption}
+              rows={2}
+              className="field-full"
+              placeholder="Why this link matters, or what to remember about it"
+              onChange={(event) => setSourceCaption(event.target.value)}
             />
           </div>
-        ))}
+        )}
+
+        {sourceKind === 'file' && (
+          <div className="resource-source-file">
+            <input
+              type="file"
+              onChange={handleFileSelected}
+              accept=".pdf,.md,.markdown,.txt,.png,.jpg,.jpeg,.gif,.webp,.svg,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            />
+            {uploading && <p className="mono-caption">Uploading...</p>}
+            {uploadError && <p className="mono-caption">Could not upload that file: {uploadError}</p>}
+            {uploadedFile && (
+              <p className="mono-caption">
+                Uploaded: {uploadedFile.originalName} ({Math.round(uploadedFile.size / 1024)} KB)
+              </p>
+            )}
+            <label htmlFor="file-note">Note (optional)</label>
+            <br />
+            <textarea
+              id="file-note"
+              value={sourceCaption}
+              rows={2}
+              className="field-full"
+              placeholder="Why this file matters, or what to remember about it"
+              onChange={(event) => setSourceCaption(event.target.value)}
+            />
+          </div>
+        )}
 
         <h2>{TOUCHES}</h2>
         <p>Which existing Spaces does this Resource relate to? Each becomes a real reference.</p>
@@ -302,7 +511,7 @@ function CreateResource() {
         )}
 
         <p>
-          <button type="submit" className="btn btn-primary" disabled={submitting || !title.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
             {submitting ? 'Creating...' : 'Create Resource'}
           </button>
         </p>

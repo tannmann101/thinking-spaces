@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { updateBlockContent } from '../api.js';
+import DocumentPreview from './mediaDocument.jsx';
 
 function MediaWorkshop({ block, onBlocksChanged }) {
   const editable = Boolean(block.id);
@@ -97,6 +98,33 @@ function MediaWorkshop({ block, onBlocksChanged }) {
             <img src={savedUrl} alt={savedCaption} />
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (mediaType === 'link') {
+    const { linkTitle, linkDescription, linkImage, linkSiteName } = block.content;
+    return (
+      <div className="media-workshop media-workshop-link">
+        <a href={savedUrl} target="_blank" rel="noopener noreferrer" className="media-link-card">
+          {linkImage && <img src={linkImage} alt="" className="media-link-image" />}
+          <div className="media-link-body">
+            <div className="media-link-title">{linkTitle || savedUrl}</div>
+            {linkDescription && <div className="media-link-description">{linkDescription}</div>}
+            {linkSiteName && <div className="media-link-site">{linkSiteName}</div>}
+          </div>
+        </a>
+        <p className="media-workshop-caption">{captionNode}</p>
+      </div>
+    );
+  }
+
+  if (mediaType === 'document') {
+    const { fileName, fileType } = block.content;
+    return (
+      <div className="media-workshop media-workshop-document">
+        <DocumentPreview url={savedUrl} fileName={fileName} fileType={fileType} classPrefix="media-workshop-document" />
+        <p className="media-workshop-caption">{captionNode}</p>
       </div>
     );
   }

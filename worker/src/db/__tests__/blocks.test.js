@@ -5,6 +5,7 @@ import {
   listBacklinksForSpace,
   getGraphData,
   getBlockById,
+  getBlockByIdWithSpaceTitle,
   countBlocksForSpace,
   blockExistsAtPosition,
   nextPosition,
@@ -54,6 +55,19 @@ describe('blocks.js', () => {
       // better-sqlite3's undefined) -- parseBlockRow's `if (!row) return
       // row` passes that null straight through.
       expect(await getBlockById(env, 'does-not-exist')).toBeNull();
+    });
+  });
+
+  describe('getBlockByIdWithSpaceTitle', () => {
+    it('includes the parent Space\'s current title alongside the ordinary block fields', async () => {
+      const block = await createBlock(env, { spaceId: space.id, type: 'text', content: { text: 'x' } });
+      const result = await getBlockByIdWithSpaceTitle(env, block.id);
+      expect(result.spaceTitle).toBe('A Space');
+      expect(result.type).toBe('text');
+    });
+
+    it('returns null for a nonexistent block id', async () => {
+      expect(await getBlockByIdWithSpaceTitle(env, 'does-not-exist')).toBeNull();
     });
   });
 

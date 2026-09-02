@@ -14,6 +14,11 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.getBlocksForSpace.mockResolvedValue([]);
   api.updateBlockContent.mockResolvedValue({});
+  // Cross-Space candidates for the "Link a claim" picker -- empty by
+  // default, overridden per test where cross-Space linking is exercised.
+  api.getWorkItems.mockResolvedValue([]);
+  api.getSkeletonClaims.mockResolvedValue([]);
+  api.getBlock.mockResolvedValue(null);
 });
 
 describe('WorkBlock: statement', () => {
@@ -244,5 +249,78 @@ describe('WorkBlock: linked support points', () => {
     await user.click(screen.getByRole('button', { name: /Link a claim/ }));
     await waitFor(() => expect(api.getBlocksForSpace).toHaveBeenCalled());
     expect(screen.getByText(/Nothing to link to yet/)).toBeInTheDocument();
+  });
+});
+
+describe('WorkBlock: cross-Space linked support points', () => {
+  it('offers a cross-Space Work item and Skeleton claim, grouped under the other Space\'s title', async () => {
+    const user = userEvent.setup();
+    api.getWorkItems.mockResolvedValue([
+      { id: 'other-space-work', type: 'hypothesis', content: { statement: 'A hypothesis elsewhere' }, space_id: 'space-2', space_title: 'Other Space' },
+    ]);
+    api.getSkeletonClaims.mockResolvedValue([
+      { spaceId: 'space-2', spaceTitle: 'Other Space', blockId: 'other-lane', itemId: 'item-9', text: 'Evidence elsewhere', laneLabel: 'Evidence' },
+    ]);
+    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+
+    await user.click(screen.getByRole('button', { name: /Link a claim/ }));
+    expect(await screen.findByText('A hypothesis elsewhere')).toBeInTheDocument();
+    expect(screen.getByText('Evidence elsewhere')).toBeInTheDocument();
+    expect(screen.getByText('Other Space')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'A hypothesis elsewhere' }));
+    await waitFor(() =>
+      expect(api.updateBlockContent).toHaveBeenCalledWith(
+        'work-1',
+        expect.objectContaining({
+          support: [expect.objectContaining({ pointer: { spaceId: 'space-2', blockId: 'other-space-work', itemId: null } })],
+        })
+      )
+    );
+  });
+
+  it('excludes a Work item already offered as a same-Space candidate from the cross-Space list', async () => {
+    api.getWorkItems.mockResolvedValue([
+      { id: 'own-block', type: 'assessment', content: { statement: 'Same-space item' }, space_id: 'space-1', space_title: 'This one' },
+    ]);
+    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Link a claim/ }));
+    await waitFor(() => expect(api.getWorkItems).toHaveBeenCalled());
+    // Same-space candidates come from spaceBlocks (empty here), and the
+    // cross-Space list explicitly filters out its own Space's items --
+    // so this candidate should never appear at all.
+    expect(screen.queryByText('Same-space item')).not.toBeInTheDocument();
+  });
+
+  it('resolves a cross-Space pointer by fetching that specific block live', async () => {
+    api.getBlock.mockResolvedValue({
+      id: 'far-block',
+      space_id: 'space-2',
+      spaceTitle: 'Far Space',
+      content: { statement: 'A claim from far away' },
+    });
+    render(
+      <WorkBlock
+        block={makeBlock({ support: [{ id: 'sp-1', pointer: { spaceId: 'space-2', blockId: 'far-block', itemId: null } }] })}
+        statementLabel="Assessment"
+        supportLabel="Rationale"
+      />
+    );
+    expect(await screen.findByText('A claim from far away')).toBeInTheDocument();
+    expect(screen.getByText('(in Far Space)')).toBeInTheDocument();
+    expect(api.getBlock).toHaveBeenCalledWith('far-block');
+  });
+
+  it('shows "(linked claim removed)" when a cross-Space pointer\'s target block is gone', async () => {
+    api.getBlock.mockRejectedValue(new Error('Entry not found'));
+    render(
+      <WorkBlock
+        block={makeBlock({ support: [{ id: 'sp-1', pointer: { spaceId: 'space-2', blockId: 'gone', itemId: null } }] })}
+        statementLabel="Assessment"
+        supportLabel="Rationale"
+      />
+    );
+    expect(await screen.findByText('(linked claim removed)')).toBeInTheDocument();
   });
 });

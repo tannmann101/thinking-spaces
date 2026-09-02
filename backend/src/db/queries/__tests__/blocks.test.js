@@ -5,6 +5,7 @@ import {
   listBacklinksForSpace,
   getGraphData,
   getBlockById,
+  getBlockByIdWithSpaceTitle,
   countBlocksForSpace,
   blockExistsAtPosition,
   nextPosition,
@@ -55,6 +56,19 @@ describe('blocks.js', () => {
       // normalizing it to null -- consistent with getSpaceById and
       // every other single-row lookup in this codebase.
       expect(getBlockById('does-not-exist')).toBeUndefined();
+    });
+  });
+
+  describe('getBlockByIdWithSpaceTitle', () => {
+    it('includes the parent Space\'s current title alongside the ordinary block fields', () => {
+      const block = createBlock({ spaceId: space.id, type: 'text', content: { text: 'x' } });
+      const result = getBlockByIdWithSpaceTitle(block.id);
+      expect(result.spaceTitle).toBe('A Space');
+      expect(result.type).toBe('text');
+    });
+
+    it('returns a falsy value for a nonexistent block id', () => {
+      expect(getBlockByIdWithSpaceTitle('does-not-exist')).toBeUndefined();
     });
   });
 

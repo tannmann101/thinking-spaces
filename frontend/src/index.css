@@ -1415,6 +1415,17 @@ label {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
 }
+/* A group heading inside the (small, inline) linker -- one per Space
+   the candidate list spans, "This Space" first -- so it reads as a
+   label, not a full page heading the way CreateSynthesis's own
+   same-shaped <h4> can afford to. */
+.work-block-linker-space {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin: 10px 0 4px;
+}
 .work-block-confidence {
   font-size: var(--fs-md);
   color: var(--ink-faint);

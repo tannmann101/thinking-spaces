@@ -165,6 +165,17 @@ export async function getBlockById(env, id) {
   return parseBlockRow(row);
 }
 
+// Same as getBlockById, plus the parent Space's own title -- backs the
+// standalone GET /blocks/:id route specifically, so a cross-Space
+// support-point pointer (see WorkBlock.jsx) can show which Space a
+// linked claim actually lives in, not just its text.
+export async function getBlockByIdWithSpaceTitle(env, id) {
+  const block = await getBlockById(env, id);
+  if (!block) return block;
+  const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(block.space_id).first();
+  return { ...block, spaceTitle: space?.title ?? null };
+}
+
 export async function countBlocksForSpace(env, spaceId, type = null) {
   const row = type
     ? await env.DB.prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ? AND type = ?`).bind(spaceId, type).first()

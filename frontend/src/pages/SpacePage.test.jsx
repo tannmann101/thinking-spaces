@@ -543,7 +543,7 @@ describe('SpacePage: deep-link highlighting', () => {
 
     expect(document.getElementById('block-b2')).toHaveAttribute('data-highlighted', 'true');
     expect(document.getElementById('block-b1')).not.toHaveAttribute('data-highlighted');
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
   });
 
   it('clears the flash after its visible window, same expiry pattern Toast.jsx uses', async () => {

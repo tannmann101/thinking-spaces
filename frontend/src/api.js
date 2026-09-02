@@ -124,6 +124,14 @@ export const getCurrentSkeleton = (spaceId) => request(`/spaces/${spaceId}/skele
 // -- powers Synthesis's picker, which needs candidates from every
 // Space, not just the current one.
 export const getWorkItems = () => request('/work-items');
+// Cross-Space claim-bearing Skeleton lane items (Premises/Evidence/Open
+// Questions) -- powers a Work item's "Link a claim" picker once it can
+// point at a claim outside its own Space (see WorkBlock.jsx).
+export const getSkeletonClaims = () => request('/skeleton-claims');
+// A single block on its own, by id -- used to resolve a cross-Space
+// support-point pointer live, without fetching every block in a Space
+// this component isn't even viewing (see WorkBlock.jsx).
+export const getBlock = (blockId) => request(`/blocks/${blockId}`);
 export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 // The Dashboard's Week calendar: one entry per day of the current
 // calendar week (Sunday-Saturday), each carrying that day's Trail

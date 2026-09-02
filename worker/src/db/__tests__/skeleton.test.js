@@ -7,10 +7,12 @@ import {
   fileLineInLane,
   createTensionPair,
   getSkeletonSnapshot,
+  listAllSkeletonClaims,
 } from '../skeleton.js';
 import { createSpace } from '../spaces.js';
 import { createBlock, listBlocksForSpace } from '../blocks.js';
 import { listTrailEntries } from '../trail.js';
+import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
 // migrateTextBlockLines has no worker-side equivalent to test -- see
@@ -183,5 +185,40 @@ describe('getSkeletonSnapshot', () => {
       properties: { skeletonRole: 'current-best-articulation' },
     });
     expect((await getSkeletonSnapshot(env, space.id)).articulation).toBe('');
+  });
+});
+
+describe('listAllSkeletonClaims', () => {
+  beforeEach(async () => {
+    await resetDb(env);
+  });
+
+  it('lists items from every claim-bearing lane, across every Space', async () => {
+    const spaceA = await createSpace(env, { title: 'Space A' });
+    await fileLineInLane(env, spaceA.id, 'premises', 'a premise');
+    const spaceB = await createSpace(env, { title: 'Space B' });
+    await fileLineInLane(env, spaceB.id, 'evidence', 'a piece of evidence');
+
+    const claims = await listAllSkeletonClaims(env);
+    expect(claims.map((c) => c.text).sort()).toEqual(['a piece of evidence', 'a premise']);
+    const fromA = claims.find((c) => c.text === 'a premise');
+    expect(fromA).toMatchObject({ spaceId: spaceA.id, spaceTitle: 'Space A', laneLabel: 'Premises' });
+  });
+
+  it('excludes the Tensions lane -- a Tension is not itself a linkable claim', async () => {
+    const space = await createSpace(env, { title: 'Has a Tension' });
+    await createBlock(env, {
+      spaceId: space.id,
+      type: 'list',
+      content: { items: [{ id: '1', text: 'Cost vs. speed' }], laneLabel: 'Tensions' },
+      properties: { skeletonLane: 'tensions' },
+    });
+    expect(await listAllSkeletonClaims(env)).toEqual([]);
+  });
+
+  it('excludes the Test Space', async () => {
+    await createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space' });
+    await fileLineInLane(env, TEST_SPACE_ID, 'premises', 'scratch');
+    expect(await listAllSkeletonClaims(env)).toEqual([]);
   });
 });

@@ -11,6 +11,7 @@
 
 import { listBlocksForSpace, createBlock, updateBlockContent, getBlockById, nextPosition } from './blocks.js';
 import { logTrailEntry } from './trail.js';
+import { TEST_SPACE_ID } from './constants.js';
 
 export const SKELETON_LANES = [
   { key: 'premises', label: 'Premises', trigger: '=' },
@@ -142,4 +143,38 @@ export async function getSkeletonSnapshot(env, spaceId) {
   );
   const articulation = articulationBlock ? (articulationBlock.content.lines || []).map((line) => line.text).join('\n') : '';
   return { lanes, articulation };
+}
+
+// A support point's "Link a claim" picker needs candidates from every
+// Space, not just the current one -- same reasoning listWorkItems()
+// (work.js) is cross-Space. Only the three claim-bearing lanes count
+// (Tensions itself isn't a claim to link to).
+const CLAIM_LANE_KEYS = SKELETON_LANES.filter((lane) => lane.key !== 'tensions').map((lane) => lane.key);
+
+export async function listAllSkeletonClaims(env) {
+  const placeholders = CLAIM_LANE_KEYS.map(() => '?').join(', ');
+  const { results } = await env.DB.prepare(
+    `SELECT spaces.id AS space_id, spaces.title AS space_title, blocks.id AS block_id,
+            json_extract(blocks.content, '$.laneLabel') AS lane_label, item.value AS item_json
+     FROM blocks
+     JOIN spaces ON spaces.id = blocks.space_id
+     JOIN json_each(blocks.content, '$.items') AS item
+     WHERE blocks.type = 'list'
+       AND json_extract(blocks.properties, '$.skeletonLane') IN (${placeholders})
+       AND spaces.id != ?
+     ORDER BY spaces.title ASC`
+  )
+    .bind(...CLAIM_LANE_KEYS, TEST_SPACE_ID)
+    .all();
+  return results.map((row) => {
+    const item = JSON.parse(row.item_json);
+    return {
+      spaceId: row.space_id,
+      spaceTitle: row.space_title,
+      blockId: row.block_id,
+      itemId: item.id,
+      text: item.text,
+      laneLabel: row.lane_label,
+    };
+  });
 }

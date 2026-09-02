@@ -172,6 +172,19 @@ export function getBlockById(id) {
   return parseBlockRow(row);
 }
 
+// Same as getBlockById, plus the parent Space's own title -- backs the
+// standalone GET /blocks/:id route specifically, so a cross-Space
+// support-point pointer (see WorkBlock.jsx) can show which Space a
+// linked claim actually lives in, not just its text. A separate,
+// dedicated function rather than adding this to getBlockById itself,
+// which is called everywhere else in this file and has no need for it.
+export function getBlockByIdWithSpaceTitle(id) {
+  const block = getBlockById(id);
+  if (!block) return block;
+  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(block.space_id);
+  return { ...block, spaceTitle: space?.title ?? null };
+}
+
 // type is optional: pass it to count only blocks of that type, which is
 // what lets the Test Space seed each Block type independently as it's
 // built, without re-seeding types that already have demo content.

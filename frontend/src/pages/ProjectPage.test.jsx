@@ -8,6 +8,12 @@ import * as api from '../api.js';
 
 vi.mock('../api.js');
 
+// jsdom doesn't implement scrollIntoView at all -- only the flash-on-add
+// tests below actually check it, but the flash effect calls it
+// unconditionally whenever a block is added, same reasoning
+// SpacePage.test.jsx already stubs this for.
+Element.prototype.scrollIntoView = vi.fn();
+
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -160,6 +166,28 @@ describe('ProjectPage: adding and pulling in', () => {
         expect.objectContaining({ type: 'milestone', properties: { projectId: 'pr-1' } })
       )
     );
+  });
+
+  it('flashes a newly added Milestone\'s row, same mechanism as SpacePage.jsx', async () => {
+    api.getBlocksForSpace
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'new-id',
+          type: 'milestone',
+          content: { label: '', targetDate: null, reached: false, reachedAt: null, note: '' },
+          properties: { projectId: 'pr-1' },
+          updated_at: 'v2',
+        },
+      ]);
+    api.addBlockToSpace.mockResolvedValue({ id: 'new-id', changeSummary: 'Added a milestone entry to "My Space"' });
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Add to this Project');
+    await user.click(screen.getByRole('button', { name: '+ New Milestone' }));
+
+    await waitFor(() => expect(document.getElementById('block-new-id')).toHaveAttribute('data-highlighted', 'true'));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
   it('starting a Session assigns it to this Project', async () => {

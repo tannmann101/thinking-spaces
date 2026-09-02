@@ -72,5 +72,6 @@ export async function getReviewDraft(env, spaceId) {
 export async function createReview(env, spaceId) {
   const draft = await getReviewDraft(env, spaceId);
   if (!draft) return null;
-  return logTrailEntry(env, { spaceId, kind: 'review', summary: draft.summaryText });
+  const entry = await logTrailEntry(env, { spaceId, kind: 'review', summary: draft.summaryText });
+  return { ...entry, changeSummary: draft.summaryText };
 }

@@ -14,6 +14,7 @@ import {
   getBlockReport,
 } from '../db/queries.js';
 import { renderReportText } from '../reportFormat.js';
+import { describeBlockContentChange } from '../changeSummary.js';
 
 export const blocksRouter = Router();
 
@@ -64,6 +65,10 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
   if (content === undefined && categories === undefined && workspaces === undefined && projectId === undefined) {
     return res.status(400).json({ error: 'content, categories, workspaces, or projectId is required' });
   }
+  // Computed against the pre-update block, before any of the writes
+  // below happen -- see changeSummary.js for why this only covers a
+  // Milestone's reached flag today, not general-purpose diff prose.
+  const changeSummary = content !== undefined ? describeBlockContentChange(existing, content) : null;
   let updated = existing;
   if (content !== undefined) {
     updated = updateBlockContent(req.params.id, content);
@@ -77,7 +82,7 @@ blocksRouter.patch('/blocks/:id', (req, res) => {
   if (projectId !== undefined) {
     updated = updateBlockProject(req.params.id, projectId);
   }
-  res.json(updated);
+  res.json(changeSummary ? { ...updated, changeSummary } : updated);
 });
 
 blocksRouter.delete('/blocks/:id', (req, res) => {

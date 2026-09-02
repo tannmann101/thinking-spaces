@@ -17,13 +17,14 @@ export async function createWorkspace(env, { spaceId, name }) {
   const id = crypto.randomUUID();
   await env.DB.prepare(`INSERT INTO workspaces (id, space_id, name) VALUES (?, ?, ?)`).bind(id, spaceId, name).run();
   const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(spaceId).first();
+  const summary = `Created Workspace "${name}" in "${space?.title ?? spaceId}"`;
   await logActivity(env, {
     spaceId,
     spaceTitle: space?.title ?? null,
     kind: 'workspace_created',
-    summary: `Created Workspace "${name}" in "${space?.title ?? spaceId}"`,
+    summary,
   });
-  return getWorkspaceById(env, id);
+  return { ...(await getWorkspaceById(env, id)), changeSummary: summary };
 }
 
 export async function updateWorkspace(env, id, { name }) {

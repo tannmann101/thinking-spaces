@@ -85,14 +85,15 @@ describe('saveTextBlockWithPromotion', () => {
     expect(updated.content.lines).toEqual([{ id: '1', text: '=', tag: null }]);
   });
 
-  it('logs an auto Trail entry summarizing what was promoted', async () => {
-    await saveTextBlockWithPromotion(env, block.id, [
+  it('logs an auto Trail entry summarizing what was promoted, and attaches the same text as changeSummary', async () => {
+    const updated = await saveTextBlockWithPromotion(env, block.id, [
       { id: '1', text: '= first premise', tag: null },
       { id: '2', text: '= second premise', tag: null },
     ]);
     const [entry] = await listTrailEntries(env, space.id);
     expect(entry.kind).toBe('auto');
     expect(entry.summary).toBe('Promoted: 2 Premises');
+    expect(updated.changeSummary).toBe('Promoted: 2 Premises');
   });
 
   it('logs an auto Trail entry when the Current Best Articulation text actually changes', async () => {
@@ -102,26 +103,29 @@ describe('saveTextBlockWithPromotion', () => {
       content: { lines: [{ id: 'a', text: 'old text', tag: null }] },
       properties: { skeletonRole: 'current-best-articulation' },
     });
-    await saveTextBlockWithPromotion(env, articulation.id, [{ id: 'a', text: 'new text', tag: null }]);
+    const updated = await saveTextBlockWithPromotion(env, articulation.id, [{ id: 'a', text: 'new text', tag: null }]);
     const entries = await listTrailEntries(env, space.id);
     expect(entries.map((e) => e.summary)).toContain('Updated Current Best Articulation');
+    expect(updated.changeSummary).toBe('Updated Current Best Articulation');
   });
 
   it('does not log anything when an ordinary Text block\'s content does not change shape-affectingly', async () => {
-    await saveTextBlockWithPromotion(env, block.id, [{ id: '1', text: 'no shorthand here', tag: null }]);
+    const updated = await saveTextBlockWithPromotion(env, block.id, [{ id: '1', text: 'no shorthand here', tag: null }]);
     expect(await listTrailEntries(env, space.id)).toEqual([]);
+    expect(updated.changeSummary).toBeUndefined();
   });
 });
 
 describe('fileLineInLane', () => {
   it('copies a line into a lane without touching the original block, and logs Trail', async () => {
     const space = await createSpace(env, { title: 'A Space' });
-    await fileLineInLane(env, space.id, 'evidence', 'some evidence text');
+    const result = await fileLineInLane(env, space.id, 'evidence', 'some evidence text');
     const blocks = await listBlocksForSpace(env, space.id);
     const lane = blocks.find((b) => b.properties.skeletonLane === 'evidence');
     expect(lane.content.items[0].text).toBe('some evidence text');
     const [entry] = await listTrailEntries(env, space.id);
     expect(entry.summary).toBe('Filed into Evidence');
+    expect(result.changeSummary).toBe('Filed into Evidence');
   });
 });
 
@@ -135,6 +139,16 @@ describe('createTensionPair', () => {
     const blocks = await listBlocksForSpace(env, space.id);
     const tensions = blocks.find((b) => b.properties.skeletonLane === 'tensions');
     expect(tensions.content.items[0]).toMatchObject({ text: 'Cost vs. speed', statementA, statementB });
+  });
+
+  it('attaches an implication-bearing changeSummary, for the toast (see Toast.jsx)', async () => {
+    const space = await createSpace(env, { title: 'A Space' });
+    const result = await createTensionPair(env, space.id, {
+      label: 'Cost vs. speed',
+      statementA: { blockId: 'b1', itemId: null },
+      statementB: { blockId: 'b2', itemId: null },
+    });
+    expect(result.changeSummary).toBe('Tension paired: "Cost vs. speed" -- now counted as an open Tension in Insights');
   });
 });
 

@@ -23,13 +23,14 @@ export function createWorkspace({ spaceId, name }) {
   const id = randomUUID();
   db.prepare(`INSERT INTO workspaces (id, space_id, name) VALUES (?, ?, ?)`).run(id, spaceId, name);
   const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(spaceId);
+  const summary = `Created Workspace "${name}" in "${space?.title ?? spaceId}"`;
   logActivity({
     spaceId,
     spaceTitle: space?.title ?? null,
     kind: 'workspace_created',
-    summary: `Created Workspace "${name}" in "${space?.title ?? spaceId}"`,
+    summary,
   });
-  return getWorkspaceById(id);
+  return { ...getWorkspaceById(id), changeSummary: summary };
 }
 
 export function updateWorkspace(id, { name }) {

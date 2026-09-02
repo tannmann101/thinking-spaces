@@ -39,6 +39,11 @@ describe('createSpace / getSpaceById', () => {
     });
   });
 
+  it('attaches a changeSummary naming the new Space, for the toast (see Toast.jsx)', async () => {
+    const space = await createSpace(env, { title: 'A new train of thought' });
+    expect(space.changeSummary).toBe('Created "A new train of thought"');
+  });
+
   it('accepts a fixed id, tags, categories, origin, and dueDate at creation', async () => {
     const space = await createSpace(env, {
       id: 'fixed-id',
@@ -182,6 +187,26 @@ describe('updateSpace', () => {
     expect(await updateSpace(env, 'nonexistent', { title: 'x' })).toBeNull();
   });
 
+  it('attaches a changeSummary for a status change, but not for a plain title edit', async () => {
+    const space = await createSpace(env, { title: 'X' });
+    expect((await updateSpace(env, space.id, { title: 'Y' })).changeSummary).toBeUndefined();
+    expect((await updateSpace(env, space.id, { status: 'developing' })).changeSummary).toBe('Status changed to developing');
+  });
+
+  it('attaches a changeSummary naming when a due date will show as overdue vs. upcoming', async () => {
+    const space = await createSpace(env, { title: 'X' });
+    expect((await updateSpace(env, space.id, { dueDate: '2020-01-01' })).changeSummary).toBe('Due 2020-01-01 -- already overdue');
+    const space2 = await createSpace(env, { title: 'Y' });
+    expect((await updateSpace(env, space2.id, { dueDate: '2099-01-01' })).changeSummary).toBe(
+      'Due 2099-01-01 -- now shows on your Week digest'
+    );
+  });
+
+  it('attaches "Due date cleared" as the changeSummary when a due date is unset', async () => {
+    const space = await createSpace(env, { title: 'X', dueDate: '2099-01-01' });
+    expect((await updateSpace(env, space.id, { dueDate: null })).changeSummary).toBe('Due date cleared');
+  });
+
   it('can clear a field by passing an explicit falsy value', async () => {
     const space = await createSpace(env, { title: 'X', dueDate: '2099-01-01' });
     const updated = await updateSpace(env, space.id, { dueDate: null });
@@ -257,6 +282,14 @@ describe('createSpaceWithSetup', () => {
     const template = await createTemplate(env, { name: 'T', blockArrangement: [{ type: 'text', content: { text: 'starter' } }] });
     const space = await createSpaceWithSetup(env, { title: 'From template', templateId: template.id });
     expect(await listBlocksForSpace(env, space.id)).toHaveLength(1);
+  });
+
+  it('carries createSpace\'s own changeSummary through, not the setup steps\' own summaries', async () => {
+    const space = await createSpaceWithSetup(env, {
+      title: 'With extras',
+      extraBlocks: [{ type: 'list', content: { items: [] } }],
+    });
+    expect(space.changeSummary).toBe('Created "With extras"');
   });
 
   it('adds extraBlocks on top of the Template', async () => {

@@ -61,6 +61,7 @@ import { getSpaceReport, getWorkspaceReport, getProjectReport, getBlockReport } 
 import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from './db/dashboard.js';
 import { renderReportText } from './reportFormat.js';
 import { isSafeUrl, extractLinkMeta } from './linkPreview.js';
+import { describeBlockContentChange } from './changeSummary.js';
 
 function json(data, status = 200) {
   return new Response(data === null ? null : JSON.stringify(data), {
@@ -216,12 +217,13 @@ async function handlePatchBlock(request, env, id) {
   if (content === undefined && categories === undefined && workspaces === undefined && projectId === undefined) {
     return errorResponse('content, categories, workspaces, or projectId is required');
   }
+  const changeSummary = content !== undefined ? describeBlockContentChange(existing, content) : null;
   let updated = existing;
   if (content !== undefined) updated = await updateBlockContent(env, id, content);
   if (categories !== undefined) updated = await updateBlockCategories(env, id, categories);
   if (workspaces !== undefined) updated = await updateBlockWorkspaces(env, id, workspaces);
   if (projectId !== undefined) updated = await updateBlockProject(env, id, projectId);
-  return json(updated);
+  return json(changeSummary ? { ...updated, changeSummary } : updated);
 }
 
 async function handleBlockReport(env, id) {

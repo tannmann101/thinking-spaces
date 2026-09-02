@@ -30,7 +30,8 @@ function truncateForSummary(text) {
 }
 
 export async function addManualTrailEntry(env, spaceId, note) {
-  return logTrailEntry(env, { spaceId, kind: 'manual', summary: truncateForSummary(note), note });
+  const entry = await logTrailEntry(env, { spaceId, kind: 'manual', summary: truncateForSummary(note), note });
+  return { ...entry, changeSummary: 'Trail note added' };
 }
 
 export async function listTrailEntries(env, spaceId) {

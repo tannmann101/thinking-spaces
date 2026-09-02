@@ -673,10 +673,29 @@ function SpacePage() {
   // a brief highlight, then clears itself -- the URL param stays (so
   // reloading/sharing the link still works), only the visual flash is
   // one-shot.
+  //
+  // The cohesion-pass audit found a second, related gap: creating or
+  // meaningfully changing a block on an already-open Space had no
+  // spatial anchor at all -- just a corner toast (see Toast.jsx), with
+  // the actual new/changed row left to blend into a long feed. flashId
+  // generalizes the same mechanism to cover both: seeded from the URL
+  // param on load, and settable directly (via flashBlock, below) right
+  // after an in-page create/update resolves. lastFlashedId (a ref, not
+  // state -- it doesn't need to trigger a render) tracks which id this
+  // has already scrolled-and-flashed, since `blocks` refetches on every
+  // edit and the effect below re-runs each time; without it, an
+  // unrelated edit elsewhere on the page would re-trigger the same old
+  // flash.
   const [searchParams] = useSearchParams();
   const highlightBlockId = searchParams.get('highlight');
+  const [flashId, setFlashId] = useState(highlightBlockId);
   const [highlightActive, setHighlightActive] = useState(Boolean(highlightBlockId));
-  const highlightScrolled = useRef(false);
+  const lastFlashedId = useRef(null);
+
+  function flashBlock(blockId) {
+    lastFlashedId.current = null;
+    setFlashId(blockId);
+  }
 
   const refetchTrail = useCallback(() => {
     getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
@@ -710,14 +729,15 @@ function SpacePage() {
     detailsInitialized.current = false;
     organizeInitialized.current = false;
     trailInitialized.current = false;
-    highlightScrolled.current = false;
-    // oxlint's react(set-state-in-effect) flags this setState call, but
+    lastFlashedId.current = null;
+    // oxlint's react(set-state-in-effect) flags these setState calls, but
     // this is the standard "reset local state when a key prop changes"
-    // pattern, not an unnecessary cascading render -- highlightActive
-    // already gets the right value on first mount via its own
-    // useState() initializer above; this effect exists only to reset it
-    // when the *same* component instance is reused for a different
-    // Space id (see the comment above), which an initializer can't do.
+    // pattern, not an unnecessary cascading render -- both already get
+    // the right value on first mount via their own useState()
+    // initializers above; this effect exists only to reset them when the
+    // *same* component instance is reused for a different Space id (see
+    // the comment above), which an initializer can't do.
+    setFlashId(highlightBlockId);
     setHighlightActive(Boolean(highlightBlockId));
   }, [id, highlightBlockId]);
 
@@ -743,24 +763,39 @@ function SpacePage() {
   }, [trail]);
 
   // The Think section (where blocks render) is never collapsed, so the
-  // highlighted entry is always in the DOM the moment blocks arrive --
-  // no need to also force any <details> open first. The URL param is
-  // left in place (so the link stays shareable/reloadable); only the
-  // one-shot flash clears itself after a few seconds.
+  // flashed entry is always in the DOM the moment blocks arrive -- no
+  // need to also force any <details> open first. The URL param (when
+  // this was seeded from one) is left in place, so the link stays
+  // shareable/reloadable; only the one-shot flash clears itself after a
+  // few seconds. Guards on the *target element actually existing* (not
+  // just `blocks` being loaded) -- a just-created block's id is set via
+  // flashBlock before the refetch that will actually render it lands, so
+  // this effect harmlessly no-ops on the first re-run and catches it on
+  // the one where the new row is really in the DOM.
+  //
+  // oxlint's set-state-in-effect warning fires on setHighlightActive(true)
+  // below -- deliberately accepted, same treatment already given to
+  // GraphView.jsx's ref-during-render warnings: this effect is
+  // synchronizing with a real external system (the DOM element found via
+  // getElementById/scrollIntoView), not deriving state that belongs in
+  // render.
   useEffect(() => {
-    if (!highlightBlockId || !blocks || highlightScrolled.current) return;
-    highlightScrolled.current = true;
-    document.getElementById(`block-${highlightBlockId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!flashId || !blocks || lastFlashedId.current === flashId) return;
+    const el = document.getElementById(`block-${flashId}`);
+    if (!el) return;
+    lastFlashedId.current = flashId;
+    setHighlightActive(true);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const timer = setTimeout(() => setHighlightActive(false), 2500);
     // Undoes exactly what setup did, so StrictMode's dev-only
     // setup->cleanup->setup double-invoke behaves like a single real
-    // run instead of leaving highlightScrolled stuck `true` with no
-    // timer left to ever clear the flash.
+    // run instead of leaving lastFlashedId stuck set with no timer left
+    // to ever clear the flash.
     return () => {
       clearTimeout(timer);
-      highlightScrolled.current = false;
+      lastFlashedId.current = null;
     };
-  }, [highlightBlockId, blocks]);
+  }, [flashId, blocks]);
 
   // Adding/removing/reordering blocks on a live Space -- the same
   // ordinary edit whether the Space was created a minute ago or a year
@@ -770,8 +805,9 @@ function SpacePage() {
   // the Skeleton strip, backlinks, Views) is read fresh from current
   // block state on every fetch, so nothing else needs to change here.
   async function handleAddBlock(spec) {
-    await addBlockToSpace(id, spec);
+    const block = await addBlockToSpace(id, spec);
     refetchAll();
+    if (block) flashBlock(block.id);
   }
 
   // A dedicated one-click alternative to the generic "+ Add Entry" ->
@@ -779,8 +815,9 @@ function SpacePage() {
   // more time-sensitive action than adding an ordinary entry -- see
   // sessionActions.js for the shape this creates.
   async function handleStartSession() {
-    await addBlockToSpace(id, newSessionSpec());
+    const block = await addBlockToSpace(id, newSessionSpec());
     refetchAll();
+    if (block) flashBlock(block.id);
   }
 
   async function handleRemoveBlock(blockId) {
@@ -989,7 +1026,7 @@ function SpacePage() {
                       id={`block-${block.id}`}
                       className="block-row"
                       data-family={entry?.family}
-                      data-highlighted={highlightActive && block.id === highlightBlockId ? 'true' : undefined}
+                      data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
                     >
                       {entry && (
                         <p className="block-type-tag">

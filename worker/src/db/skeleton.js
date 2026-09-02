@@ -87,21 +87,27 @@ export async function saveTextBlockWithPromotion(env, blockId, newLines) {
 
   const updated = await updateBlockContent(env, blockId, { lines: keptLines });
 
+  // changeSummary surfaces the promotion (this app's own "invisible
+  // magic" -- see backend/src/db/queries/skeleton.js) as a toast, not
+  // just a Trail entry someone would have to navigate away to see.
+  let changeSummary = null;
   if (promotions.length > 0) {
     const laneLabelByKey = new Map(SKELETON_LANES.map((lane) => [lane.key, lane.label]));
     const counts = new Map();
     promotions.forEach(({ laneKey }) => counts.set(laneKey, (counts.get(laneKey) || 0) + 1));
-    const summary = [...counts.entries()].map(([laneKey, count]) => `${count} ${laneLabelByKey.get(laneKey)}`).join(', ');
-    await logTrailEntry(env, { spaceId: block.space_id, kind: 'auto', summary: `Promoted: ${summary}` });
+    const breakdown = [...counts.entries()].map(([laneKey, count]) => `${count} ${laneLabelByKey.get(laneKey)}`).join(', ');
+    changeSummary = `Promoted: ${breakdown}`;
+    await logTrailEntry(env, { spaceId: block.space_id, kind: 'auto', summary: changeSummary });
   } else if (block.properties.skeletonRole === 'current-best-articulation') {
     const oldText = (block.content.lines || []).map((line) => line.text).join('\n');
     const newText = keptLines.map((line) => line.text).join('\n');
     if (newText !== oldText) {
-      await logTrailEntry(env, { spaceId: block.space_id, kind: 'auto', summary: 'Updated Current Best Articulation' });
+      changeSummary = 'Updated Current Best Articulation';
+      await logTrailEntry(env, { spaceId: block.space_id, kind: 'auto', summary: changeSummary });
     }
   }
 
-  return updated;
+  return changeSummary ? { ...updated, changeSummary } : updated;
 }
 
 // The Skeleton's alternate capture path: filing an already-written line
@@ -112,8 +118,9 @@ export async function fileLineInLane(env, spaceId, laneKey, text) {
   const lane = await findSkeletonLaneBlock(env, spaceId, laneKey);
   const newItem = { id: crypto.randomUUID(), text, confidence: 'tentative' };
   const updated = await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
-  await logTrailEntry(env, { spaceId, kind: 'auto', summary: `Filed into ${lane.content.laneLabel}` });
-  return updated;
+  const summary = `Filed into ${lane.content.laneLabel}`;
+  await logTrailEntry(env, { spaceId, kind: 'auto', summary });
+  return { ...updated, changeSummary: summary };
 }
 
 export async function createTensionPair(env, spaceId, { label, statementA, statementB }) {
@@ -121,8 +128,9 @@ export async function createTensionPair(env, spaceId, { label, statementA, state
   const lane = await findSkeletonLaneBlock(env, spaceId, 'tensions');
   const newItem = { id: crypto.randomUUID(), text: label, confidence: 'tentative', statementA, statementB };
   const updated = await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  const summary = `Tension paired: "${label}" -- now counted as an open Tension in Insights`;
   await logTrailEntry(env, { spaceId, kind: 'auto', summary: `Tension created: "${label}"` });
-  return updated;
+  return { ...updated, changeSummary: summary };
 }
 
 // The Skeleton's current live state, shaped identically to a stored

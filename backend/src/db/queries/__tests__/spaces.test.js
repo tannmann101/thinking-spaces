@@ -39,6 +39,11 @@ describe('createSpace / getSpaceById', () => {
     });
   });
 
+  it('attaches a changeSummary naming the new Space, for the toast (see Toast.jsx)', () => {
+    const space = createSpace({ title: 'A new train of thought' });
+    expect(space.changeSummary).toBe('Created "A new train of thought"');
+  });
+
   it('accepts a fixed id, tags, categories, origin, and dueDate at creation', () => {
     const space = createSpace({
       id: 'fixed-id',
@@ -179,6 +184,26 @@ describe('updateSpace', () => {
     expect(updateSpace('nonexistent', { title: 'x' })).toBeNull();
   });
 
+  it('attaches a changeSummary for a status change, but not for a plain title edit', () => {
+    const space = createSpace({ title: 'X' });
+    expect(updateSpace(space.id, { title: 'Y' }).changeSummary).toBeUndefined();
+    expect(updateSpace(space.id, { status: 'developing' }).changeSummary).toBe('Status changed to developing');
+  });
+
+  it('attaches a changeSummary naming when a due date will show as overdue vs. upcoming', () => {
+    const space = createSpace({ title: 'X' });
+    expect(updateSpace(space.id, { dueDate: '2020-01-01' }).changeSummary).toBe('Due 2020-01-01 -- already overdue');
+    const space2 = createSpace({ title: 'Y' });
+    expect(updateSpace(space2.id, { dueDate: '2099-01-01' }).changeSummary).toBe(
+      'Due 2099-01-01 -- now shows on your Week digest'
+    );
+  });
+
+  it('attaches "Due date cleared" as the changeSummary when a due date is unset', () => {
+    const space = createSpace({ title: 'X', dueDate: '2099-01-01' });
+    expect(updateSpace(space.id, { dueDate: null }).changeSummary).toBe('Due date cleared');
+  });
+
   it('can clear a field by passing an explicit falsy value', () => {
     const space = createSpace({ title: 'X', dueDate: '2099-01-01' });
     const updated = updateSpace(space.id, { dueDate: null });
@@ -252,6 +277,14 @@ describe('createSpaceWithSetup', () => {
     const template = createTemplate({ name: 'T', blockArrangement: [{ type: 'text', content: { text: 'starter' } }] });
     const space = createSpaceWithSetup({ title: 'From template', templateId: template.id });
     expect(listBlocksForSpace(space.id)).toHaveLength(1);
+  });
+
+  it('carries createSpace\'s own changeSummary through, not the setup steps\' own summaries', () => {
+    const space = createSpaceWithSetup({
+      title: 'With extras',
+      extraBlocks: [{ type: 'list', content: { items: [] } }],
+    });
+    expect(space.changeSummary).toBe('Created "With extras"');
   });
 
   it('adds extraBlocks on top of the Template', () => {

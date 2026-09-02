@@ -6,7 +6,9 @@
 // to a successful mutation from inside this plain fetch wrapper, which
 // has no React context of its own -- ToastProvider registers itself
 // here on mount instead, the same "a plain module exposes a setter, a
-// component calls it" shape as any other event-bus-of-one.
+// component calls it" shape as any other event-bus-of-one. The listener
+// receives a ready-to-display string (not a "kind" needing a lookup) --
+// see request() below for where that string comes from.
 let onMutation = null;
 export function setMutationListener(fn) {
   onMutation = fn;
@@ -21,17 +23,35 @@ async function request(path, options) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request to ${path} failed (${res.status})`);
   }
-  // PATCH and DELETE are the two cases with a real "did that actually
-  // save?" gap -- almost every edit in this app is click-to-edit-then-
-  // blur-to-save with no other feedback. POST is deliberately excluded:
-  // creating something is already followed by an obvious change (a new
-  // item appears, or the page navigates), so a toast on top would be
-  // redundant noise rather than reassurance.
-  if (options?.method === 'PATCH') onMutation?.('saved');
-  if (options?.method === 'DELETE') onMutation?.('deleted');
+  const method = options?.method;
   // A 204 (e.g. DELETE) has no body -- calling .json() on it throws.
-  if (res.status === 204) return null;
-  return res.json();
+  // DELETE always announces "Deleted"; naming exactly what was deleted
+  // would need the caller's own context (a title, a type) that this
+  // generic helper doesn't have, and the click that triggered it already
+  // named the thing being removed.
+  if (res.status === 204) {
+    if (method === 'DELETE') onMutation?.('Deleted');
+    return null;
+  }
+  const body = await res.json();
+  // PATCH and POST are the two verbs whose response can carry a
+  // changeSummary (see backend/src/changeSummary.js and the summary
+  // fields several backend/src/db/queries/*.js functions already
+  // attach) -- a short, content-aware sentence computed server-side
+  // wherever it already knows both what happened and, for a few
+  // particularly legible cases, what it implies elsewhere in the app (a
+  // Milestone reached, a Space becoming overdue, a Skeleton promotion,
+  // ...). PATCH always announces something, falling back to a plain
+  // "Saved" when there's nothing more specific to say -- that's still
+  // an honest, non-misleading thing to say about any successful edit.
+  // POST only announces when the backend actually has something to
+  // report: unlike PATCH, not every POST is a "creation" worth
+  // announcing (moveBlockInSpace reorders, getLinkPreview only
+  // previews), so there's no safe generic fallback for it the way
+  // "Saved" is for an edit.
+  if (method === 'PATCH') onMutation?.(body?.changeSummary || 'Saved');
+  if (method === 'POST' && body?.changeSummary) onMutation?.(body.changeSummary);
+  return body;
 }
 
 export const getHealth = () => request('/health');

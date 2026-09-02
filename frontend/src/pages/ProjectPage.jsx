@@ -8,7 +8,7 @@
 // joining a Project is additive, same principle Workspaces and
 // Categories already follow.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   getSpace,
@@ -105,6 +105,16 @@ function ProjectPage() {
   const [blocks, setBlocks] = useState(null);
   const [error, setError] = useState(null);
   usePageTitle(project?.name);
+  // Same flash-on-add mechanism as SpacePage.jsx/WorkspacePage.jsx --
+  // see SpacePage.jsx's own comment for the full reasoning.
+  const [flashId, setFlashId] = useState(null);
+  const [highlightActive, setHighlightActive] = useState(false);
+  const lastFlashedId = useRef(null);
+
+  function flashBlock(blockId) {
+    lastFlashedId.current = null;
+    setFlashId(blockId);
+  }
 
   const refetchAll = useCallback(() => {
     getSpace(spaceId).then(setSpace).catch((err) => setError(err.message));
@@ -116,18 +126,39 @@ function ProjectPage() {
     refetchAll();
   }, [refetchAll]);
 
+  // oxlint's set-state-in-effect warning fires on setHighlightActive(true)
+  // below -- deliberately accepted, same reasoning SpacePage.jsx's own
+  // copy of this effect documents: it's synchronizing with a real
+  // external system (the DOM element found via getElementById/
+  // scrollIntoView), not deriving state that belongs in render.
+  useEffect(() => {
+    if (!flashId || !blocks || lastFlashedId.current === flashId) return;
+    const el = document.getElementById(`block-${flashId}`);
+    if (!el) return;
+    lastFlashedId.current = flashId;
+    setHighlightActive(true);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = setTimeout(() => setHighlightActive(false), 2500);
+    return () => {
+      clearTimeout(timer);
+      lastFlashedId.current = null;
+    };
+  }, [flashId, blocks]);
+
   async function handleAddMilestone() {
-    await addBlockToSpace(spaceId, {
+    const block = await addBlockToSpace(spaceId, {
       type: 'milestone',
       content: { label: '', targetDate: null, reached: false, reachedAt: null, note: '' },
       properties: { projectId },
     });
     refetchAll();
+    if (block) flashBlock(block.id);
   }
 
   async function handleStartSession() {
-    await addBlockToSpace(spaceId, newSessionSpec({ projectId }));
+    const block = await addBlockToSpace(spaceId, newSessionSpec({ projectId }));
     refetchAll();
+    if (block) flashBlock(block.id);
   }
 
   async function handleRemoveFromProject(block) {
@@ -138,6 +169,7 @@ function ProjectPage() {
   async function handlePullIn(block) {
     await updateBlockProject(block.id, projectId);
     refetchAll();
+    flashBlock(block.id);
   }
 
   async function handleDeleteBlock(blockId) {
@@ -199,7 +231,13 @@ function ProjectPage() {
                 const Component = entry?.component;
                 const applicableViews = Object.entries(viewRegistry).filter(([, view]) => view.appliesTo(block));
                 return (
-                  <div key={`${block.id}-${block.updated_at}`} className="block-row" data-family={entry?.family}>
+                  <div
+                    key={`${block.id}-${block.updated_at}`}
+                    id={`block-${block.id}`}
+                    className="block-row"
+                    data-family={entry?.family}
+                    data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
+                  >
                     {entry && (
                       <p className="block-type-tag">
                         {entry.icon && <span className="block-type-icon">{entry.icon}</span>}

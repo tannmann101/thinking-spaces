@@ -28,13 +28,14 @@ export function createProject({ spaceId, name }) {
   const id = randomUUID();
   db.prepare(`INSERT INTO projects (id, space_id, name) VALUES (?, ?, ?)`).run(id, spaceId, name);
   const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(spaceId);
+  const summary = `Created Project "${name}" in "${space?.title ?? spaceId}"`;
   logActivity({
     spaceId,
     spaceTitle: space?.title ?? null,
     kind: 'project_created',
-    summary: `Created Project "${name}" in "${space?.title ?? spaceId}"`,
+    summary,
   });
-  return getProjectById(id);
+  return { ...getProjectById(id), changeSummary: summary };
 }
 
 export function updateProject(id, { name }) {

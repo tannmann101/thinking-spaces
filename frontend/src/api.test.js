@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getHealth, getSpaces, createSpace, deleteSpace, updateSpace, setMutationListener, getLinkPreview, uploadFile } from './api.js';
+import {
+  getHealth,
+  getSpaces,
+  createSpace,
+  deleteSpace,
+  updateSpace,
+  moveBlockInSpace,
+  setMutationListener,
+  getLinkPreview,
+  uploadFile,
+} from './api.js';
 
 // Every exported function in api.js funnels through one private
 // request() helper -- these tests exercise that helper's actual
@@ -81,30 +91,52 @@ describe('api.js mutation listener (drives Toast.jsx)', () => {
     vi.restoreAllMocks();
   });
 
-  it('notifies "saved" on a successful PATCH', async () => {
+  it('notifies with a generic "Saved" on a PATCH whose response has no changeSummary', async () => {
     mockFetchOnce(jsonResponse({}));
     const listener = vi.fn();
     setMutationListener(listener);
     await updateSpace('some-id', { title: 'New title' });
-    expect(listener).toHaveBeenCalledWith('saved');
+    expect(listener).toHaveBeenCalledWith('Saved');
   });
 
-  it('notifies "deleted" on a successful DELETE', async () => {
+  it('notifies with the backend\'s own changeSummary on a PATCH, instead of the generic fallback', async () => {
+    mockFetchOnce(jsonResponse({ changeSummary: 'Milestone reached -- now counted in Insights and the Week digest' }));
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await updateSpace('some-id', { title: 'New title' });
+    expect(listener).toHaveBeenCalledWith('Milestone reached -- now counted in Insights and the Week digest');
+  });
+
+  it('notifies "Deleted" on a successful DELETE', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 204, json: vi.fn() });
     const listener = vi.fn();
     setMutationListener(listener);
     await deleteSpace('some-id');
-    expect(listener).toHaveBeenCalledWith('deleted');
+    expect(listener).toHaveBeenCalledWith('Deleted');
   });
 
-  it('does not notify on a GET or a POST -- only PATCH/DELETE have the "did that save?" gap', async () => {
+  it('does not notify on a GET', async () => {
     mockFetchOnce(jsonResponse([]));
     const listener = vi.fn();
     setMutationListener(listener);
     await getSpaces();
-    mockFetchOnce(jsonResponse({ id: 'new-id' }));
-    await createSpace({ title: 'New Space' });
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('does not notify on a POST whose response has no changeSummary (e.g. a reorder)', async () => {
+    mockFetchOnce(jsonResponse([{ id: 'a' }]));
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await moveBlockInSpace('space-1', 'block-1', 1);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('notifies with the backend\'s own changeSummary on a POST that has one (a real create)', async () => {
+    mockFetchOnce(jsonResponse({ id: 'new-id', changeSummary: 'Created "New Space"' }));
+    const listener = vi.fn();
+    setMutationListener(listener);
+    await createSpace({ title: 'New Space' });
+    expect(listener).toHaveBeenCalledWith('Created "New Space"');
   });
 
   it('does not notify when the request fails', async () => {

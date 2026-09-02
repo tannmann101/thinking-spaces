@@ -237,14 +237,15 @@ export function createBlock({ spaceId, type, content = {}, properties = {}, posi
 export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }) {
   const block = createBlock({ spaceId, type, content, properties, position: nextPosition(spaceId) });
   const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(spaceId);
+  const summary = `Added a ${type} entry to "${space?.title ?? spaceId}"`;
   logActivity({
     spaceId,
     spaceTitle: space?.title ?? null,
     blockId: block.id,
     kind: 'block_added',
-    summary: `Added a ${type} entry to "${space?.title ?? spaceId}"`,
+    summary,
   });
-  return block;
+  return { ...block, changeSummary: summary };
 }
 
 export function deleteBlock(id) {

@@ -218,14 +218,15 @@ export async function addBlockToSpace(env, spaceId, { type, content = {}, proper
   const position = await nextPosition(env, spaceId);
   const block = await createBlock(env, { spaceId, type, content, properties, position });
   const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(spaceId).first();
+  const summary = `Added a ${type} entry to "${space?.title ?? spaceId}"`;
   await logActivity(env, {
     spaceId,
     spaceTitle: space?.title ?? null,
     blockId: block.id,
     kind: 'block_added',
-    summary: `Added a ${type} entry to "${space?.title ?? spaceId}"`,
+    summary,
   });
-  return block;
+  return { ...block, changeSummary: summary };
 }
 
 export async function deleteBlock(env, id) {

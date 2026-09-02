@@ -97,6 +97,11 @@ describe('blocks.js', () => {
       expect(second.position).toBe(1);
     });
 
+    it('attaches the same sentence as the changeSummary, for the toast (see Toast.jsx)', async () => {
+      const block = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'x' } });
+      expect(block.changeSummary).toBe(`Added a text entry to "${space.title}"`);
+    });
+
     it('logs the new block\'s own id, so deep-linking can jump straight to it', async () => {
       const block = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'x' } });
       const logged = await env.DB.prepare(`SELECT * FROM activity_log WHERE kind = 'block_added'`).first();

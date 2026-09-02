@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createSpace, getNotificationCount } from '../api.js';
+import Legend from './Legend.jsx';
 
 // The one persistent piece of chrome shared by every page in the app --
 // originally a horizontal top bar (see the git history for TopNav.jsx),
@@ -29,6 +30,7 @@ function Sidebar({ current }) {
   const [capturing, setCapturing] = useState(false);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showLegend, setShowLegend] = useState(false);
 
   // Fetched on every page, since the sidebar renders everywhere -- a
   // deliberately narrow, already-actionable count (overdue List
@@ -108,6 +110,11 @@ function Sidebar({ current }) {
           {needsAttentionCount === 1 ? '1 item needs attention' : `${needsAttentionCount} items need attention`}
         </Link>
       )}
+
+      <button type="button" className="legend-trigger" onClick={() => setShowLegend(true)}>
+        ? How to read this app
+      </button>
+      {showLegend && <Legend onClose={() => setShowLegend(false)} />}
     </aside>
   );
 }

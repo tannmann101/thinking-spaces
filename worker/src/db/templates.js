@@ -29,16 +29,18 @@ export async function createTemplate(env, { id = crypto.randomUUID(), name, bloc
   await env.DB.prepare(`INSERT INTO templates (id, name, block_arrangement) VALUES (?, ?, ?)`)
     .bind(id, name, JSON.stringify(blockArrangement))
     .run();
-  await logActivity(env, { kind: 'template_created', summary: `Created template "${name}"` });
-  return getTemplateById(env, id);
+  const summary = `Created template "${name}"`;
+  await logActivity(env, { kind: 'template_created', summary });
+  return { ...(await getTemplateById(env, id)), changeSummary: summary };
 }
 
 export async function updateTemplate(env, id, { name, blockArrangement }) {
   await env.DB.prepare(`UPDATE templates SET name = ?, block_arrangement = ?, updated_at = datetime('now') WHERE id = ?`)
     .bind(name, JSON.stringify(blockArrangement), id)
     .run();
-  await logActivity(env, { kind: 'template_updated', summary: `Updated template "${name}"` });
-  return getTemplateById(env, id);
+  const summary = `Updated template "${name}"`;
+  await logActivity(env, { kind: 'template_updated', summary });
+  return { ...(await getTemplateById(env, id)), changeSummary: summary };
 }
 
 export async function deleteTemplate(env, id) {

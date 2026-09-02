@@ -17,13 +17,14 @@ export async function createProject(env, { spaceId, name }) {
   const id = crypto.randomUUID();
   await env.DB.prepare(`INSERT INTO projects (id, space_id, name) VALUES (?, ?, ?)`).bind(id, spaceId, name).run();
   const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(spaceId).first();
+  const summary = `Created Project "${name}" in "${space?.title ?? spaceId}"`;
   await logActivity(env, {
     spaceId,
     spaceTitle: space?.title ?? null,
     kind: 'project_created',
-    summary: `Created Project "${name}" in "${space?.title ?? spaceId}"`,
+    summary,
   });
-  return getProjectById(env, id);
+  return { ...(await getProjectById(env, id)), changeSummary: summary };
 }
 
 export async function updateProject(env, id, { name }) {

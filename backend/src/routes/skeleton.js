@@ -9,7 +9,7 @@
 // entry's own stored snapshot was built from.
 
 import { Router } from 'express';
-import { fileLineInLane, createTensionPair, getSkeletonSnapshot, SKELETON_LANES } from '../db/queries.js';
+import { fileLineInLane, createTensionPair, getSkeletonSnapshot, listAllSkeletonClaims, SKELETON_LANES } from '../db/queries.js';
 
 export const skeletonRouter = Router();
 
@@ -32,6 +32,13 @@ skeletonRouter.post('/spaces/:id/skeleton/file', (req, res) => {
 
 skeletonRouter.get('/spaces/:id/skeleton/current', (req, res) => {
   res.json(getSkeletonSnapshot(req.params.id));
+});
+
+// Cross-Space browsing of claim-bearing Skeleton lane items -- powers a
+// Work item's "Link a claim" picker once it can point at a claim
+// outside its own Space, same reasoning /work-items (work.js) exists.
+skeletonRouter.get('/skeleton-claims', (req, res) => {
+  res.json(listAllSkeletonClaims());
 });
 
 skeletonRouter.post('/spaces/:id/skeleton/tensions', (req, res) => {

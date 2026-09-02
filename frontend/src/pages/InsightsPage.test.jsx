@@ -19,7 +19,7 @@ function makeInsights(overrides = {}) {
     workMix: { total: 0, byType: [], byConfidence: [] },
     themes: { recurringCategories: [], openTensionCount: 0, openTensions: [] },
     activity: { weeklyCounts: [], staleThresholdDays: 30, staleSpaces: [] },
-    provenance: { byOrigin: { external: 0, internal: 0, none: 0 }, workItemCount: 0, synthesisCount: 0, promotedCount: 0 },
+    provenance: { byOrigin: { external: 0, internal: 0, none: 0 }, workItemCount: 0, distilledWorkItemCount: 0, synthesisCount: 0, promotedCount: 0 },
     time: {
       dueDates: { overdue: [], upcoming: [] },
       milestones: { total: 0, reachedCount: 0, overdueMilestones: [] },
@@ -63,6 +63,7 @@ describe('InsightsPage: interpretive readings', () => {
         provenance: {
           byOrigin: { external: 1, internal: 0, none: 0 },
           workItemCount: 0,
+          distilledWorkItemCount: 0,
           synthesisCount: 0,
           promotedCount: 0,
           reading: 'Most of what\'s here was brought in from outside.',
@@ -124,7 +125,7 @@ describe('InsightsPage: Themes', () => {
         themes: {
           recurringCategories: [{ name: 'Risk', spaceCount: 2, spaceTitles: ['Space A', 'Space B'] }],
           openTensionCount: 1,
-          openTensions: [{ spaceId: 'sp-1', spaceTitle: 'Space A', label: 'Conflicting claims' }],
+          openTensions: [{ spaceId: 'sp-1', spaceTitle: 'Space A', blockId: 'block-1', label: 'Conflicting claims' }],
         },
       })
     );
@@ -133,7 +134,7 @@ describe('InsightsPage: Themes', () => {
     expect(screen.getByText(/Space A, Space B/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Open Tensions (1)' })).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Space A' });
-    expect(link).toHaveAttribute('href', '/spaces/sp-1');
+    expect(link).toHaveAttribute('href', '/spaces/sp-1?highlight=block-1');
   });
 });
 
@@ -155,14 +156,23 @@ describe('InsightsPage: Activity & staleness', () => {
 });
 
 describe('InsightsPage: Provenance funnel', () => {
-  it('shows the Work -> Synthesis -> Resource funnel numbers', async () => {
+  it('shows the Work -> Synthesis -> Resource funnel numbers, using distinct distilled Work items (not raw Synthesis count) for the middle step', async () => {
     api.getInsights.mockResolvedValue(
-      makeInsights({ provenance: { byOrigin: { external: 2, internal: 1, none: 3 }, workItemCount: 10, synthesisCount: 4, promotedCount: 1 } })
+      makeInsights({
+        provenance: {
+          byOrigin: { external: 2, internal: 1, none: 3 },
+          workItemCount: 10,
+          distilledWorkItemCount: 6,
+          synthesisCount: 4,
+          promotedCount: 1,
+        },
+      })
     );
     renderPage();
     await screen.findByRole('heading', { name: /Provenance/ });
     const funnelNumbers = [...document.querySelectorAll('.insight-funnel-number')].map((el) => el.textContent);
-    expect(funnelNumbers).toEqual(['10', '4', '1']);
+    expect(funnelNumbers).toEqual(['10', '6', '1']);
+    expect(screen.getByText(/across 4 Syntheses/)).toBeInTheDocument();
   });
 });
 
@@ -175,7 +185,7 @@ describe('InsightsPage: Time', () => {
             overdue: [{ id: 'sp-3', title: 'Late Space', due_date: '2020-01-01' }],
             upcoming: [{ id: 'sp-4', title: 'Soon Space', due_date: '2030-01-01' }],
           },
-          milestones: { total: 2, reachedCount: 1, overdueMilestones: [{ spaceId: 'sp-5', spaceTitle: 'M Space', label: 'Ship v1', targetDate: '2020-01-01' }] },
+          milestones: { total: 2, reachedCount: 1, overdueMilestones: [{ spaceId: 'sp-5', spaceTitle: 'M Space', blockId: 'block-5', label: 'Ship v1', targetDate: '2020-01-01' }] },
           sessions: { completedCount: 2, totalMinutesLogged: 90, runningCount: 1 },
           review: { reviewStaleThresholdDays: 14, neverReviewed: [{ id: 'sp-6', title: 'Unreviewed' }], staleReviews: [{ id: 'sp-7', title: 'Stale Review', days_since: 20 }] },
         },

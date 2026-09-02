@@ -60,7 +60,7 @@ function buildActivityReading(weeklyCounts, staleSpaces, staleThresholdDays) {
   return parts.length > 0 ? parts.join(' ') : null;
 }
 
-function buildProvenanceReading(byOrigin, workItemCount, synthesisCount) {
+function buildProvenanceReading(byOrigin, workItemCount, distilledWorkItemCount) {
   const totalSpaces = byOrigin.external + byOrigin.internal + byOrigin.none;
   if (totalSpaces === 0) return null;
   const parts = [];
@@ -73,9 +73,9 @@ function buildProvenanceReading(byOrigin, workItemCount, synthesisCount) {
     );
   }
   if (workItemCount > 0) {
-    const distilledShare = Math.round((synthesisCount / workItemCount) * 100);
+    const distilledShare = Math.round((distilledWorkItemCount / workItemCount) * 100);
     parts.push(
-      `Roughly ${distilledShare}% as many Syntheses exist as raw Work items -- most thinking is still scattered claims waiting to be pulled together.`
+      `${distilledShare}% of raw Work items have actually been distilled into a Synthesis so far -- the rest is still scattered claims waiting to be pulled together.`
     );
   }
   return parts.length > 0 ? parts.join(' ') : null;
@@ -145,7 +145,7 @@ export async function getThemeInsights(env) {
     .sort((a, b) => b.spaceCount - a.spaceCount);
 
   const tensionRows = await env.DB.prepare(
-    `SELECT blocks.space_id, spaces.title AS space_title, blocks.content
+    `SELECT blocks.id AS block_id, blocks.space_id, spaces.title AS space_title, blocks.content
      FROM blocks
      JOIN spaces ON spaces.id = blocks.space_id
      WHERE blocks.type = 'list' AND json_extract(blocks.properties, '$.skeletonLane') = 'tensions'
@@ -158,6 +158,7 @@ export async function getThemeInsights(env) {
     return (content.items || []).map((item) => ({
       spaceId: row.space_id,
       spaceTitle: row.space_title,
+      blockId: row.block_id,
       label: item.text,
     }));
   });
@@ -238,12 +239,30 @@ export async function getProvenanceInsights(env) {
     .bind(...WORK_TYPES, TEST_SPACE_ID)
     .first();
 
+  // How many *distinct* Work items have actually been used in at least
+  // one Synthesis -- a real subset of workItemCount, unlike
+  // synthesisCount (how many Synthesis pieces exist, not how many raw
+  // items fed them). Reads every Synthesis's own "Source Material"
+  // block, which CreateSynthesis.jsx persists as
+  // properties.sourceItemIds (an array of the source Work items' own
+  // block ids).
+  const distilledWorkItemCount = await env.DB.prepare(
+    `SELECT COUNT(DISTINCT item.value) AS count
+     FROM blocks
+     JOIN spaces ON spaces.id = blocks.space_id
+     JOIN json_each(blocks.properties, '$.sourceItemIds') AS item
+     WHERE blocks.type = 'text' AND spaces.id != ?`
+  )
+    .bind(TEST_SPACE_ID)
+    .first();
+
   return {
     byOrigin,
     synthesisCount: synthesisCount.count,
     promotedCount: promotedCount.count,
     workItemCount: workItemCount.count,
-    reading: buildProvenanceReading(byOrigin, workItemCount.count, synthesisCount.count),
+    distilledWorkItemCount: distilledWorkItemCount.count,
+    reading: buildProvenanceReading(byOrigin, workItemCount.count, distilledWorkItemCount.count),
   };
 }
 
@@ -257,7 +276,7 @@ export async function getTimeInsights(env) {
   const upcomingSpaces = dueDateRows.results.filter((row) => row.due_date >= today);
 
   const milestoneRows = await env.DB.prepare(
-    `SELECT blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
+    `SELECT blocks.id AS block_id, blocks.content AS content, spaces.id AS space_id, spaces.title AS space_title
      FROM blocks JOIN spaces ON spaces.id = blocks.space_id
      WHERE blocks.type = 'milestone' AND blocks.space_id != ?`
   )
@@ -267,6 +286,7 @@ export async function getTimeInsights(env) {
     ...JSON.parse(row.content),
     spaceId: row.space_id,
     spaceTitle: row.space_title,
+    blockId: row.block_id,
   }));
   const reachedCount = milestones.filter((milestone) => milestone.reached).length;
   const overdueMilestones = milestones.filter(

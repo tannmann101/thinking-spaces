@@ -8,10 +8,12 @@ import {
   fileLineInLane,
   createTensionPair,
   getSkeletonSnapshot,
+  listAllSkeletonClaims,
 } from '../skeleton.js';
 import { createSpace } from '../spaces.js';
 import { createBlock, listBlocksForSpace, updateBlockContent } from '../blocks.js';
 import { listTrailEntries } from '../trail.js';
+import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
 describe('ensureSkeletonLanes', () => {
@@ -210,5 +212,40 @@ describe('getSkeletonSnapshot', () => {
       properties: { skeletonRole: 'current-best-articulation' },
     });
     expect(getSkeletonSnapshot(space.id).articulation).toBe('');
+  });
+});
+
+describe('listAllSkeletonClaims', () => {
+  beforeEach(() => {
+    resetDb();
+  });
+
+  it('lists items from every claim-bearing lane, across every Space', () => {
+    const spaceA = createSpace({ title: 'Space A' });
+    fileLineInLane(spaceA.id, 'premises', 'a premise');
+    const spaceB = createSpace({ title: 'Space B' });
+    fileLineInLane(spaceB.id, 'evidence', 'a piece of evidence');
+
+    const claims = listAllSkeletonClaims();
+    expect(claims.map((c) => c.text).sort()).toEqual(['a piece of evidence', 'a premise']);
+    const fromA = claims.find((c) => c.text === 'a premise');
+    expect(fromA).toMatchObject({ spaceId: spaceA.id, spaceTitle: 'Space A', laneLabel: 'Premises' });
+  });
+
+  it('excludes the Tensions lane -- a Tension is not itself a linkable claim', () => {
+    const space = createSpace({ title: 'Has a Tension' });
+    createBlock({
+      spaceId: space.id,
+      type: 'list',
+      content: { items: [{ id: '1', text: 'Cost vs. speed' }], laneLabel: 'Tensions' },
+      properties: { skeletonLane: 'tensions' },
+    });
+    expect(listAllSkeletonClaims()).toEqual([]);
+  });
+
+  it('excludes the Test Space', () => {
+    createSpace({ id: TEST_SPACE_ID, title: 'Test Space' });
+    fileLineInLane(TEST_SPACE_ID, 'premises', 'scratch');
+    expect(listAllSkeletonClaims()).toEqual([]);
   });
 });

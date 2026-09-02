@@ -3,6 +3,7 @@ import { db } from '../index.js';
 import { listBlocksForSpace, createBlock, updateBlockContent, getBlockById, nextPosition } from './blocks.js';
 import { normalizeTextContent } from './normalize.js';
 import { logTrailEntry } from './trail.js';
+import { TEST_SPACE_ID } from './constants.js';
 
 // NOTE on the skeleton.js <-> trail.js circular import: this module
 // calls logTrailEntry (trail.js) from inside saveTextBlockWithPromotion/
@@ -234,4 +235,42 @@ export function getSkeletonSnapshot(spaceId) {
   // vs. new articulation text.
   const articulation = articulationBlock ? (articulationBlock.content.lines || []).map((line) => line.text).join('\n') : '';
   return { lanes, articulation };
+}
+
+// A support point's "Link a claim" picker needs candidates from every
+// Space, not just the current one -- same reasoning listWorkItems()
+// (work.js) is cross-Space. Only the three claim-bearing lanes count
+// (Tensions itself isn't a claim to link to, same exclusion
+// routes/skeleton.js's own CLAIM_LANE_KEYS already makes). Uses
+// json_each to look inside each lane block's items array directly,
+// the same technique listOverdueReviews (dashboard.js) already uses
+// for List items, rather than pulling every lane block into JS first.
+const CLAIM_LANE_KEYS = SKELETON_LANES.filter((lane) => lane.key !== 'tensions').map((lane) => lane.key);
+
+export function listAllSkeletonClaims() {
+  const placeholders = CLAIM_LANE_KEYS.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `SELECT spaces.id AS space_id, spaces.title AS space_title, blocks.id AS block_id,
+              json_extract(blocks.content, '$.laneLabel') AS lane_label, item.value AS item_json
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+       JOIN json_each(blocks.content, '$.items') AS item
+       WHERE blocks.type = 'list'
+         AND json_extract(blocks.properties, '$.skeletonLane') IN (${placeholders})
+         AND spaces.id != ?
+       ORDER BY spaces.title ASC`
+    )
+    .all(...CLAIM_LANE_KEYS, TEST_SPACE_ID);
+  return rows.map((row) => {
+    const item = JSON.parse(row.item_json);
+    return {
+      spaceId: row.space_id,
+      spaceTitle: row.space_title,
+      blockId: row.block_id,
+      itemId: item.id,
+      text: item.text,
+      laneLabel: row.lane_label,
+    };
+  });
 }

@@ -147,10 +147,16 @@ CREATE INDEX IF NOT EXISTS idx_trail_entries_space_id ON trail_entries(space_id)
 -- being gone -- joining against spaces for a title wouldn't work once
 -- the row is gone. space_id/space_title are both null for events not
 -- tied to a Space (Template changes).
+-- block_id is set only for a 'block_added' event and only while that
+-- block still exists -- a 'block_removed' event leaves it null, since
+-- there's nothing left to link to (see Dashboard/Log/Insights
+-- deep-linking, which reads this column to jump straight to the block
+-- a digest is actually about instead of just the Space it lives on).
 CREATE TABLE IF NOT EXISTS activity_log (
   id TEXT PRIMARY KEY,
   space_id TEXT,
   space_title TEXT,
+  block_id TEXT,
   kind TEXT NOT NULL,
   summary TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))

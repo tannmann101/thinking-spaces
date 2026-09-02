@@ -41,6 +41,18 @@ describe('LogPage', () => {
     expect(screen.getByText('Created Template "A Template"')).toBeInTheDocument();
   });
 
+  it('deep-links a block_added entry straight to that block', async () => {
+    api.getActivity.mockResolvedValue({
+      stats: { totalCount: 1, last7Days: 1, mostActive: null },
+      entries: [
+        { id: '1', kind: 'block_added', summary: 'Added a text entry to "A Space"', space_id: 'sp-1', block_id: 'block-1', created_at: '2024-06-01 12:00:00' },
+      ],
+    });
+    renderPage();
+    const link = await screen.findByRole('link', { name: 'Added a text entry to "A Space"' });
+    expect(link).toHaveAttribute('href', '/spaces/sp-1?highlight=block-1');
+  });
+
   it('shows an error when the fetch fails', async () => {
     api.getActivity.mockRejectedValue(new Error('Down'));
     renderPage();

@@ -110,7 +110,18 @@ function CreateSynthesis() {
         properties: { categories: [DRAWN_FROM] },
       })),
       ...(selected.length > 0
-        ? [{ type: 'text', content: { tag: null, text: sourceMaterialText }, properties: { categories: [SOURCE_MATERIAL] } }]
+        ? [
+            {
+              type: 'text',
+              content: { tag: null, text: sourceMaterialText },
+              // sourceItemIds is the real, queryable lineage this Synthesis
+              // draws from -- the copied text above is for drafting, this is
+              // for later answering "which Work items actually fed this
+              // piece" (a Work item's own Block Report, and Insights'
+              // Provenance facet, both read it back out).
+              properties: { categories: [SOURCE_MATERIAL], sourceItemIds: selected.map((item) => item.id) },
+            },
+          ]
         : []),
       { type: 'text', content: { tag: null, text: '' }, properties: { categories: [DRAFT] } },
     ];

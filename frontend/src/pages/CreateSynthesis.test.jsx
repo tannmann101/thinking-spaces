@@ -142,7 +142,10 @@ describe('CreateSynthesis: submitting', () => {
     });
     expect(payload.extraBlocks[1].content.text).toContain('The key claim');
     expect(payload.extraBlocks[1].content.text).toContain('Assessment');
-    expect(payload.extraBlocks[1].properties).toEqual({ categories: ['Source Material'] });
+    // sourceItemIds is the real, queryable lineage (see CLAUDE.md's
+    // Insights vocabulary entry) -- distinct from the copied text above,
+    // which is only for drafting.
+    expect(payload.extraBlocks[1].properties).toEqual({ categories: ['Source Material'], sourceItemIds: ['a'] });
     // Always ends with one blank Text block to actually write the piece in.
     expect(payload.extraBlocks[payload.extraBlocks.length - 1]).toMatchObject({
       type: 'text',

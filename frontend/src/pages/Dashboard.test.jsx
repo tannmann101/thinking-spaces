@@ -179,11 +179,13 @@ describe('Dashboard: deleting a Space', () => {
 describe('Dashboard: digests', () => {
   it('shows the Overdue for review digest when there are overdue items', async () => {
     api.getOverdueReviews.mockResolvedValue([
-      { spaceId: 'a', spaceTitle: 'A Space', item: { id: '1', text: 'Meeting notes', reviewBy: '2000-01-01' } },
+      { spaceId: 'a', spaceTitle: 'A Space', blockId: 'block-a', item: { id: '1', text: 'Meeting notes', reviewBy: '2000-01-01' } },
     ]);
     renderDashboard();
     expect(await screen.findByText('Overdue for review')).toBeInTheDocument();
     expect(screen.getByText(/Meeting notes/)).toBeInTheDocument();
+    // Deep-links straight to the overdue entry, not just the Space.
+    expect(screen.getByRole('link', { name: 'A Space' })).toHaveAttribute('href', '/spaces/a?highlight=block-a');
   });
 
   it('hides the Overdue digest entirely when there is nothing overdue', async () => {
@@ -264,16 +266,18 @@ describe('Dashboard: Week calendar', () => {
     expect(screen.getByRole('link', { name: 'Due Space' })).toHaveAttribute('href', '/spaces/sp-2');
   });
 
-  it('distinguishes a reached Milestone from one still targeted', async () => {
+  it('distinguishes a reached Milestone from one still targeted, deep-linking each to its own entry', async () => {
     api.getWeekCalendar.mockResolvedValue(
       makeWeekDays({
-        1: { milestones: [{ label: 'Shipped it', reached: true, spaceId: 'sp-3', spaceTitle: 'Done Space' }] },
-        4: { milestones: [{ label: 'Ship it', reached: false, spaceId: 'sp-4', spaceTitle: 'Pending Space' }] },
+        1: { milestones: [{ id: 'block-3', label: 'Shipped it', reached: true, spaceId: 'sp-3', spaceTitle: 'Done Space' }] },
+        4: { milestones: [{ id: 'block-4', label: 'Ship it', reached: false, spaceId: 'sp-4', spaceTitle: 'Pending Space' }] },
       })
     );
     renderDashboard();
     expect(await screen.findByText(/reached: Shipped it/)).toBeInTheDocument();
     expect(screen.getByText(/target: Ship it/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Done Space' })).toHaveAttribute('href', '/spaces/sp-3?highlight=block-3');
+    expect(screen.getByRole('link', { name: 'Pending Space' })).toHaveAttribute('href', '/spaces/sp-4?highlight=block-4');
   });
 
   it('distinguishes a completed Session from one still running, and shows its Project', async () => {
@@ -281,10 +285,10 @@ describe('Dashboard: Week calendar', () => {
       makeWeekDays({
         2: {
           sessions: [
-            { label: 'Drafting', durationMinutes: 45, isRunning: false, spaceId: 'sp-5', spaceTitle: 'Writing Space', projectName: 'Ship the redesign' },
+            { id: 'block-5', label: 'Drafting', durationMinutes: 45, isRunning: false, spaceId: 'sp-5', spaceTitle: 'Writing Space', projectName: 'Ship the redesign' },
           ],
         },
-        3: { sessions: [{ label: 'Editing', durationMinutes: null, isRunning: true, spaceId: 'sp-6', spaceTitle: 'Writing Space', projectName: null }] },
+        3: { sessions: [{ id: 'block-6', label: 'Editing', durationMinutes: null, isRunning: true, spaceId: 'sp-6', spaceTitle: 'Writing Space', projectName: null }] },
       })
     );
     renderDashboard();

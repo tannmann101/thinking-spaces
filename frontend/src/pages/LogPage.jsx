@@ -148,7 +148,15 @@ function LogPage() {
                           <li key={entry.id}>
                             <span className="log-kind-tag">{KIND_LABELS[entry.kind] || entry.kind}</span>
                             {entry.space_id ? (
-                              <Link to={`/spaces/${entry.space_id}`}>{entry.summary}</Link>
+                              <Link
+                                to={
+                                  entry.block_id
+                                    ? `/spaces/${entry.space_id}?highlight=${entry.block_id}`
+                                    : `/spaces/${entry.space_id}`
+                                }
+                              >
+                                {entry.summary}
+                              </Link>
                             ) : (
                               <span>{entry.summary}</span>
                             )}

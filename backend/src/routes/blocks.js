@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   listBlocksForSpace,
   getBlockById,
+  getBlockByIdWithSpaceTitle,
   updateBlockContent,
   updateBlockCategories,
   updateBlockWorkspaces,
@@ -18,6 +19,18 @@ export const blocksRouter = Router();
 
 blocksRouter.get('/spaces/:spaceId/blocks', (req, res) => {
   res.json(listBlocksForSpace(req.params.spaceId));
+});
+
+// A single block on its own, by id -- previously only fetched as part
+// of a whole Space's block list. Needed so a cross-Space support-point
+// pointer (see WorkBlock.jsx) can resolve its target claim live without
+// fetching every block in a Space it isn't even viewing.
+blocksRouter.get('/blocks/:id', (req, res) => {
+  const block = getBlockByIdWithSpaceTitle(req.params.id);
+  if (!block) {
+    return res.status(404).json({ error: 'Entry not found' });
+  }
+  res.json(block);
 });
 
 // Adding a block to an already-live Space -- the same ordinary action

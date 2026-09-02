@@ -88,10 +88,29 @@ function summarizeBlockContent(block) {
   return [`(no summary available for entry type "${type}")`];
 }
 
+// The reverse of CreateSynthesis.jsx's own lineage-recording: given a
+// Work item's block id, finds every Synthesis Space whose own "Source
+// Material" block lists it in properties.sourceItemIds. A Work item
+// can feed more than one Synthesis, so this returns every match.
+async function findSynthesesUsingWorkItem(env, blockId) {
+  const { results } = await env.DB.prepare(
+    `SELECT spaces.id AS space_id, spaces.title AS space_title
+     FROM blocks
+     JOIN spaces ON spaces.id = blocks.space_id
+     JOIN json_each(blocks.properties, '$.sourceItemIds') AS item
+     WHERE blocks.type = 'text' AND item.value = ?`
+  )
+    .bind(blockId)
+    .all();
+  return results;
+}
+
 export async function getBlockReport(env, blockId) {
   const block = await getBlockById(env, blockId);
   if (!block) return null;
   const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(block.space_id).first();
+
+  const usedInSyntheses = WORK_TYPES.includes(block.type) ? await findSynthesesUsingWorkItem(env, blockId) : [];
 
   const workspaceIds = block.properties?.workspaces || [];
   let workspaceNames = [];
@@ -110,6 +129,9 @@ export async function getBlockReport(env, blockId) {
     ...(project ? [`Project: ${project.name}`] : []),
     ...(block.properties?.skeletonLane ? [`Skeleton section: ${block.properties.skeletonLane}`] : []),
     ...(block.properties?.skeletonRole ? [`Skeleton role: ${block.properties.skeletonRole}`] : []),
+    ...(usedInSyntheses.length > 0
+      ? [`Used in Synthesis: ${usedInSyntheses.map((row) => row.space_title).join(', ')}`]
+      : []),
   ];
 
   const sections = [

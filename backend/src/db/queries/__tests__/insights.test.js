@@ -81,7 +81,7 @@ describe('getThemeInsights', () => {
 
   it('counts every item in every Tensions lane as an open Tension', () => {
     const space = createSpace({ title: 'Has tensions' });
-    createBlock({
+    const block = createBlock({
       spaceId: space.id,
       type: 'list',
       content: { items: [{ id: '1', text: 'Cost vs. speed' }], laneLabel: 'Tensions' },
@@ -89,7 +89,12 @@ describe('getThemeInsights', () => {
     });
     const insights = getThemeInsights();
     expect(insights.openTensionCount).toBe(1);
-    expect(insights.openTensions[0]).toMatchObject({ spaceId: space.id, spaceTitle: 'Has tensions', label: 'Cost vs. speed' });
+    expect(insights.openTensions[0]).toMatchObject({
+      spaceId: space.id,
+      spaceTitle: 'Has tensions',
+      blockId: block.id,
+      label: 'Cost vs. speed',
+    });
   });
 
   it('excludes the Test Space from both facets', () => {
@@ -191,6 +196,32 @@ describe('getProvenanceInsights', () => {
     expect(getProvenanceInsights().workItemCount).toBe(1);
   });
 
+  it('counts distinct Work items actually used in a Synthesis, reading properties.sourceItemIds off Source Material blocks', () => {
+    const source = createSpace({ title: 'Source' });
+    const itemA = createBlock({ spaceId: source.id, type: 'assessment', content: { statement: 'a' } });
+    const itemB = createBlock({ spaceId: source.id, type: 'question', content: { statement: 'b' } });
+    createBlock({ spaceId: source.id, type: 'insight', content: { statement: 'c' } }); // never used
+
+    const synthesisOne = createSpace({ title: 'Synthesis One', tags: ['synthesis'] });
+    createBlock({
+      spaceId: synthesisOne.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      properties: { categories: ['Source Material'], sourceItemIds: [itemA.id, itemB.id] },
+    });
+    const synthesisTwo = createSpace({ title: 'Synthesis Two', tags: ['synthesis'] });
+    createBlock({
+      spaceId: synthesisTwo.id,
+      type: 'text',
+      content: { text: 'copied text' },
+      // Reusing itemA -- used in two Syntheses, but should still only
+      // count once toward the distinct total.
+      properties: { categories: ['Source Material'], sourceItemIds: [itemA.id] },
+    });
+
+    expect(getProvenanceInsights().distilledWorkItemCount).toBe(2);
+  });
+
   it('excludes the Test Space from every count', () => {
     createSpace({ id: TEST_SPACE_ID, title: 'Test Space', tags: ['synthesis'], origin: 'internal' });
     const insights = getProvenanceInsights();
@@ -205,7 +236,7 @@ describe('getProvenanceInsights', () => {
     createBlock({ spaceId: space.id, type: 'assessment', content: { statement: 'x' } });
     const reading = getProvenanceInsights().reading;
     expect(reading).toContain('33%');
-    expect(reading).toContain('0% as many Syntheses');
+    expect(reading).toContain('0% of raw Work items have actually been distilled');
   });
 
   it('reading is null when there are no Spaces at all', () => {
@@ -236,13 +267,14 @@ describe('getTimeInsights', () => {
   it('counts reached Milestones and flags overdue unreached ones', () => {
     const space = createSpace({ title: 'Has Milestones' });
     createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Done', targetDate: '2020-01-01', reached: true, reachedAt: '2020-01-01', note: null } });
-    createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Overdue', targetDate: '2000-01-01', reached: false, reachedAt: null, note: null } });
+    const overdueBlock = createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Overdue', targetDate: '2000-01-01', reached: false, reachedAt: null, note: null } });
     createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Future', targetDate: '2099-01-01', reached: false, reachedAt: null, note: null } });
 
     const insights = getTimeInsights();
     expect(insights.milestones.total).toBe(3);
     expect(insights.milestones.reachedCount).toBe(1);
     expect(insights.milestones.overdueMilestones.map((m) => m.label)).toEqual(['Overdue']);
+    expect(insights.milestones.overdueMilestones[0].blockId).toBe(overdueBlock.id);
   });
 
   it('sums minutes across completed Sessions and counts running ones separately', () => {

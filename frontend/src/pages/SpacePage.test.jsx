@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import SpacePage from './SpacePage.jsx';
@@ -7,6 +7,12 @@ import { ConfirmDialogProvider } from '../components/ConfirmDialog.jsx';
 import * as api from '../api.js';
 
 vi.mock('../api.js');
+
+// jsdom doesn't implement scrollIntoView at all (not even as a no-op) --
+// only the deep-link highlighting tests below call it, but it has to be
+// stubbed for every test in this file since SpacePage's own effect calls
+// it unconditionally whenever a ?highlight= param is present.
+Element.prototype.scrollIntoView = vi.fn();
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -523,5 +529,50 @@ describe('SpacePage: deleting the Space', () => {
 
     await waitFor(() => expect(api.deleteSpace).toHaveBeenCalledWith('space-1'));
     expect(mockNavigate).toHaveBeenCalledWith('/');
+  });
+});
+
+describe('SpacePage: deep-link highlighting', () => {
+  it('flashes only the entry named by ?highlight=', async () => {
+    api.getBlocksForSpace.mockResolvedValue([
+      { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'Not this one', tag: null }] }, properties: {}, updated_at: 'v1' },
+      { id: 'b2', type: 'text', content: { lines: [{ id: 'l2', text: 'The linked entry', tag: null }] }, properties: {}, updated_at: 'v1' },
+    ]);
+    renderPage('/spaces/space-1?highlight=b2');
+    await screen.findByText('The linked entry');
+
+    expect(document.getElementById('block-b2')).toHaveAttribute('data-highlighted', 'true');
+    expect(document.getElementById('block-b1')).not.toHaveAttribute('data-highlighted');
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+  });
+
+  it('clears the flash after its visible window, same expiry pattern Toast.jsx uses', async () => {
+    vi.useFakeTimers();
+    api.getBlocksForSpace.mockResolvedValue([
+      { id: 'b2', type: 'text', content: { lines: [{ id: 'l2', text: 'The linked entry', tag: null }] }, properties: {}, updated_at: 'v1' },
+    ]);
+    renderPage('/spaces/space-1?highlight=b2');
+    // The initial data fetch is a resolved-promise chain, not a timer, so
+    // it settles under fake timers too -- flushing microtasks (rather than
+    // Testing Library's real-timer-polling findByText) is what actually
+    // waits for it here.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(document.getElementById('block-b2')).toHaveAttribute('data-highlighted', 'true');
+
+    act(() => vi.advanceTimersByTime(2500));
+    expect(document.getElementById('block-b2')).not.toHaveAttribute('data-highlighted');
+    vi.useRealTimers();
+  });
+
+  it('highlights nothing when the URL carries no ?highlight= param', async () => {
+    api.getBlocksForSpace.mockResolvedValue([
+      { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'Ordinary entry', tag: null }] }, properties: {}, updated_at: 'v1' },
+    ]);
+    renderPage();
+    await screen.findByText('Ordinary entry');
+    expect(document.getElementById('block-b1')).not.toHaveAttribute('data-highlighted');
   });
 });

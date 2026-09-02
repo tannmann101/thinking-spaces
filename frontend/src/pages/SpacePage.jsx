@@ -664,6 +664,19 @@ function SpacePage() {
   const organizeInitialized = useRef(false);
   const [trailOpen, setTrailOpen] = useState(false);
   const trailInitialized = useRef(false);
+  // Deep-linking to one specific entry -- a Dashboard/Log/Insights
+  // digest that's really about one block (an overdue reviewBy item, a
+  // due Milestone, an open Tension) previously always landed you on the
+  // Space as a whole, leaving you to hunt for the thing that actually
+  // brought you here. `?highlight=<blockId>` in the URL names it; once
+  // the feed has loaded, this scrolls that entry into view and gives it
+  // a brief highlight, then clears itself -- the URL param stays (so
+  // reloading/sharing the link still works), only the visual flash is
+  // one-shot.
+  const [searchParams] = useSearchParams();
+  const highlightBlockId = searchParams.get('highlight');
+  const [highlightActive, setHighlightActive] = useState(Boolean(highlightBlockId));
+  const highlightScrolled = useRef(false);
 
   const refetchTrail = useCallback(() => {
     getTrailEntries(id).then(setTrail).catch((err) => setError(err.message));
@@ -697,7 +710,16 @@ function SpacePage() {
     detailsInitialized.current = false;
     organizeInitialized.current = false;
     trailInitialized.current = false;
-  }, [id]);
+    highlightScrolled.current = false;
+    // oxlint's react(set-state-in-effect) flags this setState call, but
+    // this is the standard "reset local state when a key prop changes"
+    // pattern, not an unnecessary cascading render -- highlightActive
+    // already gets the right value on first mount via its own
+    // useState() initializer above; this effect exists only to reset it
+    // when the *same* component instance is reused for a different
+    // Space id (see the comment above), which an initializer can't do.
+    setHighlightActive(Boolean(highlightBlockId));
+  }, [id, highlightBlockId]);
 
   useEffect(() => {
     if (space && !detailsInitialized.current) {
@@ -719,6 +741,26 @@ function SpacePage() {
       setTrailOpen(spaceHasHistory(trail));
     }
   }, [trail]);
+
+  // The Think section (where blocks render) is never collapsed, so the
+  // highlighted entry is always in the DOM the moment blocks arrive --
+  // no need to also force any <details> open first. The URL param is
+  // left in place (so the link stays shareable/reloadable); only the
+  // one-shot flash clears itself after a few seconds.
+  useEffect(() => {
+    if (!highlightBlockId || !blocks || highlightScrolled.current) return;
+    highlightScrolled.current = true;
+    document.getElementById(`block-${highlightBlockId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = setTimeout(() => setHighlightActive(false), 2500);
+    // Undoes exactly what setup did, so StrictMode's dev-only
+    // setup->cleanup->setup double-invoke behaves like a single real
+    // run instead of leaving highlightScrolled stuck `true` with no
+    // timer left to ever clear the flash.
+    return () => {
+      clearTimeout(timer);
+      highlightScrolled.current = false;
+    };
+  }, [highlightBlockId, blocks]);
 
   // Adding/removing/reordering blocks on a live Space -- the same
   // ordinary edit whether the Space was created a minute ago or a year
@@ -942,7 +984,13 @@ function SpacePage() {
                     // gaining an item via a different block's shorthand
                     // promotion) -- otherwise this component's own local
                     // edit state, set once at mount, would never notice.
-                    <div key={`${block.id}-${block.updated_at}`} className="block-row" data-family={entry?.family}>
+                    <div
+                      key={`${block.id}-${block.updated_at}`}
+                      id={`block-${block.id}`}
+                      className="block-row"
+                      data-family={entry?.family}
+                      data-highlighted={highlightActive && block.id === highlightBlockId ? 'true' : undefined}
+                    >
                       {entry && (
                         <p className="block-type-tag">
                           {entry.icon && <span className="block-type-icon">{entry.icon}</span>}

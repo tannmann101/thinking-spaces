@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { db } from '../../index.js';
 import {
   listBlocksForSpace,
   listBacklinksForSpace,
   getGraphData,
   getBlockById,
+  getBlockByIdWithSpaceTitle,
   countBlocksForSpace,
   blockExistsAtPosition,
   nextPosition,
@@ -57,6 +59,19 @@ describe('blocks.js', () => {
     });
   });
 
+  describe('getBlockByIdWithSpaceTitle', () => {
+    it('includes the parent Space\'s current title alongside the ordinary block fields', () => {
+      const block = createBlock({ spaceId: space.id, type: 'text', content: { text: 'x' } });
+      const result = getBlockByIdWithSpaceTitle(block.id);
+      expect(result.spaceTitle).toBe('A Space');
+      expect(result.type).toBe('text');
+    });
+
+    it('returns a falsy value for a nonexistent block id', () => {
+      expect(getBlockByIdWithSpaceTitle('does-not-exist')).toBeUndefined();
+    });
+  });
+
   describe('nextPosition / blockExistsAtPosition', () => {
     it('starts at 0 for an empty Space', () => {
       expect(nextPosition(space.id)).toBe(0);
@@ -81,6 +96,12 @@ describe('blocks.js', () => {
       const second = addBlockToSpace(space.id, { type: 'text', content: { text: 'two' } });
       expect(first.position).toBe(0);
       expect(second.position).toBe(1);
+    });
+
+    it('logs the new block\'s own id, so deep-linking can jump straight to it', () => {
+      const block = addBlockToSpace(space.id, { type: 'text', content: { text: 'x' } });
+      const logged = db.prepare(`SELECT * FROM activity_log WHERE kind = 'block_added'`).get();
+      expect(logged.block_id).toBe(block.id);
     });
   });
 

@@ -89,10 +89,17 @@ CREATE TABLE IF NOT EXISTS trail_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_trail_entries_space_id ON trail_entries(space_id);
 
+-- block_id is set only for a 'block_added' event and only while that
+-- block still exists -- a 'block_removed' event leaves it null, since
+-- there's nothing left to link to. Added after the initial deploy: see
+-- DEPLOY.md's "Making schema changes later" for the one-time
+-- `ALTER TABLE activity_log ADD COLUMN block_id TEXT;` this needs
+-- against the real, already-deployed database.
 CREATE TABLE IF NOT EXISTS activity_log (
   id TEXT PRIMARY KEY,
   space_id TEXT,
   space_title TEXT,
+  block_id TEXT,
   kind TEXT NOT NULL,
   summary TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))

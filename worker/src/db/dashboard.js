@@ -5,7 +5,7 @@ import { parseTrailRow } from './trail.js';
 
 export async function listOverdueReviews(env) {
   const { results } = await env.DB.prepare(
-    `SELECT spaces.id AS space_id, spaces.title AS space_title, item.value AS item_json
+    `SELECT spaces.id AS space_id, spaces.title AS space_title, blocks.id AS block_id, item.value AS item_json
      FROM blocks
      JOIN spaces ON spaces.id = blocks.space_id
      JOIN json_each(blocks.content, '$.items') AS item
@@ -20,6 +20,7 @@ export async function listOverdueReviews(env) {
   return results.map((row) => ({
     spaceId: row.space_id,
     spaceTitle: row.space_title,
+    blockId: row.block_id,
     item: JSON.parse(row.item_json),
   }));
 }

@@ -24,6 +24,7 @@ import {
   listBlocksForSpace,
   listBacklinksForSpace,
   getBlockById,
+  getBlockByIdWithSpaceTitle,
   addBlockToSpace,
   updateBlockContent,
   updateBlockCategories,
@@ -50,7 +51,7 @@ import {
   updateResourceTemplate,
   deleteResourceTemplate,
 } from './db/resourceTemplates.js';
-import { SKELETON_LANES, saveTextBlockWithPromotion, fileLineInLane, createTensionPair, getSkeletonSnapshot } from './db/skeleton.js';
+import { SKELETON_LANES, saveTextBlockWithPromotion, fileLineInLane, createTensionPair, getSkeletonSnapshot, listAllSkeletonClaims } from './db/skeleton.js';
 import { listTrailEntries, addManualTrailEntry, updateTrailEntry } from './db/trail.js';
 import { getReviewDraft, createReview } from './db/review.js';
 import { listWorkItems } from './db/work.js';
@@ -420,6 +421,11 @@ export default {
       if (m && method === 'POST') return await handleMoveBlock(request, env, m[1], m[2]);
 
       m = path.match(/^\/api\/blocks\/([\w-]+)$/);
+      if (m && method === 'GET') {
+        const block = await getBlockByIdWithSpaceTitle(env, m[1]);
+        if (!block) return json({ error: 'Entry not found' }, 404);
+        return json(block);
+      }
       if (m && method === 'PATCH') return await handlePatchBlock(request, env, m[1]);
       if (m && method === 'DELETE') {
         await deleteBlock(env, m[1]);
@@ -504,6 +510,7 @@ export default {
 
       // Work items (cross-Space, for Synthesis's picker)
       if (path === '/api/work-items' && method === 'GET') return json(await listWorkItems(env));
+      if (path === '/api/skeleton-claims' && method === 'GET') return json(await listAllSkeletonClaims(env));
 
       // Insights
       if (path === '/api/insights' && method === 'GET') {

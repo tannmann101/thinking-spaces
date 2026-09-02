@@ -576,3 +576,29 @@ describe('SpacePage: deep-link highlighting', () => {
     expect(document.getElementById('block-b1')).not.toHaveAttribute('data-highlighted');
   });
 });
+
+describe('SpacePage: flash-on-create (see CLAUDE.md\'s cohesion-pass entry)', () => {
+  it('flashes a newly added block\'s row, generalizing the same mechanism deep-linking uses', async () => {
+    api.getBlocksForSpace
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'new-block-id', type: 'text', content: { lines: [{ id: 'l1', text: '', tag: null }] }, properties: {}, updated_at: 'v2' },
+      ]);
+    api.addBlockToSpace.mockResolvedValue({ id: 'new-block-id', changeSummary: 'Added a text entry to "Test Space"' });
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('No entries yet.');
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
+
+    await waitFor(() => expect(document.getElementById('block-new-block-id')).toHaveAttribute('data-highlighted', 'true'));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('does not throw when addBlockToSpace resolves with nothing usable', async () => {
+    api.addBlockToSpace.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('No entries yet.');
+    await expect(user.click(screen.getByRole('button', { name: '+ Add Entry' }))).resolves.not.toThrow();
+  });
+});

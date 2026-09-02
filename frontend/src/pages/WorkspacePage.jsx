@@ -11,7 +11,7 @@
 // nothing becomes harder to find or edit just because it's also part of
 // a Workspace.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   getSpace,
@@ -88,6 +88,20 @@ function WorkspacePage() {
   // every Component gets them uniformly rather than special-casing by
   // block type here.
   const [focusedBlockId, setFocusedBlockId] = useState(null);
+  // Flashes a just-created (or pulled-in) block's row so it doesn't just
+  // silently appear in a feed that may already have several Tools in
+  // it -- same mechanism SpacePage.jsx uses for its own feed, see that
+  // file's own comment for the full reasoning. lastFlashedId (a ref)
+  // guards against re-flashing the same id on an unrelated later
+  // refetch.
+  const [flashId, setFlashId] = useState(null);
+  const [highlightActive, setHighlightActive] = useState(false);
+  const lastFlashedId = useRef(null);
+
+  function flashBlock(blockId) {
+    lastFlashedId.current = null;
+    setFlashId(blockId);
+  }
 
   const refetchAll = useCallback(() => {
     getSpace(spaceId).then(setSpace).catch((err) => setError(err.message));
@@ -99,17 +113,37 @@ function WorkspacePage() {
     refetchAll();
   }, [refetchAll]);
 
+  // oxlint's set-state-in-effect warning fires on setHighlightActive(true)
+  // below -- deliberately accepted, same reasoning SpacePage.jsx's own
+  // copy of this effect documents: it's synchronizing with a real
+  // external system (the DOM element found via getElementById/
+  // scrollIntoView), not deriving state that belongs in render.
+  useEffect(() => {
+    if (!flashId || !blocks || lastFlashedId.current === flashId) return;
+    const el = document.getElementById(`block-${flashId}`);
+    if (!el) return;
+    lastFlashedId.current = flashId;
+    setHighlightActive(true);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = setTimeout(() => setHighlightActive(false), 2500);
+    return () => {
+      clearTimeout(timer);
+      lastFlashedId.current = null;
+    };
+  }, [flashId, blocks]);
+
   // A new block created from inside a Workspace joins it automatically
   // -- you're already here for a reason, so there's no separate picker
   // step for "which Workspace" the way there is for Categories (where
   // several already exist Space-wide and any could apply). The Space's
   // own Categories are still offered, same as the ordinary feed.
   async function handleAddBlock(spec) {
-    await addBlockToSpace(spaceId, {
+    const block = await addBlockToSpace(spaceId, {
       ...spec,
       properties: { ...spec.properties, workspaces: [workspaceId] },
     });
     refetchAll();
+    if (block) flashBlock(block.id);
   }
 
   async function handleRemoveFromWorkspace(block) {
@@ -127,6 +161,7 @@ function WorkspacePage() {
     if (current.includes(workspaceId)) return;
     await updateBlockWorkspaces(block.id, [...current, workspaceId]);
     refetchAll();
+    flashBlock(block.id);
   }
 
   async function handleDeleteBlock(blockId) {
@@ -202,7 +237,13 @@ function WorkspacePage() {
                     view.appliesTo(block)
                   );
                   return (
-                    <div key={`${block.id}-${block.updated_at}`} className="block-row" data-family={entry?.family}>
+                    <div
+                      key={`${block.id}-${block.updated_at}`}
+                      id={`block-${block.id}`}
+                      className="block-row"
+                      data-family={entry?.family}
+                      data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
+                    >
                       {entry && !isFocused && (
                         <p className="block-type-tag">
                           {entry.icon && <span className="block-type-icon">{entry.icon}</span>}

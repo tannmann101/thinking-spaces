@@ -80,14 +80,15 @@ describe('saveTextBlockWithPromotion', () => {
     expect(updated.content.lines).toEqual([{ id: '1', text: '=', tag: null }]);
   });
 
-  it('logs an auto Trail entry summarizing what was promoted', () => {
-    saveTextBlockWithPromotion(block.id, [
+  it('logs an auto Trail entry summarizing what was promoted, and attaches the same text as changeSummary', () => {
+    const updated = saveTextBlockWithPromotion(block.id, [
       { id: '1', text: '= first premise', tag: null },
       { id: '2', text: '= second premise', tag: null },
     ]);
     const [entry] = listTrailEntries(space.id);
     expect(entry.kind).toBe('auto');
     expect(entry.summary).toBe('Promoted: 2 Premises');
+    expect(updated.changeSummary).toBe('Promoted: 2 Premises');
   });
 
   it('logs an auto Trail entry when the Current Best Articulation text actually changes', () => {
@@ -97,14 +98,16 @@ describe('saveTextBlockWithPromotion', () => {
       content: { lines: [{ id: 'a', text: 'old text', tag: null }] },
       properties: { skeletonRole: 'current-best-articulation' },
     });
-    saveTextBlockWithPromotion(articulation.id, [{ id: 'a', text: 'new text', tag: null }]);
+    const updated = saveTextBlockWithPromotion(articulation.id, [{ id: 'a', text: 'new text', tag: null }]);
     const entries = listTrailEntries(space.id);
     expect(entries.map((e) => e.summary)).toContain('Updated Current Best Articulation');
+    expect(updated.changeSummary).toBe('Updated Current Best Articulation');
   });
 
   it('does not log anything when an ordinary Text block\'s content does not change shape-affectingly', () => {
-    saveTextBlockWithPromotion(block.id, [{ id: '1', text: 'no shorthand here', tag: null }]);
+    const updated = saveTextBlockWithPromotion(block.id, [{ id: '1', text: 'no shorthand here', tag: null }]);
     expect(listTrailEntries(space.id)).toEqual([]);
+    expect(updated.changeSummary).toBeUndefined();
   });
 });
 
@@ -142,11 +145,12 @@ describe('migrateTextBlockLines', () => {
 describe('fileLineInLane', () => {
   it('copies a line into a lane without touching the original block, and logs Trail', () => {
     const space = createSpace({ title: 'A Space' });
-    fileLineInLane(space.id, 'evidence', 'some evidence text');
+    const result = fileLineInLane(space.id, 'evidence', 'some evidence text');
     const lane = listBlocksForSpace(space.id).find((b) => b.properties.skeletonLane === 'evidence');
     expect(lane.content.items[0].text).toBe('some evidence text');
     const [entry] = listTrailEntries(space.id);
     expect(entry.summary).toBe('Filed into Evidence');
+    expect(result.changeSummary).toBe('Filed into Evidence');
   });
 });
 
@@ -159,6 +163,16 @@ describe('createTensionPair', () => {
 
     const tensions = listBlocksForSpace(space.id).find((b) => b.properties.skeletonLane === 'tensions');
     expect(tensions.content.items[0]).toMatchObject({ text: 'Cost vs. speed', statementA, statementB });
+  });
+
+  it('attaches an implication-bearing changeSummary, for the toast (see Toast.jsx)', () => {
+    const space = createSpace({ title: 'A Space' });
+    const result = createTensionPair(space.id, {
+      label: 'Cost vs. speed',
+      statementA: { blockId: 'b1', itemId: null },
+      statementB: { blockId: 'b2', itemId: null },
+    });
+    expect(result.changeSummary).toBe('Tension paired: "Cost vs. speed" -- now counted as an open Tension in Insights');
   });
 });
 

@@ -30,8 +30,9 @@ export function createTemplate({ id = randomUUID(), name, blockArrangement }) {
   db.prepare(
     `INSERT INTO templates (id, name, block_arrangement) VALUES (?, ?, ?)`
   ).run(id, name, JSON.stringify(blockArrangement));
-  logActivity({ kind: 'template_created', summary: `Created template "${name}"` });
-  return getTemplateById(id);
+  const summary = `Created template "${name}"`;
+  logActivity({ kind: 'template_created', summary });
+  return { ...getTemplateById(id), changeSummary: summary };
 }
 
 // Editing a Template only ever touches the templates table -- it never
@@ -42,8 +43,9 @@ export function updateTemplate(id, { name, blockArrangement }) {
   db.prepare(
     `UPDATE templates SET name = ?, block_arrangement = ?, updated_at = datetime('now') WHERE id = ?`
   ).run(name, JSON.stringify(blockArrangement), id);
-  logActivity({ kind: 'template_updated', summary: `Updated template "${name}"` });
-  return getTemplateById(id);
+  const summary = `Updated template "${name}"`;
+  logActivity({ kind: 'template_updated', summary });
+  return { ...getTemplateById(id), changeSummary: summary };
 }
 
 export function deleteTemplate(id) {

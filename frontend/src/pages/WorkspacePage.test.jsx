@@ -8,6 +8,12 @@ import * as api from '../api.js';
 
 vi.mock('../api.js');
 
+// jsdom doesn't implement scrollIntoView at all -- only the flash-on-add
+// tests below actually check it, but the flash effect calls it
+// unconditionally whenever a block is added, same reasoning
+// SpacePage.test.jsx already stubs this for.
+Element.prototype.scrollIntoView = vi.fn();
+
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -112,6 +118,22 @@ describe('WorkspacePage: adding and pulling in Tools', () => {
         expect.objectContaining({ properties: expect.objectContaining({ workspaces: ['ws-1'] }) })
       )
     );
+  });
+
+  it('flashes a newly added block\'s row, same mechanism as SpacePage.jsx', async () => {
+    api.getBlocksForSpace
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'new-id', type: 'text', content: { lines: [] }, properties: { workspaces: ['ws-1'] }, updated_at: 'v2' },
+      ]);
+    api.addBlockToSpace.mockResolvedValue({ id: 'new-id', changeSummary: 'Added a text entry to "My Space"' });
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Add a new Tool to this Workspace');
+    await user.click(screen.getByRole('button', { name: '+ Add Entry' }));
+
+    await waitFor(() => expect(document.getElementById('block-new-id')).toHaveAttribute('data-highlighted', 'true'));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
   it('shows non-member blocks to pull in, and pulling one in adds this Workspace to it', async () => {

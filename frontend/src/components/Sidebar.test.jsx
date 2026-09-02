@@ -117,3 +117,17 @@ describe('Sidebar: quick capture', () => {
     expect(api.createSpace).not.toHaveBeenCalled();
   });
 });
+
+describe('Sidebar: legend', () => {
+  it('opens the legend on click, and closes it again', async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    expect(screen.queryByRole('dialog', { name: 'How to read this app' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '? How to read this app' }));
+    expect(screen.getByRole('dialog', { name: 'How to read this app' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog', { name: 'How to read this app' })).not.toBeInTheDocument();
+  });
+});

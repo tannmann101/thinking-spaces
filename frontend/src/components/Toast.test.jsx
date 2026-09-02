@@ -27,31 +27,37 @@ describe('ToastProvider', () => {
     expect(api.setMutationListener).toHaveBeenLastCalledWith(null);
   });
 
-  it('shows "Saved" after a PATCH-kind mutation, then fades after its visible window', () => {
+  it('shows whatever message the listener is called with, then fades after its visible window', () => {
     render(<ToastProvider>content</ToastProvider>);
-    act(() => registeredListener('saved'));
+    act(() => registeredListener('Saved'));
     expect(screen.getByText('Saved')).toBeInTheDocument();
 
-    act(() => vi.advanceTimersByTime(2001));
+    act(() => vi.advanceTimersByTime(3201));
     expect(screen.queryByText('Saved')).not.toBeInTheDocument();
   });
 
-  it('shows "Deleted" after a DELETE-kind mutation', () => {
+  it('shows a content-aware changeSummary sentence verbatim, not just a generic word', () => {
     render(<ToastProvider>content</ToastProvider>);
-    act(() => registeredListener('deleted'));
+    act(() => registeredListener('Milestone reached -- now counted in Insights and the Week digest'));
+    expect(screen.getByText('Milestone reached -- now counted in Insights and the Week digest')).toBeInTheDocument();
+  });
+
+  it('shows "Deleted" after a delete', () => {
+    render(<ToastProvider>content</ToastProvider>);
+    act(() => registeredListener('Deleted'));
     expect(screen.getByText('Deleted')).toBeInTheDocument();
   });
 
   it('a second mutation while already showing resets the timer instead of stacking', () => {
     render(<ToastProvider>content</ToastProvider>);
-    act(() => registeredListener('saved'));
+    act(() => registeredListener('Saved'));
     expect(screen.getByText('Saved')).toBeInTheDocument();
 
-    act(() => vi.advanceTimersByTime(1500));
-    act(() => registeredListener('saved'));
-    act(() => vi.advanceTimersByTime(1500));
-    // Still visible -- the second call reset the 2000ms window, so this
-    // is only 1500ms into the new window, not 3000ms into the first.
+    act(() => vi.advanceTimersByTime(2000));
+    act(() => registeredListener('Saved'));
+    act(() => vi.advanceTimersByTime(2000));
+    // Still visible -- the second call reset the 3200ms window, so this
+    // is only 2000ms into the new window, not 4000ms into the first.
     expect(screen.getAllByText('Saved')).toHaveLength(1);
   });
 });

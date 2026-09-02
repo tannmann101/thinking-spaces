@@ -131,8 +131,9 @@ export function createSpace({
     `INSERT INTO spaces (id, title, template_id, status, tags, categories, origin, due_date)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin, dueDate);
-  logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
-  return getSpaceById(id);
+  const summary = `Created "${title}"`;
+  logActivity({ spaceId: id, spaceTitle: title, kind: 'space_created', summary });
+  return { ...getSpaceById(id), changeSummary: summary };
 }
 
 // A Space's title, status, tags, goal, categories, accent, and due
@@ -166,7 +167,19 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent,
   // Only a status change gets logged, not every title/tag/goal edit --
   // status progression (nascent -> developing -> mature) is genuinely
   // trend-worthy; a renamed tag isn't.
+  //
+  // changeSummary (see changeSummary.js) is a lighter-weight cousin of
+  // this: a short sentence attached to the response so the toast (see
+  // Toast.jsx) can say what actually happened, not just "Saved" --
+  // status and due-date changes are the two edits on a Space with a
+  // real implication worth naming (a due date showing up on the Week
+  // digest, possibly already overdue). Every other field edit here
+  // (title, tags, goal, categories, accent) falls back to the toast's
+  // own generic "Saved", which is still an honest, non-misleading thing
+  // to say about them.
+  let changeSummary = null;
   if (status !== undefined && status !== existing.status) {
+    changeSummary = `Status changed to ${next.status}`;
     logActivity({
       spaceId: id,
       spaceTitle: next.title,
@@ -174,7 +187,18 @@ export function updateSpace(id, { title, status, tags, goal, categories, accent,
       summary: `"${next.title}" status changed to ${next.status}`,
     });
   }
-  return getSpaceById(id);
+  if (dueDate !== undefined && dueDate !== existing.due_date) {
+    if (!next.due_date) {
+      changeSummary = 'Due date cleared';
+    } else {
+      const overdue = next.due_date < todayString();
+      changeSummary = overdue
+        ? `Due ${next.due_date} -- already overdue`
+        : `Due ${next.due_date} -- now shows on your Week digest`;
+    }
+  }
+  const result = getSpaceById(id);
+  return changeSummary ? { ...result, changeSummary } : result;
 }
 
 // You could create a Space but never get rid of one -- the last "add
@@ -277,7 +301,11 @@ export function createSpaceWithSetup({
   if (goal) {
     updateSpace(space.id, { goal });
   }
-  return getSpaceById(space.id);
+  // Reuses createSpace's own changeSummary rather than recomputing the
+  // same "Created ..." sentence a second time -- the starter blocks and
+  // Workspaces added above are setup detail, not what the toast (see
+  // Toast.jsx) should lead with.
+  return { ...getSpaceById(space.id), changeSummary: space.changeSummary };
 }
 
 // Idempotent: creates the Test Space the first time the app runs, does
@@ -318,5 +346,5 @@ export function createRelationalSpace({ title, spaceIds }) {
       content: { target_space_id: targetSpaceId, note: null },
     });
   });
-  return getSpaceById(space.id);
+  return { ...getSpaceById(space.id), changeSummary: space.changeSummary };
 }

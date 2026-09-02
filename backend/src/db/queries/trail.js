@@ -39,7 +39,8 @@ function truncateForSummary(text) {
 }
 
 export function addManualTrailEntry(spaceId, note) {
-  return logTrailEntry({ spaceId, kind: 'manual', summary: truncateForSummary(note), note });
+  const entry = logTrailEntry({ spaceId, kind: 'manual', summary: truncateForSummary(note), note });
+  return { ...entry, changeSummary: 'Trail note added' };
 }
 
 export function listTrailEntries(spaceId) {

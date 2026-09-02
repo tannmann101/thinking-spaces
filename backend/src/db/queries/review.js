@@ -102,5 +102,6 @@ export function getReviewDraft(spaceId) {
 export function createReview(spaceId) {
   const draft = getReviewDraft(spaceId);
   if (!draft) return null;
-  return logTrailEntry({ spaceId, kind: 'review', summary: draft.summaryText });
+  const entry = logTrailEntry({ spaceId, kind: 'review', summary: draft.summaryText });
+  return { ...entry, changeSummary: draft.summaryText };
 }

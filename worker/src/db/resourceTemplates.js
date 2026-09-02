@@ -31,8 +31,9 @@ export async function createResourceTemplate(env, { id = crypto.randomUUID(), ty
   await env.DB.prepare(`INSERT INTO resource_templates (id, type, label, facets) VALUES (?, ?, ?, ?)`)
     .bind(id, type, label, JSON.stringify(facets))
     .run();
-  await logActivity(env, { kind: 'resource_template_created', summary: `Created Resource Template "${label}"` });
-  return getResourceTemplateById(env, id);
+  const summary = `Created Resource Template "${label}"`;
+  await logActivity(env, { kind: 'resource_template_created', summary });
+  return { ...(await getResourceTemplateById(env, id)), changeSummary: summary };
 }
 
 export async function updateResourceTemplate(env, id, { type, label, facets }) {
@@ -41,8 +42,9 @@ export async function updateResourceTemplate(env, id, { type, label, facets }) {
   )
     .bind(type, label, JSON.stringify(facets), id)
     .run();
-  await logActivity(env, { kind: 'resource_template_updated', summary: `Updated Resource Template "${label}"` });
-  return getResourceTemplateById(env, id);
+  const summary = `Updated Resource Template "${label}"`;
+  await logActivity(env, { kind: 'resource_template_updated', summary });
+  return { ...(await getResourceTemplateById(env, id)), changeSummary: summary };
 }
 
 export async function deleteResourceTemplate(env, id) {

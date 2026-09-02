@@ -46,16 +46,18 @@ export function createResourceTemplate({ id = randomUUID(), type, label, facets 
     label,
     JSON.stringify(facets)
   );
-  logActivity({ kind: 'resource_template_created', summary: `Created Resource Template "${label}"` });
-  return getResourceTemplateById(id);
+  const summary = `Created Resource Template "${label}"`;
+  logActivity({ kind: 'resource_template_created', summary });
+  return { ...getResourceTemplateById(id), changeSummary: summary };
 }
 
 export function updateResourceTemplate(id, { type, label, facets }) {
   db.prepare(
     `UPDATE resource_templates SET type = ?, label = ?, facets = ?, updated_at = datetime('now') WHERE id = ?`
   ).run(type, label, JSON.stringify(facets), id);
-  logActivity({ kind: 'resource_template_updated', summary: `Updated Resource Template "${label}"` });
-  return getResourceTemplateById(id);
+  const summary = `Updated Resource Template "${label}"`;
+  logActivity({ kind: 'resource_template_updated', summary });
+  return { ...getResourceTemplateById(id), changeSummary: summary };
 }
 
 export function deleteResourceTemplate(id) {

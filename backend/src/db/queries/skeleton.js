@@ -124,23 +124,34 @@ export function saveTextBlockWithPromotion(blockId, newLines) {
   // items promoted into lanes, or (if this was the articulation block
   // itself) its text changing. Both count as "a Skeleton structural
   // change" per the doc; an edit that's neither doesn't get logged.
+  //
+  // The promotion case in particular is the app's own "invisible magic"
+  // -- typing `=`/`?`/`!` in front of a line silently removes it from
+  // the Writing Surface and files it into a Skeleton lane, with nothing
+  // on screen saying so unless you already know to look. changeSummary
+  // (reused for the toast, see Toast.jsx) is what actually surfaces
+  // that here, not just the Trail entry someone would have to navigate
+  // away to see.
+  let changeSummary = null;
   if (promotions.length > 0) {
     const laneLabelByKey = new Map(SKELETON_LANES.map((lane) => [lane.key, lane.label]));
     const counts = new Map();
     promotions.forEach(({ laneKey }) => counts.set(laneKey, (counts.get(laneKey) || 0) + 1));
-    const summary = [...counts.entries()]
+    const breakdown = [...counts.entries()]
       .map(([laneKey, count]) => `${count} ${laneLabelByKey.get(laneKey)}`)
       .join(', ');
-    logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: `Promoted: ${summary}` });
+    changeSummary = `Promoted: ${breakdown}`;
+    logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: changeSummary });
   } else if (block.properties.skeletonRole === 'current-best-articulation') {
     const oldText = (block.content.lines || []).map((line) => line.text).join('\n');
     const newText = keptLines.map((line) => line.text).join('\n');
     if (newText !== oldText) {
-      logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: 'Updated Current Best Articulation' });
+      changeSummary = 'Updated Current Best Articulation';
+      logTrailEntry({ spaceId: block.space_id, kind: 'auto', summary: changeSummary });
     }
   }
 
-  return updated;
+  return changeSummary ? { ...updated, changeSummary } : updated;
 }
 
 // One-time content migration: a Text block used to carry one
@@ -177,8 +188,9 @@ export function fileLineInLane(spaceId, laneKey, text) {
   const lane = findSkeletonLaneBlock(spaceId, laneKey);
   const newItem = { id: randomUUID(), text, confidence: 'tentative' };
   const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
-  logTrailEntry({ spaceId, kind: 'auto', summary: `Filed into ${lane.content.laneLabel}` });
-  return updated;
+  const summary = `Filed into ${lane.content.laneLabel}`;
+  logTrailEntry({ spaceId, kind: 'auto', summary });
+  return { ...updated, changeSummary: summary };
 }
 
 // A Tension is created explicitly by pairing two specific existing
@@ -196,8 +208,9 @@ export function createTensionPair(spaceId, { label, statementA, statementB }) {
   const lane = findSkeletonLaneBlock(spaceId, 'tensions');
   const newItem = { id: randomUUID(), text: label, confidence: 'tentative', statementA, statementB };
   const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  const summary = `Tension paired: "${label}" -- now counted as an open Tension in Insights`;
   logTrailEntry({ spaceId, kind: 'auto', summary: `Tension created: "${label}"` });
-  return updated;
+  return { ...updated, changeSummary: summary };
 }
 
 // The Skeleton's current live state, shaped identically to a stored

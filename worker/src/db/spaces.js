@@ -90,8 +90,9 @@ export async function createSpace(
   )
     .bind(id, title, templateId, status, JSON.stringify(tags), JSON.stringify(categories), origin, dueDate)
     .run();
-  await logActivity(env, { spaceId: id, spaceTitle: title, kind: 'space_created', summary: `Created "${title}"` });
-  return getSpaceById(env, id);
+  const summary = `Created "${title}"`;
+  await logActivity(env, { spaceId: id, spaceTitle: title, kind: 'space_created', summary });
+  return { ...(await getSpaceById(env, id)), changeSummary: summary };
 }
 
 export async function updateSpace(env, id, { title, status, tags, goal, categories, accent, dueDate } = {}) {
@@ -113,7 +114,14 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
   )
     .bind(next.title, next.status, next.tags, next.goal, next.categories, next.accent, next.due_date, id)
     .run();
+  // changeSummary (see changeSummary.js) is a lighter-weight cousin of
+  // the logActivity entry below -- a short sentence attached to the
+  // response so the toast (see frontend's Toast.jsx) can say what
+  // actually happened, not just "Saved". Mirrors backend/src/db/queries/
+  // spaces.js's updateSpace exactly.
+  let changeSummary = null;
   if (status !== undefined && status !== existing.status) {
+    changeSummary = `Status changed to ${next.status}`;
     await logActivity(env, {
       spaceId: id,
       spaceTitle: next.title,
@@ -121,7 +129,18 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
       summary: `"${next.title}" status changed to ${next.status}`,
     });
   }
-  return getSpaceById(env, id);
+  if (dueDate !== undefined && dueDate !== existing.due_date) {
+    if (!next.due_date) {
+      changeSummary = 'Due date cleared';
+    } else {
+      const overdue = next.due_date < todayString();
+      changeSummary = overdue
+        ? `Due ${next.due_date} -- already overdue`
+        : `Due ${next.due_date} -- now shows on your Week digest`;
+    }
+  }
+  const result = await getSpaceById(env, id);
+  return changeSummary ? { ...result, changeSummary } : result;
 }
 
 // Blocks, Workspaces, and Trail entries are all deleted first since
@@ -178,7 +197,7 @@ export async function createSpaceWithSetup(
   if (goal) {
     await updateSpace(env, space.id, { goal });
   }
-  return getSpaceById(env, space.id);
+  return { ...(await getSpaceById(env, space.id)), changeSummary: space.changeSummary };
 }
 
 // Idempotent: creates the Test Space the first time this runs, does
@@ -201,5 +220,5 @@ export async function createRelationalSpace(env, { title, spaceIds }) {
       content: { target_space_id: targetSpaceId, note: null },
     });
   }
-  return getSpaceById(env, space.id);
+  return { ...(await getSpaceById(env, space.id)), changeSummary: space.changeSummary };
 }

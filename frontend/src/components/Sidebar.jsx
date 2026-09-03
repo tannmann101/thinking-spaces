@@ -19,6 +19,7 @@ import Legend from './Legend.jsx';
 const LINKS = [
   { key: 'insights', to: '/insights', label: 'Insights' },
   { key: 'tools', to: '/tools', label: 'Tools' },
+  { key: 'workspaces', to: '/workspaces', label: 'Workspaces' },
   { key: 'templates', to: '/templates', label: 'Manage Templates' },
   { key: 'graph', to: '/graph', label: 'View the Map' },
   { key: 'log', to: '/log', label: 'Log' },

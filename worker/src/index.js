@@ -37,6 +37,7 @@ import {
 } from './db/blocks.js';
 import {
   listWorkspacesForSpace,
+  listAllWorkspaces,
   getWorkspaceById,
   createWorkspace,
   updateWorkspace,
@@ -253,9 +254,20 @@ async function handleSaveTextBlock(request, env, id) {
 
 async function handleCreateWorkspace(request, env, spaceId) {
   const body = (await readJson(request)) || {};
-  const { name } = body;
+  const { name, kind, starterBlocks } = body;
   if (!name || !name.trim()) return errorResponse('name is required');
-  return json(await createWorkspace(env, { spaceId, name: name.trim() }), 201);
+  if (starterBlocks !== undefined && !Array.isArray(starterBlocks)) {
+    return errorResponse('starterBlocks must be an array');
+  }
+  return json(
+    await createWorkspace(env, {
+      spaceId,
+      name: name.trim(),
+      kind: kind || null,
+      starterBlocks: starterBlocks || [],
+    }),
+    201
+  );
 }
 
 async function handlePatchWorkspace(request, env, id) {
@@ -478,6 +490,10 @@ export default {
       if (m && method === 'PATCH') return await handleSaveTextBlock(request, env, m[1]);
 
       // Workspaces
+      // The cross-Space directory, matched before /workspaces/:id below
+      // so the literal path isn't captured as an id.
+      if (path === '/api/workspaces' && method === 'GET') return json(await listAllWorkspaces(env));
+
       m = path.match(/^\/api\/spaces\/([\w-]+)\/workspaces$/);
       if (m && method === 'GET') return json(await listWorkspacesForSpace(env, m[1]));
       if (m && method === 'POST') return await handleCreateWorkspace(request, env, m[1]);

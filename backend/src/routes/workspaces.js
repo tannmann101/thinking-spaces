@@ -12,21 +12,39 @@ import {
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceReport,
+  listAllWorkspaces,
 } from '../db/queries.js';
 import { renderReportText } from '../reportFormat.js';
 
 export const workspacesRouter = Router();
+
+// Every Workspace across every Space -- backs the top-level Workspaces
+// page's directory. Declared before /workspaces/:id below so the literal
+// path isn't captured as an id.
+workspacesRouter.get('/workspaces', (req, res) => {
+  res.json(listAllWorkspaces());
+});
 
 workspacesRouter.get('/spaces/:spaceId/workspaces', (req, res) => {
   res.json(listWorkspacesForSpace(req.params.spaceId));
 });
 
 workspacesRouter.post('/spaces/:spaceId/workspaces', (req, res) => {
-  const { name } = req.body;
+  const { name, kind, starterBlocks } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'name is required' });
   }
-  res.status(201).json(createWorkspace({ spaceId: req.params.spaceId, name: name.trim() }));
+  if (starterBlocks !== undefined && !Array.isArray(starterBlocks)) {
+    return res.status(400).json({ error: 'starterBlocks must be an array' });
+  }
+  res.status(201).json(
+    createWorkspace({
+      spaceId: req.params.spaceId,
+      name: name.trim(),
+      kind: kind || null,
+      starterBlocks: starterBlocks || [],
+    })
+  );
 });
 
 workspacesRouter.get('/workspaces/:id', (req, res) => {

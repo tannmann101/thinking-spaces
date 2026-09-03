@@ -133,6 +133,15 @@ function ToolsPage() {
           ))}
       </div>
 
+      <h3>Mapping</h3>
+      <div className="tool-grid">
+        {Object.entries(blockRegistry)
+          .filter(([, entry]) => entry.family === 'mapping')
+          .map(([key, entry]) => (
+            <ToolCard key={key} type={key} entry={entry} kind="Entry" />
+          ))}
+      </div>
+
       <h2>Views</h2>
       <div className="tool-grid">
         {Object.entries(viewRegistry).map(([key, entry]) => (

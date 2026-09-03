@@ -41,8 +41,8 @@ describe('Legend', () => {
     // this checks the <strong> labels directly rather than risking a
     // multiple-match error.
     const labels = [...document.querySelectorAll('.legend-family-rows strong')].map((el) => el.textContent);
-    expect(labels).toEqual(['General', 'Work', 'Time']);
-    expect(document.querySelectorAll('.legend-swatch')).toHaveLength(3);
+    expect(labels).toEqual(['General', 'Work', 'Time', 'Mapping']);
+    expect(document.querySelectorAll('.legend-swatch')).toHaveLength(4);
     expect(screen.getByRole('link', { name: 'Tools catalog' })).toHaveAttribute('href', '/tools');
   });
 

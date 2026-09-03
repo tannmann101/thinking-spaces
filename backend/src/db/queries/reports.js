@@ -48,6 +48,9 @@ function labelForBlock(block) {
   if (block.type === 'comparison') return `${block.content.left?.text || '?'} vs. ${block.content.right?.text || '?'}`;
   if (block.type === 'milestone') return block.content.label || '(untitled Milestone)';
   if (block.type === 'session') return block.content.label || '(untitled Session)';
+  if (block.type === 'wordEvolution') return block.content.term || '(unnamed Word Evolution)';
+  if (block.type === 'conceptMap') return block.content.referent || '(unnamed Concept Map)';
+  if (block.type === 'model') return block.content.subject || '(unnamed Model)';
   return `${block.type} entry`;
 }
 
@@ -125,6 +128,38 @@ function summarizeBlockContent(block) {
       ...(content.startedAt ? [`Started: ${content.startedAt}`] : []),
       ...(content.endedAt ? [`Ended: ${content.endedAt}`] : []),
       ...(content.note ? [`Note: ${content.note}`] : []),
+    ];
+  }
+  if (type === 'wordEvolution') {
+    return [
+      `Term: ${content.term || '(not named)'}`,
+      ...(content.senses || []).map(
+        (entry) => `${entry.period || 'Stage'}: ${entry.sense || '(no sense recorded)'}${entry.note ? ` -- ${entry.note}` : ''}`
+      ),
+    ];
+  }
+  if (type === 'conceptMap') {
+    return [
+      `Referent: ${content.referent || '(not named)'}`,
+      ...(content.gloss ? [`Proper rendering: ${content.gloss}`] : []),
+      ...(content.renderings || []).map(
+        (entry) =>
+          `${entry.alignment || 'partial'}: "${entry.label || '(unnamed)'}"${entry.sense ? ` -- taken as ${entry.sense}` : ''}`
+      ),
+    ];
+  }
+  if (type === 'model') {
+    // Relations store component ids, so resolve each end to its current
+    // name here the same way ModelBlock.jsx does at render time.
+    const nameFor = (id) => (content.components || []).find((component) => component.id === id)?.name || '(removed)';
+    return [
+      `Subject: ${content.subject || '(not named)'}`,
+      ...(content.components || []).map(
+        (component) => `Component: ${component.name || '(unnamed)'}${component.role ? ` -- ${component.role}` : ''}`
+      ),
+      ...(content.relations || []).map(
+        (relation) => `Relation: ${nameFor(relation.from)} ${relation.kind || 'relates to'} ${nameFor(relation.to)}`
+      ),
     ];
   }
   return [`(no summary available for entry type "${type}")`];
@@ -213,7 +248,16 @@ export function getWorkspaceReport(workspaceId) {
   );
 
   const sections = [
-    { heading: 'Identity', lines: [`Space: ${space?.title || workspace.space_id}`, `Created: ${workspace.created_at}`] },
+    {
+      heading: 'Identity',
+      lines: [
+        `Space: ${space?.title || workspace.space_id}`,
+        // The kind key, not a display label -- the labels live in the
+        // frontend registry, which the backend deliberately doesn't read.
+        ...(workspace.kind ? [`Kind: ${workspace.kind}`] : []),
+        `Created: ${workspace.created_at}`,
+      ],
+    },
     {
       heading: `Assembled Tools (${memberBlocks.length})`,
       lines: memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)}`),

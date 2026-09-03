@@ -26,6 +26,7 @@ import {
   getBlockReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
+import { getWorkspaceKind, groupBlocksByKindSection } from '../registry/workspaceKinds.js';
 import { resolveBlockTheme, themeAttributes } from '../theme/itemTheme.js';
 import { viewRegistry } from '../registry/views.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
@@ -189,10 +190,77 @@ function WorkspacePage() {
     (block) => !(block.properties?.workspaces || []).includes(workspaceId)
   );
 
+  // What kind of environment this is, if any. A kinded Workspace renders
+  // its own named sections with their framing prompts; an unkinded one
+  // keeps the plain flat feed every Workspace had before kinds existed.
+  const kind = getWorkspaceKind(workspace?.kind);
+  const visibleBlocks = memberBlocks.filter((block) => !focusedBlockId || block.id === focusedBlockId);
+  // Focus Mode shows exactly one block, so its sections would be noise --
+  // fall back to the flat feed for the duration.
+  const sectionGroups = focusedBlockId ? null : groupBlocksByKindSection(kind, visibleBlocks);
+
+  // One block's full row, shared by the flat feed and the sectioned one
+  // so the two can't drift apart on what a block actually renders.
+  function renderBlock(block) {
+    const entry = blockRegistry[block.type];
+    // A Workspace is where a Tool gets its bespoke, more spacious
+    // environment -- workshopComponent, when the registry defines one
+    // for this Tool type, replaces the ordinary inline component just
+    // here. Falls back to the same component the flat feed uses for
+    // every Tool that hasn't gotten its own redesign yet.
+    const Component = entry?.workshopComponent || entry?.component;
+    const isFocused = focusedBlockId === block.id;
+    const applicableViews = Object.entries(viewRegistry).filter(([, view]) => view.appliesTo(block));
+    return (
+      <div
+        key={`${block.id}-${block.updated_at}`}
+        id={`block-${block.id}`}
+        className="block-row"
+        data-family={entry?.family}
+        data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
+        {...themeAttributes(resolveBlockTheme(block))}
+      >
+        {entry && !isFocused && (
+          <p className="block-type-tag">
+            {entry.icon && <span className="block-type-icon">{entry.icon}</span>}
+            {entry.label}
+          </p>
+        )}
+        {Component ? (
+          <Component block={block} onBlocksChanged={refetchAll} focused={isFocused} onFocus={setFocusedBlockId} />
+        ) : (
+          <p>Unknown entry type: {block.type}</p>
+        )}
+        {!focusedBlockId && applicableViews.length > 0 && (
+          <div className="view-grid">
+            {applicableViews.map(([key, view]) => (
+              <view.component key={key} block={block} />
+            ))}
+          </div>
+        )}
+        {!focusedBlockId && (
+          <div className="block-report-row">
+            <ReportButton fetchReport={() => getBlockReport(block.id)} />
+          </div>
+        )}
+        {!focusedBlockId && (
+          <div className="block-controls">
+            <button type="button" className="btn-ghost-small" onClick={() => handleRemoveFromWorkspace(block)}>
+              Remove from Workspace
+            </button>
+            <button type="button" className="btn-ghost-small" onClick={() => handleDeleteBlock(block.id)}>
+              Delete entry
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <Sidebar />
-      <main className="app-content">
+      <main className="app-content" {...(kind ? themeAttributes(kind.theme) : {})}>
       {space && (
         <Link to={`/spaces/${spaceId}`} className="back-link">
           &larr; Back to {space.title}
@@ -207,101 +275,51 @@ function WorkspacePage() {
           {!focusedBlockId && (
             <>
               <h1 className="workspace-title">
+                {kind && <span className="kind-card-icon">{kind.icon}</span>}{' '}
                 <EditableWorkspaceName workspace={workspace} onChanged={refetchAll} />
               </h1>
-              <p className="workspace-subtitle">A Workspace inside &ldquo;{space.title}&rdquo;</p>
+              <p className="workspace-subtitle">
+                {kind ? `${kind.label} Workspace` : 'A Workspace'} inside &ldquo;{space.title}&rdquo;
+              </p>
+              {kind && <p className="workspace-kind-description">{kind.description}</p>}
               <div className="report-row">
                 <ReportButton fetchReport={() => getWorkspaceReport(workspaceId)} label="Workspace Report" />
               </div>
             </>
           )}
 
-          {memberBlocks.length === 0 && (
+          {memberBlocks.length === 0 && !kind && (
             <p>Nothing assembled here yet -- add a Tool below, or pull in one already on the Space.</p>
           )}
 
-          {memberBlocks.length > 0 && (
-            <div className="block-feed workspace-block-feed">
-              {memberBlocks
-                .filter((block) => !focusedBlockId || block.id === focusedBlockId)
-                .map((block) => {
-                  const entry = blockRegistry[block.type];
-                  // A Workspace is where a Tool gets its bespoke, more
-                  // spacious environment -- workshopComponent, when the
-                  // registry defines one for this Tool type, replaces the
-                  // ordinary inline component just here. Falls back to the
-                  // same component the flat feed uses for every Tool that
-                  // hasn't gotten its own redesign yet.
-                  const Component = entry?.workshopComponent || entry?.component;
-                  const isFocused = focusedBlockId === block.id;
-                  const applicableViews = Object.entries(viewRegistry).filter(([, view]) =>
-                    view.appliesTo(block)
-                  );
-                  return (
-                    <div
-                      key={`${block.id}-${block.updated_at}`}
-                      id={`block-${block.id}`}
-                      className="block-row"
-                      data-family={entry?.family}
-                      data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
-                      {...themeAttributes(resolveBlockTheme(block))}
-                    >
-                      {entry && !isFocused && (
-                        <p className="block-type-tag">
-                          {entry.icon && <span className="block-type-icon">{entry.icon}</span>}
-                          {entry.label}
-                        </p>
-                      )}
-                      {Component ? (
-                        <Component
-                          block={block}
-                          onBlocksChanged={refetchAll}
-                          focused={isFocused}
-                          onFocus={setFocusedBlockId}
-                        />
-                      ) : (
-                        <p>Unknown entry type: {block.type}</p>
-                      )}
-                      {!focusedBlockId && applicableViews.length > 0 && (
-                        <div className="view-grid">
-                          {applicableViews.map(([key, view]) => (
-                            <view.component key={key} block={block} />
-                          ))}
-                        </div>
-                      )}
-                      {!focusedBlockId && (
-                        <div className="block-report-row">
-                          <ReportButton fetchReport={() => getBlockReport(block.id)} />
-                        </div>
-                      )}
-                      {!focusedBlockId && (
-                        <div className="block-controls">
-                          <button
-                            type="button"
-                            className="btn-ghost-small"
-                            onClick={() => handleRemoveFromWorkspace(block)}
-                          >
-                            Remove from Workspace
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost-small"
-                            onClick={() => handleDeleteBlock(block.id)}
-                          >
-                            Delete entry
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+          {/* A kinded Workspace renders its own named sections, each with
+              the question it exists to answer, so the environment itself
+              says what belongs where -- an empty section is kept and
+              framed rather than hidden, since the prompt is the point. */}
+          {sectionGroups ? (
+            <div className="workspace-sections">
+              {sectionGroups.map((section) => (
+                <section key={section.name} className="workspace-section-group">
+                  <h2 className="workspace-section-name">{section.name}</h2>
+                  <p className="workspace-section-prompt">{section.prompt}</p>
+                  {section.blocks.length === 0 ? (
+                    <p className="empty-note">Nothing here yet.</p>
+                  ) : (
+                    <div className="block-feed workspace-block-feed">{section.blocks.map(renderBlock)}</div>
+                  )}
+                </section>
+              ))}
             </div>
+          ) : (
+            visibleBlocks.length > 0 && (
+              <div className="block-feed workspace-block-feed">{visibleBlocks.map(renderBlock)}</div>
+            )
           )}
 
           {!focusedBlockId && (
             <>
               <h2>Add a new Tool to this Workspace</h2>
-              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />
+              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} leadTypes={kind?.leadTools} />
 
               {nonMemberBlocks.length > 0 && (
                 <>

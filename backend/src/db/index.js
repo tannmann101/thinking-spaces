@@ -49,3 +49,4 @@ ensureColumn('spaces', 'theme', 'TEXT');
 ensureColumn('spaces', 'origin', 'TEXT');
 ensureColumn('spaces', 'due_date', 'TEXT');
 ensureColumn('activity_log', 'block_id', 'TEXT');
+ensureColumn('workspaces', 'kind', 'TEXT');

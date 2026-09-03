@@ -45,6 +45,7 @@
   --theme-accent-slate: #6d87a6;
   --theme-accent-plum: #9a6ba6;
   --theme-accent-moss: #789064;
+  --theme-accent-indigo: #7b81c0;
 
   --display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --body: 'Source Serif 4', Georgia, serif;
@@ -1033,6 +1034,7 @@ label {
 [data-theme-accent='slate'] { --item-accent: var(--theme-accent-slate); }
 [data-theme-accent='plum'] { --item-accent: var(--theme-accent-plum); }
 [data-theme-accent='moss'] { --item-accent: var(--theme-accent-moss); }
+[data-theme-accent='indigo'] { --item-accent: var(--theme-accent-indigo); }
 
 /* Shape -- the silhouette. This is the dimension doing most of the work
    for telling two items apart at a glance; the eye groups colors but
@@ -3568,4 +3570,304 @@ label {
 /* A clickable Graph node/label that isn't a real <button> or <a>. */
 .cursor-pointer {
   cursor: pointer;
+}
+
+/* ---------- Mapping Tools ----------------------------------------- */
+/* Word Evolution, Concept Map and Model (registry family 'mapping').
+   All three are one headline plus an ordered set of rows, so they share
+   a row rhythm -- but each labels and arranges its own rows, since a
+   sense-shift, a rendering and a component read differently. */
+
+.word-evolution-term,
+.concept-map-referent-name,
+.model-subject {
+  font-family: var(--display);
+  font-size: var(--fs-lg);
+  color: var(--ink);
+}
+
+.word-evolution-track {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 14px;
+  /* One continuous line down the left edge -- the shifts read as
+     stages on a single track rather than unrelated rows. */
+  border-left: 1px solid var(--border);
+}
+
+.word-evolution-step {
+  position: relative;
+  padding: 0 0 12px 12px;
+}
+
+.word-evolution-step::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--item-accent, var(--theme-accent-indigo));
+}
+
+.word-evolution-period {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.word-evolution-sense {
+  display: block;
+  color: var(--ink);
+}
+
+.word-evolution-note,
+.model-component-role,
+.model-relation-note,
+.concept-map-rendering-note {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+.word-evolution-controls,
+.concept-map-controls,
+.model-controls {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.word-evolution-add,
+.concept-map-add,
+.model-add-component,
+.model-add-relation {
+  margin-top: 10px;
+}
+
+.concept-map-label,
+.model-label {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 12px 0 4px;
+}
+
+.concept-map-referent {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.concept-map-gloss {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-dim);
+}
+
+.concept-map-divergent-count {
+  color: var(--theme-accent-clay);
+}
+
+.concept-map-renderings,
+.model-components,
+.model-relations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.concept-map-rendering {
+  padding: 6px 0 6px 10px;
+  border-left: 2px solid var(--border);
+}
+
+/* How far each rendering sits from the referent, carried by the edge
+   itself so the divergences are visible without reading every row. */
+.concept-map-rendering[data-alignment='aligned'] {
+  border-left-color: var(--theme-accent-moss);
+}
+.concept-map-rendering[data-alignment='partial'] {
+  border-left-color: var(--theme-accent-amber);
+}
+.concept-map-rendering[data-alignment='divergent'] {
+  border-left-color: var(--theme-accent-clay);
+}
+
+.concept-map-alignment {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.concept-map-alignment:disabled {
+  cursor: default;
+}
+
+.concept-map-rendering-label,
+.model-component-name,
+.model-relation-end {
+  color: var(--ink);
+}
+
+.concept-map-rendering-sense {
+  display: block;
+  color: var(--ink-dim);
+}
+
+.model-component,
+.model-relation {
+  padding: 4px 0;
+}
+
+.model-relation-kind {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+  margin: 0 6px;
+}
+
+/* A relation whose component was removed still renders, so the gap is
+   visible and can be repaired on purpose rather than silently dropped. */
+.model-relation-missing {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* ---------- Workspaces page & Kinds -------------------------------- */
+/* The catalog of specialized environments (registry/workspaceKinds.js)
+   and the cross-Space directory of the ones that already exist. */
+
+.kind-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.kind-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.kind-card-title {
+  margin: 0 0 4px;
+  font-size: var(--fs-lg);
+}
+
+.kind-card-icon {
+  color: var(--item-accent, var(--ink-dim));
+}
+
+.kind-card-description {
+  margin: 0 0 10px;
+  font-size: var(--fs-md);
+  color: var(--ink-dim);
+}
+
+.kind-card-label {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 10px 0 3px;
+}
+
+.kind-card-sections {
+  margin: 0;
+  padding-left: 16px;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+.kind-card-sections strong {
+  color: var(--ink);
+}
+
+.kind-card-starters {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+.kind-card-start {
+  margin-top: 8px;
+}
+
+.workspace-directory {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.workspace-directory-row {
+  padding: 8px 0 8px 10px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--item-accent, var(--border));
+}
+
+.workspace-directory-meta {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+/* The muted "nothing here yet, and here's why" line, used by the
+   Mapping Tools and the Workspaces directory. Insights has its own
+   .insight-empty from before this existed; the two aren't merged
+   because renaming 11 call sites buys nothing functional. */
+.empty-note {
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+}
+
+@media (max-width: 760px) {
+  .kind-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* A kinded Workspace's own sections. The prompt is the point -- an
+   empty section still frames what belongs in it -- so these read as
+   headed groups rather than as cards that vanish when unused. */
+.workspace-section-group {
+  margin-bottom: 24px;
+}
+
+.workspace-section-name {
+  margin: 0 0 2px;
+  font-size: var(--fs-lg);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 3px;
+}
+
+.workspace-section-prompt {
+  margin: 0 0 10px;
+  font-size: var(--fs-sm);
+  color: var(--ink-faint);
+}
+
+.workspace-kind-description {
+  margin: 0 0 12px;
+  font-size: var(--fs-md);
+  color: var(--ink-dim);
 }

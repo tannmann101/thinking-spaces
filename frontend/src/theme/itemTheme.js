@@ -39,6 +39,7 @@ export const THEME_ACCENTS = [
   'slate',
   'plum',
   'moss',
+  'indigo',
 ];
 
 // The silhouette -- how an item's edge is drawn. This is the strongest
@@ -98,6 +99,12 @@ const BLOCK_THEME_DEFAULTS = {
   insight: { accent: 'clay', shape: 'notch', density: 'normal', typeface: 'body' },
   implication: { accent: 'clay', shape: 'tab', density: 'normal', typeface: 'body' },
   hypothesis: { accent: 'clay', shape: 'underline', density: 'normal', typeface: 'body' },
+
+  // Mapping -- one cool blue-violet, since three types fit inside a
+  // single accent and shape can carry all the distinction they need.
+  wordEvolution: { accent: 'indigo', shape: 'rule', density: 'normal', typeface: 'body' },
+  conceptMap: { accent: 'indigo', shape: 'inset', density: 'normal', typeface: 'body' },
+  model: { accent: 'indigo', shape: 'bracket', density: 'normal', typeface: 'body' },
 
   // Time -- the gold range already reserved for reached/running states,
   // and mono, since these two read as instruments rather than prose.

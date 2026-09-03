@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { logActivity } from './activityLog.js';
+import { createBlock, nextPosition } from './blocks.js';
 
 // --- Workspaces ---------------------------------------------------------
 // A Workspace is a deliberately assembled, named environment inside one
@@ -19,9 +20,37 @@ export function getWorkspaceById(id) {
   return db.prepare(`SELECT * FROM workspaces WHERE id = ?`).get(id);
 }
 
-export function createWorkspace({ spaceId, name }) {
+// `kind` names one of the specialized environments defined in
+// frontend/src/registry/workspaceKinds.js -- the kinds themselves live
+// there, not here, because a kind carries page layout and framing copy
+// that a database row can't hold. The backend only stores which one this
+// is. Null is a plain, unkinded Workspace, exactly what every Workspace
+// was before kinds existed.
+//
+// `starterBlocks` is what that kind starts you with. The frontend reads
+// them off the registry and passes them in, so they're created in the
+// same request as the Workspace itself and already carry its id in their
+// own properties.workspaces -- rather than the page having to create the
+// Workspace, then loop a second round of requests to fill it.
+export function createWorkspace({ spaceId, name, kind = null, starterBlocks = [] }) {
   const id = randomUUID();
-  db.prepare(`INSERT INTO workspaces (id, space_id, name) VALUES (?, ?, ?)`).run(id, spaceId, name);
+  db.prepare(`INSERT INTO workspaces (id, space_id, name, kind) VALUES (?, ?, ?, ?)`).run(
+    id,
+    spaceId,
+    name,
+    kind
+  );
+
+  starterBlocks.forEach((spec) => {
+    createBlock({
+      spaceId,
+      type: spec.type,
+      content: spec.content ?? {},
+      properties: { ...spec.properties, workspaces: [id] },
+      position: nextPosition(spaceId),
+    });
+  });
+
   const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(spaceId);
   const summary = `Created Workspace "${name}" in "${space?.title ?? spaceId}"`;
   logActivity({
@@ -55,4 +84,33 @@ export function deleteWorkspace(id) {
       summary: `Deleted Workspace "${existing.name}" from "${space?.title ?? existing.space_id}"`,
     });
   }
+}
+
+// Every Workspace across every Space, for the top-level Workspaces page's
+// directory. Counts members with the same json_each membership test
+// updateBlockWorkspaces writes -- one query rather than one per
+// Workspace, the same approach listOverdueReviews already uses for its
+// own cross-Space read.
+export function listAllWorkspaces() {
+  return db
+    .prepare(
+      `SELECT workspaces.id,
+              workspaces.space_id,
+              workspaces.name,
+              workspaces.kind,
+              workspaces.created_at,
+              workspaces.updated_at,
+              spaces.title AS space_title,
+              (SELECT COUNT(*)
+                 FROM blocks
+                WHERE blocks.space_id = workspaces.space_id
+                  AND EXISTS (
+                    SELECT 1 FROM json_each(json_extract(blocks.properties, '$.workspaces'))
+                     WHERE json_each.value = workspaces.id
+                  )) AS member_count
+         FROM workspaces
+         JOIN spaces ON spaces.id = workspaces.space_id
+        ORDER BY workspaces.created_at DESC`
+    )
+    .all();
 }

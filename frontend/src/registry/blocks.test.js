@@ -3,7 +3,7 @@ import { blockRegistry, CONFIDENCE_LEVELS, TEXT_ATTRIBUTION_TAGS, MEDIA_TYPES } 
 import { viewRegistry } from './views.js';
 
 const ALL_KEYS = new Set([...Object.keys(blockRegistry), ...Object.keys(viewRegistry)]);
-const VALID_FAMILIES = ['general', 'work', 'time'];
+const VALID_FAMILIES = ['general', 'work', 'time', 'mapping'];
 
 describe('blockRegistry', () => {
   it('gives every entry the required shape: label, description, family, icon, component', () => {

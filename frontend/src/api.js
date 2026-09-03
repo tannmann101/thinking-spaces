@@ -249,11 +249,17 @@ export const moveBlockInSpace = (spaceId, blockId, direction) =>
 // Space (see backend/src/db/queries.js, "--- Workspaces ---").
 export const getWorkspacesForSpace = (spaceId) => request(`/spaces/${spaceId}/workspaces`);
 export const getWorkspace = (id) => request(`/workspaces/${id}`);
-export const createWorkspace = (spaceId, name) =>
+// `kind` and `starterBlocks` come from registry/workspaceKinds.js -- the
+// caller reads them off the registry, so the backend never has to know
+// what a kind actually contains. Omitting both creates the plain,
+// unkinded Workspace this has always created.
+export const createWorkspace = (spaceId, name, kind = null, starterBlocks = []) =>
   request(`/spaces/${spaceId}/workspaces`, {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, kind, starterBlocks }),
   });
+// Every Workspace across every Space -- the top-level page's directory.
+export const getAllWorkspaces = () => request('/workspaces');
 export const renameWorkspace = (id, name) =>
   request(`/workspaces/${id}`, {
     method: 'PATCH',

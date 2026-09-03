@@ -69,6 +69,9 @@ import ObjectionBlock from '../blocks/ObjectionBlock.jsx';
 import FormulationBlock from '../blocks/FormulationBlock.jsx';
 import MilestoneBlock from '../blocks/MilestoneBlock.jsx';
 import SessionBlock from '../blocks/SessionBlock.jsx';
+import WordEvolutionBlock from '../blocks/WordEvolutionBlock.jsx';
+import ConceptMapBlock from '../blocks/ConceptMapBlock.jsx';
+import ModelBlock from '../blocks/ModelBlock.jsx';
 
 // Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
@@ -500,6 +503,116 @@ export const blockRegistry = {
         endedAt: '2026-08-20T14:45:00.000Z',
         durationMinutes: 45,
         note: '',
+      },
+      properties: {},
+    },
+  },
+  // --- Mapping -------------------------------------------------------
+  // A fourth family, alongside general/work/time. These three are about
+  // structure and relation rather than a single claim, so none of them
+  // shares Work's {statement, support, confidence} shape -- which is
+  // exactly why they can't be family 'work': NewBlockForm builds its
+  // Work optgroup off that family and would create them with the wrong
+  // content shape. Each carries its own starter branch there instead.
+  wordEvolution: {
+    label: 'Word Evolution',
+    description: "How a term's sense shifted over time -- each stage with when it held, what it meant then, and what moved it.",
+    family: 'mapping',
+    icon: '⟿',
+    component: WordEvolutionBlock,
+    worksWith: ['conceptMap', 'reference', 'definition'],
+    demoBlock: {
+      type: 'wordEvolution',
+      content: {
+        term: 'virtue',
+        senses: [
+          {
+            id: 'demo-sense-1',
+            period: 'Latin (virtus)',
+            sense: 'Manliness, valour -- the excellence proper to a soldier.',
+            note: 'Rooted in vir, "man".',
+          },
+          {
+            id: 'demo-sense-2',
+            period: 'Medieval',
+            sense: 'Moral excellence, as one of the cardinal or theological virtues.',
+            note: 'Absorbed into a Christian moral framework.',
+          },
+          {
+            id: 'demo-sense-3',
+            period: 'Modern',
+            sense: 'Any admirable quality, often merely conventional goodness.',
+            note: 'Weakened -- "virtue signalling" now reads as a charge.',
+          },
+        ],
+      },
+      properties: {},
+    },
+  },
+  conceptMap: {
+    label: 'Concept Map',
+    description: 'A referent and every rendering of it in circulation, each marked by how far it actually sits from the thing itself.',
+    family: 'mapping',
+    icon: '◈',
+    component: ConceptMapBlock,
+    worksWith: ['wordEvolution', 'definition', 'formulation'],
+    demoBlock: {
+      type: 'conceptMap',
+      content: {
+        referent: 'Freedom',
+        gloss: 'The condition of being able to act according to what one actually is.',
+        renderings: [
+          {
+            id: 'demo-rendering-1',
+            label: 'Freedom (absence of constraint)',
+            sense: 'Nobody is stopping me.',
+            alignment: 'partial',
+            note: 'Catches the negative half, says nothing about what the acting is for.',
+          },
+          {
+            id: 'demo-rendering-2',
+            label: 'Freedom (unlimited option)',
+            sense: 'I can pick anything at all.',
+            alignment: 'divergent',
+            note: 'Points at the size of a menu, not at the agent -- this is where the argument usually goes wrong.',
+          },
+        ],
+      },
+      properties: {},
+    },
+  },
+  model: {
+    label: 'Model',
+    description: 'The parts something is built from and how they relate -- a worldview, a philosophy, or any concept laid out as structure.',
+    family: 'mapping',
+    icon: '⬡',
+    component: ModelBlock,
+    worksWith: ['conceptMap', 'formulation', 'analysis'],
+    demoBlock: {
+      type: 'model',
+      content: {
+        subject: 'A meritocratic worldview',
+        components: [
+          { id: 'demo-c1', name: 'Effort', role: 'What the individual contributes' },
+          { id: 'demo-c2', name: 'Outcome', role: 'What they end up with' },
+          { id: 'demo-c3', name: 'Desert', role: 'The claim that the outcome is deserved' },
+        ],
+        relations: [
+          {
+            id: 'demo-r1',
+            from: 'demo-c1',
+            to: 'demo-c2',
+            kind: 'is assumed to produce',
+            note: 'The load-bearing assumption -- if it fails, desert fails with it.',
+          },
+          {
+            id: 'demo-r2',
+            from: 'demo-c2',
+            to: 'demo-c3',
+            kind: 'is taken to justify',
+            note: '',
+          },
+        ],
       },
       properties: {},
     },

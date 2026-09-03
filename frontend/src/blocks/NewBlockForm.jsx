@@ -59,13 +59,17 @@ const WORK_TYPE_STARTER_PROMPTS = {
 
 const WORK_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'work');
 const TIME_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'time');
+const MAPPING_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'mapping');
 
 function workTypeStarterPrompt(type) {
   return WORK_TYPE_STARTER_PROMPTS[type] || `The ${blockRegistry[type].label.toLowerCase()}`;
 }
 
-function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
-  const [type, setType] = useState('text');
+function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes = null }) {
+  // When a Workspace has a kind, start the picker on that kind's own
+  // first Tool rather than on Writing -- "leads with" should mean the
+  // selection too, not just the order of the list.
+  const [type, setType] = useState(() => leadTypes?.find((key) => blockRegistry[key]) || 'text');
   const [text, setText] = useState('');
   const [laneLabel, setLaneLabel] = useState('');
   const [itemLines, setItemLines] = useState('');
@@ -119,10 +123,32 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
         content: { label: text.trim(), startedAt: null, endedAt: null, durationMinutes: null, note: '' },
         properties,
       });
+    } else if (type === 'wordEvolution') {
+      // Starts with just the term; each sense-shift is added afterward
+      // on the block itself.
+      onAdd({ type: 'wordEvolution', content: { term: text.trim(), senses: [] }, properties });
+    } else if (type === 'conceptMap') {
+      // Starts with just the referent; its gloss and every rendering
+      // are added afterward on the block itself.
+      onAdd({ type: 'conceptMap', content: { referent: text.trim(), gloss: '', renderings: [] }, properties });
+    } else if (type === 'model') {
+      // Starts with just the subject; components and the relations
+      // between them are added afterward on the block itself.
+      onAdd({ type: 'model', content: { subject: text.trim(), components: [], relations: [] }, properties });
     } else {
       // Any Work Type -- all of them start with just a statement and
       // an empty support list; both are added to/set afterward on the
       // block itself.
+      //
+      // Guarded rather than a bare fallback: this branch used to catch
+      // *any* type without one of its own, which meant a newly
+      // registered non-Work Tool would silently be created with Work's
+      // content shape. Now an unhandled type is refused loudly instead.
+      if (blockRegistry[type]?.family !== 'work') {
+        throw new Error(
+          `No starter content defined for entry type "${type}" -- add a branch in NewBlockForm.handleSubmit.`
+        );
+      }
       onAdd({ type, content: { statement: text.trim(), support: [], confidence: 'tentative' }, properties });
     }
     setText('');
@@ -137,6 +163,21 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
       <label>
         Entry type:{' '}
         <select value={type} onChange={(event) => setType(event.target.value)}>
+          {/* When a Workspace has a kind, the Tools that kind is built
+              around lead the list -- they still appear in their own
+              family group below, since a kind leads rather than
+              restricts (see registry/workspaceKinds.js). */}
+          {leadTypes && leadTypes.length > 0 && (
+            <optgroup label="For this Workspace">
+              {leadTypes
+                .filter((key) => blockRegistry[key])
+                .map((key) => (
+                  <option key={`lead-${key}`} value={key}>
+                    {blockRegistry[key].label}
+                  </option>
+                ))}
+            </optgroup>
+          )}
           <optgroup label="General">
             <option value="text">Writing</option>
             <option value="list">List</option>
@@ -150,6 +191,13 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
           </optgroup>
           <optgroup label="Time">
             {TIME_TYPES.map(([key, entry]) => (
+              <option key={key} value={key}>
+                {entry.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Mapping">
+            {MAPPING_TYPES.map(([key, entry]) => (
               <option key={key} value={key}>
                 {entry.label}
               </option>
@@ -205,6 +253,12 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [] }) {
               ? 'Milestone label (can be left blank)'
               : type === 'session'
               ? 'Session label (can be left blank)'
+              : type === 'wordEvolution'
+              ? 'The word or term (can be left blank)'
+              : type === 'conceptMap'
+              ? 'The referent -- what is actually being referred to (can be left blank)'
+              : type === 'model'
+              ? 'What is being modeled (can be left blank)'
               : `${workTypeStarterPrompt(type)} (can be left blank)`
           }
           rows={2}

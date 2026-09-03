@@ -68,6 +68,12 @@ CREATE TABLE IF NOT EXISTS workspaces (
   id TEXT PRIMARY KEY,
   space_id TEXT NOT NULL REFERENCES spaces(id),
   name TEXT NOT NULL,
+  -- Which specialized environment this is, e.g. 'analyst', 'etymology'
+  -- -- see frontend/src/registry/workspaceKinds.js, which is where the
+  -- kinds themselves are actually defined. Null means an unkinded
+  -- Workspace: the plain, general-purpose kind every Workspace was
+  -- before kinds existed, and still the result of naming one by hand.
+  kind TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

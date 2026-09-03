@@ -69,6 +69,11 @@ const FAMILY_ROWS = [
     label: 'Time',
     text: 'Due dates, Milestones, Sessions -- anything to do with when.',
   },
+  {
+    accent: defaultBlockTheme('conceptMap').accent,
+    label: 'Mapping',
+    text: 'Structure and relation rather than a single claim -- Word Evolution, Concept Map, Model.',
+  },
 ];
 
 function Legend({ onClose }) {
@@ -102,7 +107,7 @@ function Legend({ onClose }) {
           <p className="legend-intro">
             Every Tool type has its own distinct default look -- color, shape,
             density and typeface -- so two entries never look alike just
-            because you wrote them both. These three are the broad families
+            because you wrote them both. These four are the broad families
             those defaults sit in. Any single Space or Tool can be re-themed by
             hand from its own &ldquo;Theme&rdquo; control.
           </p>

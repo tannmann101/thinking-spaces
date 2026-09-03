@@ -238,3 +238,123 @@ export async function createRelationalSpace(env, { title, spaceIds }) {
   }
   return { ...(await getSpaceById(env, space.id)), changeSummary: space.changeSummary };
 }
+
+// --- Index reads for the Resources and Syntheses pages --------------------
+// Both are listSpacesByTag with the one extra thing that makes each page
+// worth having. Kept here rather than in a new module because they're
+// Space listings that build directly on the one above -- a reader looking
+// for "how does this app list Spaces" finds all of it in one place.
+
+// Every Resource, plus what actually references it. That last part is the
+// point of the page: a Resource nothing points at is one you brought in
+// and never used, which nothing in the app surfaced before.
+//
+// Backlinks are fetched for every Resource in one query rather than one
+// per Resource -- same batching reasoning listAllWorkspaces uses for its
+// own member counts.
+export async function listResourcesIndex(env) {
+  const resources = await listSpacesByTag(env, 'resource');
+  if (resources.length === 0) return [];
+
+  const ids = resources.map((resource) => resource.id);
+  const placeholders = ids.map(() => '?').join(', ');
+  const { results: rows } = await env.DB.prepare(
+    `SELECT json_extract(blocks.content, '$.target_space_id') AS target_id,
+                blocks.space_id AS source_id,
+                spaces.title AS source_title
+           FROM blocks
+           JOIN spaces ON spaces.id = blocks.space_id
+          WHERE blocks.type = 'reference'
+            AND json_extract(blocks.content, '$.target_space_id') IN (${placeholders})`
+  )
+    .bind(...ids)
+    .all();
+
+  // Deduplicated by Space: two Reference blocks in the same Space are
+  // still one Space using this Resource, and listing it twice reads as a
+  // bug rather than as information.
+  const referencedBy = new Map();
+  rows.forEach((row) => {
+    if (!referencedBy.has(row.target_id)) referencedBy.set(row.target_id, new Map());
+    referencedBy.get(row.target_id).set(row.source_id, {
+      spaceId: row.source_id,
+      spaceTitle: row.source_title,
+    });
+  });
+
+  return resources.map((resource) => {
+    const references = [...(referencedBy.get(resource.id)?.values() || [])];
+    // A promoted Synthesis carries the 'resource' tag too, but its
+    // Synthesis kind ('essay', 'poem') is not a *Resource* type -- left
+    // in, it invents bogus type groups on the Resources page. So it's
+    // flagged as produced here instead and grouped on that.
+    const producedHere = (resource.tags || []).includes('synthesis');
+    return {
+      ...resource,
+      producedHere,
+      // The type tags are whatever isn't structural -- 'book', 'lens',
+      // 'person', and anything else freely typed in.
+      typeTags: producedHere
+        ? []
+        : (resource.tags || []).filter((tag) => tag !== 'resource'),
+      referencedBy: references,
+      referenceCount: references.length,
+    };
+  });
+}
+
+// Every Synthesis, plus what it was distilled from. CreateSynthesis.jsx
+// records the source Work items on its own "Source Material" block as
+// properties.sourceItemIds; this resolves those forward into the actual
+// items and the Spaces they came from, which is what makes a Synthesis
+// legible as something *produced* rather than just another Space.
+export async function listSynthesesIndex(env) {
+  const syntheses = await listSpacesByTag(env, 'synthesis');
+  if (syntheses.length === 0) return [];
+
+  const ids = syntheses.map((synthesis) => synthesis.id);
+  const placeholders = ids.map(() => '?').join(', ');
+  const { results: rows } = await env.DB.prepare(
+    `SELECT blocks.space_id AS synthesis_id,
+                source.id AS item_id,
+                source.type AS item_type,
+                source.content AS item_content,
+                source_space.id AS source_space_id,
+                source_space.title AS source_space_title
+           FROM blocks
+           JOIN json_each(blocks.properties, '$.sourceItemIds') AS item
+           JOIN blocks AS source ON source.id = item.value
+           JOIN spaces AS source_space ON source_space.id = source.space_id
+          WHERE blocks.space_id IN (${placeholders})`
+  )
+    .bind(...ids)
+    .all();
+
+  const lineage = new Map();
+  rows.forEach((row) => {
+    if (!lineage.has(row.synthesis_id)) lineage.set(row.synthesis_id, []);
+    lineage.get(row.synthesis_id).push({
+      blockId: row.item_id,
+      type: row.item_type,
+      // A Work item's headline is its statement; a source item that has
+      // since been edited shows its current text, not what was copied.
+      statement: JSON.parse(row.item_content).statement || '',
+      spaceId: row.source_space_id,
+      spaceTitle: row.source_space_title,
+    });
+  });
+
+  return syntheses.map((synthesis) => {
+    const drawnFrom = lineage.get(synthesis.id) || [];
+    return {
+      ...synthesis,
+      // A Synthesis's kind is the freely-chosen tag alongside 'synthesis'
+      // -- 'resource' is excluded because that one means promoted, not a
+      // kind of piece.
+      kinds: (synthesis.tags || []).filter((tag) => tag !== 'synthesis' && tag !== 'resource'),
+      promoted: (synthesis.tags || []).includes('resource'),
+      drawnFrom,
+      sourceSpaceCount: new Set(drawnFrom.map((item) => item.spaceId)).size,
+    };
+  });
+}

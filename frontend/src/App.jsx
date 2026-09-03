@@ -14,6 +14,9 @@ import GraphPage from './pages/GraphPage.jsx';
 import ToolsPage from './pages/ToolsPage.jsx';
 import WorkspacesPage from './pages/WorkspacesPage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
+import SpacesPage from './pages/SpacesPage.jsx';
+import ResourcesPage from './pages/ResourcesPage.jsx';
+import SynthesesPage from './pages/SynthesesPage.jsx';
 import TrashPage from './pages/TrashPage.jsx';
 import LogPage from './pages/LogPage.jsx';
 import InsightsPage from './pages/InsightsPage.jsx';
@@ -40,6 +43,9 @@ function App() {
           <Route path="/resource-templates/:id/edit" element={<ResourceTemplateEditor />} />
           <Route path="/graph" element={<GraphPage />} />
           <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/spaces" element={<SpacesPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/syntheses" element={<SynthesesPage />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/trash" element={<TrashPage />} />

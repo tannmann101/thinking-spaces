@@ -19,6 +19,8 @@ import {
   createRelationalSpace,
   updateSpace,
   deleteSpace,
+  listResourcesIndex,
+  listSynthesesIndex,
 } from './db/spaces.js';
 import {
   listBlocksForSpace,
@@ -519,6 +521,10 @@ export default {
 
       m = path.match(/^\/api\/blocks\/([\w-]+)\/text$/);
       if (m && method === 'PATCH') return await handleSaveTextBlock(request, env, m[1]);
+
+      // The Resources and Syntheses index pages
+      if (path === '/api/resources' && method === 'GET') return json(await listResourcesIndex(env));
+      if (path === '/api/syntheses' && method === 'GET') return json(await listSynthesesIndex(env));
 
       // Trash
       if (path === '/api/trash' && method === 'GET') return json(await listTrash(env));

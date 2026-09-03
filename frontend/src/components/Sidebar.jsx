@@ -18,6 +18,9 @@ import ExportPanel from './ExportPanel.jsx';
 // without losing that path: one obvious way home, not two competing
 // ones.
 const LINKS = [
+  { key: 'spaces', to: '/spaces', label: 'Spaces' },
+  { key: 'resources', to: '/resources', label: 'Resources' },
+  { key: 'syntheses', to: '/syntheses', label: 'Syntheses' },
   { key: 'insights', to: '/insights', label: 'Insights' },
   { key: 'tools', to: '/tools', label: 'Tools' },
   { key: 'workspaces', to: '/workspaces', label: 'Workspaces' },

@@ -16,6 +16,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { exportRouter } from './routes/exportData.js';
 import { searchRouter } from './routes/search.js';
 import { trashRouter } from './routes/trash.js';
+import { collectionsRouter } from './routes/collections.js';
 import { linkPreviewRouter } from './routes/linkPreview.js';
 import { uploadsRouter } from './routes/uploads.js';
 import {
@@ -62,6 +63,7 @@ app.use('/api', dashboardRouter);
 app.use('/api', exportRouter);
 app.use('/api', searchRouter);
 app.use('/api', trashRouter);
+app.use('/api', collectionsRouter);
 app.use('/api', linkPreviewRouter);
 app.use('/api', uploadsRouter);
 

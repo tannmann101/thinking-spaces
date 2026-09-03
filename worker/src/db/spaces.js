@@ -5,6 +5,7 @@ import { logActivity } from './activityLog.js';
 import { applyTemplate } from './templates.js';
 import { createWorkspace } from './workspaces.js';
 import { addBlockToSpace } from './blocks.js';
+import { recordTrash } from './trash.js';
 
 async function getRelationDensity(env, spaceId) {
   const outgoing = await env.DB.prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ? AND type = 'reference'`)
@@ -156,6 +157,17 @@ export async function deleteSpace(env, id) {
     throw new Error('The Test Space cannot be deleted');
   }
   const existing = await getSpaceById(env, id);
+
+  // Snapshot everything about to be removed, so this is undoable.
+  if (existing) {
+    const payload = {};
+    payload.spaces = (await env.DB.prepare(`SELECT * FROM spaces WHERE id = ?`).bind(id).all()).results;
+    payload.blocks = (await env.DB.prepare(`SELECT * FROM blocks WHERE space_id = ?`).bind(id).all()).results;
+    payload.workspaces = (await env.DB.prepare(`SELECT * FROM workspaces WHERE space_id = ?`).bind(id).all()).results;
+    payload.projects = (await env.DB.prepare(`SELECT * FROM projects WHERE space_id = ?`).bind(id).all()).results;
+    payload.trail_entries = (await env.DB.prepare(`SELECT * FROM trail_entries WHERE space_id = ?`).bind(id).all()).results;
+    await recordTrash(env, { kind: 'space', label: existing.title, context: null, payload });
+  }
   await env.DB.prepare(`DELETE FROM blocks WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM workspaces WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM projects WHERE space_id = ?`).bind(id).run();

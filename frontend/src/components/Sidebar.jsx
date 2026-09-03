@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createSpace, getNotificationCount } from '../api.js';
 import Legend from './Legend.jsx';
+import ExportPanel from './ExportPanel.jsx';
 
 // The one persistent piece of chrome shared by every page in the app --
 // originally a horizontal top bar (see the git history for TopNav.jsx),
@@ -32,6 +33,8 @@ function Sidebar({ current }) {
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [searchDraft, setSearchDraft] = useState('');
 
   // Fetched on every page, since the sidebar renders everywhere -- a
   // deliberately narrow, already-actionable count (overdue List
@@ -56,6 +59,17 @@ function Sidebar({ current }) {
   // title -- the same "Start Blank" a Space already supports, minus
   // every step between typing a name and landing on the page to
   // actually think in.
+  // Search lives in the Sidebar rather than on one page because the
+  // original complaint was "hard to find things" -- a search you have to
+  // navigate to first only half solves that. Submitting hands off to the
+  // /search page, which owns the actual query and its results.
+  function submitSearch(event) {
+    event.preventDefault();
+    const q = searchDraft.trim();
+    if (!q) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  }
+
   async function submitCapture(event) {
     event.preventDefault();
     const title = draft.trim();
@@ -98,6 +112,16 @@ function Sidebar({ current }) {
         </button>
       )}
 
+      <form className="sidebar-search" onSubmit={submitSearch} role="search">
+        <input
+          type="search"
+          value={searchDraft}
+          placeholder="Search everything"
+          aria-label="Search everything"
+          onChange={(event) => setSearchDraft(event.target.value)}
+        />
+      </form>
+
       <nav className="nav-links">
         {LINKS.map((link) => (
           <Link key={link.key} to={link.to} className={current === link.key ? 'nav-link-current' : undefined}>
@@ -116,6 +140,15 @@ function Sidebar({ current }) {
         ? How to read this app
       </button>
       {showLegend && <Legend onClose={() => setShowLegend(false)} />}
+
+      <Link to="/trash" className="legend-trigger">
+        Recently deleted
+      </Link>
+
+      <button type="button" className="legend-trigger" onClick={() => setShowExport(true)}>
+        Export everything
+      </button>
+      {showExport && <ExportPanel onClose={() => setShowExport(false)} />}
     </aside>
   );
 }

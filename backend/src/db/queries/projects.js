@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { logActivity } from './activityLog.js';
+import { recordTrash } from './trash.js';
 
 // --- Projects ---------------------------------------------------------
 // A Project is a real, named goal/project inside one Space that a
@@ -49,6 +50,15 @@ export function updateProject(id, { name }) {
 // or Category is already handled. Nothing crashes; the frontend simply
 // doesn't find a matching Project to show a chip for anymore.
 export function deleteProject(id) {
+  const trashed = getProjectById(id);
+  if (trashed) {
+    recordTrash({
+      kind: 'project',
+      label: trashed.name || '(untitled)',
+      context: null,
+      payload: { projects: db.prepare(`SELECT * FROM projects WHERE id = ?`).all(id) },
+    });
+  }
   const existing = getProjectById(id);
   db.prepare(`DELETE FROM projects WHERE id = ?`).run(id);
   if (existing) {

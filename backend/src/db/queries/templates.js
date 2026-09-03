@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { logActivity } from './activityLog.js';
 import { createBlock } from './blocks.js';
+import { recordTrash } from './trash.js';
 
 function parseTemplateRow(row) {
   if (!row) return row;
@@ -49,6 +50,15 @@ export function updateTemplate(id, { name, blockArrangement }) {
 }
 
 export function deleteTemplate(id) {
+  const trashed = getTemplateById(id);
+  if (trashed) {
+    recordTrash({
+      kind: 'template',
+      label: trashed.name || '(untitled)',
+      context: null,
+      payload: { templates: db.prepare(`SELECT * FROM templates WHERE id = ?`).all(id) },
+    });
+  }
   const existing = getTemplateById(id);
   db.prepare(`DELETE FROM templates WHERE id = ?`).run(id);
   if (existing) {

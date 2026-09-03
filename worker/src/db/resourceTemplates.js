@@ -6,6 +6,7 @@
 // already established.
 
 import { logActivity } from './activityLog.js';
+import { recordTrash } from './trash.js';
 
 function parseResourceTemplateRow(row) {
   if (!row) return row;
@@ -48,6 +49,16 @@ export async function updateResourceTemplate(env, id, { type, label, facets }) {
 }
 
 export async function deleteResourceTemplate(env, id) {
+  const trashed = await getResourceTemplateById(env, id);
+  if (trashed) {
+    const rows = (await env.DB.prepare(`SELECT * FROM resource_templates WHERE id = ?`).bind(id).all()).results;
+    await recordTrash(env, {
+      kind: 'resource_template',
+      label: trashed.label || '(untitled)',
+      context: null,
+      payload: { resource_templates: rows },
+    });
+  }
   const existing = await getResourceTemplateById(env, id);
   await env.DB.prepare(`DELETE FROM resource_templates WHERE id = ?`).bind(id).run();
   if (existing) {

@@ -16,6 +16,7 @@ const TABLES = [
   'spaces',
   'templates',
   'resource_templates',
+  'trash',
 ];
 
 export function resetDb() {

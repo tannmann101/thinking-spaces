@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { TEST_SPACE_ID } from './constants.js';
 import { logActivity } from './activityLog.js';
+import { recordTrash } from './trash.js';
 import { normalizeTextContent, normalizeWorkContent } from './normalize.js';
 import { WORK_TYPES } from './work.js';
 
@@ -250,6 +251,18 @@ export function addBlockToSpace(spaceId, { type, content = {}, properties = {} }
 
 export function deleteBlock(id) {
   const block = getBlockById(id);
+  // Snapshotted before removal so the delete is undoable -- see
+  // queries/trash.js. The raw row, not the parsed one getBlockById
+  // returns, since restoring re-inserts columns verbatim.
+  if (block) {
+    const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(block.space_id);
+    recordTrash({
+      kind: 'block',
+      label: block.type,
+      context: space?.title ?? null,
+      payload: { blocks: db.prepare(`SELECT * FROM blocks WHERE id = ?`).all(id) },
+    });
+  }
   db.prepare(`DELETE FROM blocks WHERE id = ?`).run(id);
   if (block) {
     const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(block.space_id);

@@ -260,6 +260,15 @@ export const createWorkspace = (spaceId, name, kind = null, starterBlocks = []) 
   });
 // Every Workspace across every Space -- the top-level page's directory.
 export const getAllWorkspaces = () => request('/workspaces');
+// Everywhere a phrase appears -- Space titles/goals plus entry content.
+export const searchEverything = (q) => request(`/search?q=${encodeURIComponent(q)}`);
+
+// Trash: what a delete removed, and putting it back. Purging is the one
+// genuinely permanent action in the app.
+export const getTrash = () => request('/trash');
+export const restoreFromTrash = (id) => request(`/trash/${id}/restore`, { method: 'POST' });
+export const purgeTrashEntry = (id) => request(`/trash/${id}`, { method: 'DELETE' });
+export const emptyTrash = () => request('/trash', { method: 'DELETE' });
 export const renameWorkspace = (id, name) =>
   request(`/workspaces/${id}`, {
     method: 'PATCH',

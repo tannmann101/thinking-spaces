@@ -3871,3 +3871,99 @@ label {
   font-size: var(--fs-md);
   color: var(--ink-dim);
 }
+
+/* The export panel's two download options. Reuses the Legend overlay
+   and panel chrome -- only the option list is new. */
+.export-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.export-options li + li {
+  margin-top: 16px;
+}
+
+.export-options .empty-note {
+  margin: 4px 0 0;
+}
+
+/* The persistent Sidebar search box. Submitting hands off to /search --
+   the input itself holds no results, so it stays out of the way. */
+.sidebar-search {
+  margin-bottom: 14px;
+}
+
+.sidebar-search input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+}
+
+.search-summary {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+.search-results {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.search-result {
+  padding: 8px 0 8px 10px;
+  border-left: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.search-result-meta {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+.search-excerpt {
+  margin: 4px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+/* Recently deleted. Restore is the ordinary action; the permanent ones
+   are plain ghost buttons rather than danger-styled, since the page
+   already frames what they do. */
+.trash-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.trash-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.trash-label {
+  color: var(--ink);
+}
+
+.trash-meta {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+.trash-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* The Sidebar footer holds a mix of buttons and one link; without this
+   the link alone picks up an underline and reads as the odd one out. */
+a.legend-trigger {
+  text-decoration: none;
+}

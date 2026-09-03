@@ -13,6 +13,8 @@ import ResourceTemplateEditor from './pages/ResourceTemplateEditor.jsx';
 import GraphPage from './pages/GraphPage.jsx';
 import ToolsPage from './pages/ToolsPage.jsx';
 import WorkspacesPage from './pages/WorkspacesPage.jsx';
+import SearchPage from './pages/SearchPage.jsx';
+import TrashPage from './pages/TrashPage.jsx';
 import LogPage from './pages/LogPage.jsx';
 import InsightsPage from './pages/InsightsPage.jsx';
 import { ConfirmDialogProvider } from './components/ConfirmDialog.jsx';
@@ -39,6 +41,8 @@ function App() {
           <Route path="/graph" element={<GraphPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/trash" element={<TrashPage />} />
           <Route path="/log" element={<LogPage />} />
           <Route path="/insights" element={<InsightsPage />} />
         </Routes>

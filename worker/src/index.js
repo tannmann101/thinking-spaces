@@ -62,6 +62,10 @@ import { getWorkMixInsights, getThemeInsights, getActivityTrendInsights, getProv
 import { getSpaceReport, getWorkspaceReport, getProjectReport, getBlockReport } from './db/reports.js';
 import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from './db/dashboard.js';
 import { renderReportText } from './reportFormat.js';
+import { getFullExport } from './db/exportData.js';
+import { searchEverything } from './db/search.js';
+import { listTrash, restoreFromTrash, purgeTrashEntry, emptyTrash } from './db/trash.js';
+import { renderExportMarkdown } from './exportFormat.js';
 import { isSafeUrl, extractLinkMeta } from './linkPreview.js';
 import { describeBlockContentChange } from './changeSummary.js';
 
@@ -251,6 +255,33 @@ async function handleSaveTextBlock(request, env, id) {
 }
 
 // ---------- Workspaces ----------
+
+function exportStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// A complete, downloadable copy of everything -- see
+// backend/src/db/queries/exportData.js for the reasoning. Sent as an
+// attachment so the browser saves it rather than rendering it.
+async function handleExportJson(env) {
+  const data = await getFullExport(env);
+  return new Response(JSON.stringify(data, null, 2), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="thinking-spaces-${exportStamp()}.json"`,
+    },
+  });
+}
+
+async function handleExportMarkdown(env) {
+  const data = await getFullExport(env);
+  return new Response(renderExportMarkdown(data), {
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Content-Disposition': `attachment; filename="thinking-spaces-${exportStamp()}.md"`,
+    },
+  });
+}
 
 async function handleCreateWorkspace(request, env, spaceId) {
   const body = (await readJson(request)) || {};
@@ -488,6 +519,32 @@ export default {
 
       m = path.match(/^\/api\/blocks\/([\w-]+)\/text$/);
       if (m && method === 'PATCH') return await handleSaveTextBlock(request, env, m[1]);
+
+      // Trash
+      if (path === '/api/trash' && method === 'GET') return json(await listTrash(env));
+      if (path === '/api/trash' && method === 'DELETE') return json({ purged: await emptyTrash(env) });
+
+      m = path.match(/^\/api\/trash\/([\w-]+)\/restore$/);
+      if (m && method === 'POST') {
+        const restored = await restoreFromTrash(env, m[1]);
+        if (!restored) return errorResponse('Nothing in the trash with that id', 404);
+        return json({ ...restored, changeSummary: `Restored ${restored.kind} "${restored.label}"` });
+      }
+
+      m = path.match(/^\/api\/trash\/([\w-]+)$/);
+      if (m && method === 'DELETE') {
+        if (!(await purgeTrashEntry(env, m[1]))) return errorResponse('Nothing in the trash with that id', 404);
+        return new Response(null, { status: 204 });
+      }
+
+      // Search
+      if (path === '/api/search' && method === 'GET') {
+        return json(await searchEverything(env, url.searchParams.get('q') || ''));
+      }
+
+      // Export
+      if (path === '/api/export/json' && method === 'GET') return await handleExportJson(env);
+      if (path === '/api/export/markdown' && method === 'GET') return await handleExportMarkdown(env);
 
       // Workspaces
       // The cross-Space directory, matched before /workspaces/:id below

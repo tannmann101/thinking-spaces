@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { logActivity } from './activityLog.js';
 import { createBlock, nextPosition } from './blocks.js';
+import { recordTrash } from './trash.js';
 
 // --- Workspaces ---------------------------------------------------------
 // A Workspace is a deliberately assembled, named environment inside one
@@ -74,6 +75,15 @@ export function updateWorkspace(id, { name }) {
 // doesn't find a matching Workspace to show a chip for anymore.
 export function deleteWorkspace(id) {
   const existing = getWorkspaceById(id);
+  if (existing) {
+    const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(existing.space_id);
+    recordTrash({
+      kind: 'workspace',
+      label: existing.name,
+      context: space?.title ?? null,
+      payload: { workspaces: [existing] },
+    });
+  }
   db.prepare(`DELETE FROM workspaces WHERE id = ?`).run(id);
   if (existing) {
     const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(existing.space_id);

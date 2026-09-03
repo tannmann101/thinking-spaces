@@ -33,3 +33,6 @@ export * from './queries/log.js';
 export * from './queries/insights.js';
 export * from './queries/reports.js';
 export * from './queries/dashboard.js';
+export * from './queries/exportData.js';
+export * from './queries/search.js';
+export * from './queries/trash.js';

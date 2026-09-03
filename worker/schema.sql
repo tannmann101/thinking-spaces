@@ -115,3 +115,24 @@ CREATE TABLE IF NOT EXISTS activity_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at);
+
+-- Trash: what a delete removed, kept so it can be put back.
+--
+-- Deliberately a snapshot table rather than a `deleted_at` column on
+-- every table. A soft-delete column would mean every read query in the
+-- app filtering it forever, and one missed filter means deleted content
+-- quietly reappearing. This way the delete paths are the only code that
+-- changes, and no existing read is touched at all.
+--
+-- `payload` holds the removed rows exactly as they were, keyed by table
+-- name -- so restoring a Space puts its blocks, Workspaces, Projects and
+-- Trail entries back too, not just the spaces row.
+CREATE TABLE IF NOT EXISTS trash (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,           -- 'space' | 'block' | 'workspace' | 'project' | 'template' | 'resource_template'
+  label TEXT NOT NULL,          -- what it was called, for the Trash list
+  context TEXT,                 -- where it lived, e.g. its Space's title
+  payload TEXT NOT NULL,        -- JSON: { tableName: [rows...] }
+  deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_trash_deleted_at ON trash(deleted_at);

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { TEST_SPACE_ID, todayString } from './constants.js';
 import { logActivity } from './activityLog.js';
+import { recordTrash } from './trash.js';
 import { applyTemplate } from './templates.js';
 import { createWorkspace } from './workspaces.js';
 import { addBlockToSpace } from './blocks.js';
@@ -234,6 +235,25 @@ export function deleteSpace(id) {
     throw new Error('The Test Space cannot be deleted');
   }
   const existing = getSpaceById(id);
+
+  // Snapshot everything about to be removed, so this is undoable. Rows
+  // are captured in the order they'd need to go back -- the Space first,
+  // then everything that references it -- see queries/trash.js.
+  if (existing) {
+    recordTrash({
+      kind: 'space',
+      label: existing.title,
+      context: null,
+      payload: {
+        spaces: db.prepare(`SELECT * FROM spaces WHERE id = ?`).all(id),
+        blocks: db.prepare(`SELECT * FROM blocks WHERE space_id = ?`).all(id),
+        workspaces: db.prepare(`SELECT * FROM workspaces WHERE space_id = ?`).all(id),
+        projects: db.prepare(`SELECT * FROM projects WHERE space_id = ?`).all(id),
+        trail_entries: db.prepare(`SELECT * FROM trail_entries WHERE space_id = ?`).all(id),
+      },
+    });
+  }
+
   db.prepare(`DELETE FROM blocks WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM workspaces WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM projects WHERE space_id = ?`).run(id);

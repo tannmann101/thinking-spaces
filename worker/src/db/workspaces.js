@@ -2,6 +2,7 @@
 
 import { logActivity } from './activityLog.js';
 import { createBlock, nextPosition } from './blocks.js';
+import { recordTrash } from './trash.js';
 
 export async function listWorkspacesForSpace(env, spaceId) {
   const { results } = await env.DB.prepare(`SELECT * FROM workspaces WHERE space_id = ? ORDER BY created_at ASC`)
@@ -56,6 +57,15 @@ export async function updateWorkspace(env, id, { name }) {
 // Category is handled.
 export async function deleteWorkspace(env, id) {
   const existing = await getWorkspaceById(env, id);
+  if (existing) {
+    const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(existing.space_id).first();
+    await recordTrash(env, {
+      kind: 'workspace',
+      label: existing.name,
+      context: space?.title ?? null,
+      payload: { workspaces: [existing] },
+    });
+  }
   await env.DB.prepare(`DELETE FROM workspaces WHERE id = ?`).bind(id).run();
   if (existing) {
     const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(existing.space_id).first();

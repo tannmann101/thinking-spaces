@@ -4,6 +4,7 @@ import { TEST_SPACE_ID } from './constants.js';
 import { logActivity } from './activityLog.js';
 import { normalizeTextContent, normalizeWorkContent } from './normalize.js';
 import { WORK_TYPES } from './work.js';
+import { recordTrash } from './trash.js';
 
 function parseBlockRow(row) {
   if (!row) return row;
@@ -231,6 +232,18 @@ export async function addBlockToSpace(env, spaceId, { type, content = {}, proper
 
 export async function deleteBlock(env, id) {
   const block = await getBlockById(env, id);
+  // Snapshotted before removal so the delete is undoable. The raw row,
+  // not the parsed one getBlockById returns.
+  if (block) {
+    const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(block.space_id).first();
+    const rows = (await env.DB.prepare(`SELECT * FROM blocks WHERE id = ?`).bind(id).all()).results;
+    await recordTrash(env, {
+      kind: 'block',
+      label: block.type,
+      context: space?.title ?? null,
+      payload: { blocks: rows },
+    });
+  }
   await env.DB.prepare(`DELETE FROM blocks WHERE id = ?`).bind(id).run();
   if (block) {
     const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(block.space_id).first();

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { logActivity } from './activityLog.js';
+import { recordTrash } from './trash.js';
 
 // --- Resource Templates -------------------------------------------------
 // A deliberately separate mechanism from the ordinary Templates table
@@ -61,6 +62,15 @@ export function updateResourceTemplate(id, { type, label, facets }) {
 }
 
 export function deleteResourceTemplate(id) {
+  const trashed = getResourceTemplateById(id);
+  if (trashed) {
+    recordTrash({
+      kind: 'resource_template',
+      label: trashed.label || '(untitled)',
+      context: null,
+      payload: { resource_templates: db.prepare(`SELECT * FROM resource_templates WHERE id = ?`).all(id) },
+    });
+  }
   const existing = getResourceTemplateById(id);
   db.prepare(`DELETE FROM resource_templates WHERE id = ?`).run(id);
   if (existing) {

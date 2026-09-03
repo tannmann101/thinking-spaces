@@ -1,6 +1,7 @@
 // Ported from backend/src/db/queries/projects.js.
 
 import { logActivity } from './activityLog.js';
+import { recordTrash } from './trash.js';
 
 export async function listProjectsForSpace(env, spaceId) {
   const { results } = await env.DB.prepare(`SELECT * FROM projects WHERE space_id = ? ORDER BY created_at ASC`)
@@ -37,6 +38,16 @@ export async function updateProject(env, id, { name }) {
 // with a stale id nothing resolves to, exactly how a removed Workspace
 // or Category is already handled.
 export async function deleteProject(env, id) {
+  const trashed = await getProjectById(env, id);
+  if (trashed) {
+    const rows = (await env.DB.prepare(`SELECT * FROM projects WHERE id = ?`).bind(id).all()).results;
+    await recordTrash(env, {
+      kind: 'project',
+      label: trashed.name || '(untitled)',
+      context: null,
+      payload: { projects: rows },
+    });
+  }
   const existing = await getProjectById(env, id);
   await env.DB.prepare(`DELETE FROM projects WHERE id = ?`).bind(id).run();
   if (existing) {

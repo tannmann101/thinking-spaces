@@ -43,6 +43,39 @@ beforeEach(() => {
 });
 
 describe('Dashboard: Space list', () => {
+  it('hands off to the Spaces index rather than carrying the whole list', async () => {
+    api.getSpaces.mockResolvedValue([makeSpace()]);
+    renderDashboard();
+    const link = await screen.findByRole('link', { name: /See all 1/ });
+    expect(link).toHaveAttribute('href', '/spaces');
+  });
+
+  it('caps how many Spaces it shows, since the full index lives elsewhere', async () => {
+    api.getSpaces.mockResolvedValue(
+      Array.from({ length: 10 }, (_, i) => makeSpace({ id: `s${i}`, title: `Space ${i}` }))
+    );
+    renderDashboard();
+    await screen.findByRole('link', { name: /See all 10/ });
+    expect(document.querySelectorAll('.space-card').length).toBeLessThan(10);
+  });
+
+  it('always shows an overdue Space, even past the cap', async () => {
+    api.getSpaces.mockResolvedValue([
+      ...Array.from({ length: 10 }, (_, i) => makeSpace({ id: `s${i}`, title: `Space ${i}` })),
+      makeSpace({ id: 'late', title: 'Overdue One', due_date: '2020-01-01', isOverdue: true }),
+    ]);
+    renderDashboard();
+    expect(await screen.findByRole('link', { name: 'Overdue One' })).toBeInTheDocument();
+  });
+
+  it('no longer offers search, a status filter or delete -- those moved to the Spaces index', async () => {
+    api.getSpaces.mockResolvedValue([makeSpace()]);
+    renderDashboard();
+    await screen.findByRole('link', { name: /See all/ });
+    expect(screen.queryByPlaceholderText(/Search Spaces/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
   it('shows a loading state, then the Space list once fetched', async () => {
     api.getSpaces.mockResolvedValue([makeSpace({ title: 'My First Space' })]);
     renderDashboard();
@@ -74,106 +107,6 @@ describe('Dashboard: Space list', () => {
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
   });
 
-  it('shows tag chips for a Space that has tags', async () => {
-    api.getSpaces.mockResolvedValue([makeSpace({ title: 'Tagged', tags: ['resource', 'book'] })]);
-    renderDashboard();
-    await screen.findByText('Tagged');
-    expect(screen.getByText('resource')).toBeInTheDocument();
-    expect(screen.getByText('book')).toBeInTheDocument();
-  });
-});
-
-describe('Dashboard: search and status filter', () => {
-  it('filters the Space list by title as you type', async () => {
-    const user = userEvent.setup();
-    api.getSpaces.mockResolvedValue([makeSpace({ id: 'a', title: 'Alpha' }), makeSpace({ id: 'b', title: 'Beta' })]);
-    renderDashboard();
-    await screen.findByText('Alpha');
-
-    await user.type(screen.getByPlaceholderText('Search Spaces by title...'), 'Alp');
-    expect(screen.getByText('Alpha')).toBeInTheDocument();
-    expect(screen.queryByText('Beta')).not.toBeInTheDocument();
-  });
-
-  it('shows a "no matches" message when the search matches nothing', async () => {
-    const user = userEvent.setup();
-    api.getSpaces.mockResolvedValue([makeSpace({ title: 'Alpha' })]);
-    renderDashboard();
-    await screen.findByText('Alpha');
-    await user.type(screen.getByPlaceholderText('Search Spaces by title...'), 'zzz');
-    expect(await screen.findByText('No Spaces match “zzz”.')).toBeInTheDocument();
-  });
-
-  it('filters by status when a status chip is clicked, and toggles off on a second click', async () => {
-    const user = userEvent.setup();
-    api.getSpaces.mockResolvedValue([
-      makeSpace({ id: 'a', title: 'Inactive one', status: 'inactive' }),
-      makeSpace({ id: 'b', title: 'Mature one', status: 'mature' }),
-    ]);
-    renderDashboard();
-    await screen.findByText('Inactive one');
-    // Both the filter chip and the Mature Space's own status-pill show
-    // the word "mature" -- scope to the filter strip specifically. The
-    // chip also carries a count now, so match on a prefix rather than
-    // the exact bare word.
-    const matureChip = [...document.querySelectorAll('.category-filter-tab')].find((el) =>
-      el.textContent.startsWith('mature ')
-    );
-
-    await user.click(matureChip);
-    expect(screen.queryByText('Inactive one')).not.toBeInTheDocument();
-    expect(screen.getByText('Mature one')).toBeInTheDocument();
-
-    await user.click(matureChip);
-    expect(screen.getByText('Inactive one')).toBeInTheDocument();
-  });
-
-  it('shows a count on each status tab, reflecting the current search text', async () => {
-    api.getSpaces.mockResolvedValue([
-      makeSpace({ id: 'a', title: 'Alpha', status: 'inactive' }),
-      makeSpace({ id: 'b', title: 'Beta', status: 'mature' }),
-      makeSpace({ id: 'c', title: 'Gamma', status: 'mature' }),
-    ]);
-    renderDashboard();
-    await screen.findByText('Alpha');
-    const tabs = [...document.querySelectorAll('.category-filter-tab')].map((el) => el.textContent);
-    expect(tabs).toContain('All (3)');
-    expect(tabs).toContain('mature (2)');
-    expect(tabs).toContain('inactive (1)');
-    expect(tabs).toContain('active (0)');
-  });
-});
-
-describe('Dashboard: deleting a Space', () => {
-  it('deletes a Space once the type-to-confirm dialog matches, and refetches the list', async () => {
-    const user = userEvent.setup();
-    api.getSpaces.mockResolvedValueOnce([makeSpace({ title: 'Doomed Space' })]).mockResolvedValueOnce([]);
-    api.deleteSpace.mockResolvedValue(null);
-    renderDashboard();
-    await screen.findByText('Doomed Space');
-
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
-    const input = await screen.findByPlaceholderText('Type "Doomed Space" to confirm');
-    await user.type(input, 'Doomed Space');
-    const dialog = input.closest('.confirm-dialog');
-    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
-
-    await waitFor(() => expect(api.deleteSpace).toHaveBeenCalledWith('space-1'));
-    expect(api.getSpaces).toHaveBeenCalledTimes(2);
-  });
-
-  it('does not delete when the confirmation dialog is cancelled', async () => {
-    const user = userEvent.setup();
-    api.getSpaces.mockResolvedValue([makeSpace({ title: 'Safe Space' })]);
-    renderDashboard();
-    await screen.findByText('Safe Space');
-
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
-    await screen.findByPlaceholderText('Type "Safe Space" to confirm');
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(api.deleteSpace).not.toHaveBeenCalled();
-  });
 });
 
 describe('Dashboard: digests', () => {

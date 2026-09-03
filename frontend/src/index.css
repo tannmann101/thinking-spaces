@@ -3967,3 +3967,146 @@ label {
 a.legend-trigger {
   text-decoration: none;
 }
+
+/* ---------- The three index pages ---------------------------------- */
+/* Spaces, Resources and Syntheses. All three are card grids over a kind
+   of Space, so they share a card rhythm -- but each shows the one thing
+   that earns it its own page, so the cards differ in what they carry. */
+
+.space-index-grid,
+.resource-grid,
+.synthesis-grid {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  /* Cards size to their own content. Without this a grid row stretches
+     every card to match the tallest, leaving dead space under the short
+     ones -- and these cards genuinely differ in height, since a Space
+     with Categories and Milestones has more to say than a bare one. */
+  align-items: start;
+}
+
+.space-index-card,
+.resource-card,
+.synthesis-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border-left: 3px solid var(--item-accent, var(--border));
+}
+
+.space-index-head,
+.synthesis-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.space-index-title,
+.resource-card-title,
+.synthesis-card-title {
+  font-family: var(--display);
+  font-size: var(--fs-lg);
+}
+
+.space-index-status {
+  margin: 18px 0 8px;
+  font-size: var(--fs-lg);
+  text-transform: capitalize;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 3px;
+}
+
+.space-index-count {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+.space-index-goal,
+.resource-card-goal {
+  margin: 4px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+.space-index-meta,
+.resource-summary,
+.synthesis-card-meta {
+  margin: 4px 0 0;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+.space-index-categories,
+.resource-card-facets {
+  margin: 6px 0 0;
+}
+
+/* A Resource nothing points at is the finding this page exists to
+   surface, so it reads differently from one that's in use. */
+.resource-card-unused {
+  margin: 6px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--theme-accent-clay);
+}
+
+.resource-card-used {
+  margin: 6px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+.synthesis-card-label {
+  margin: 8px 0 2px;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.synthesis-lineage {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 10px;
+  border-left: 1px solid var(--border);
+}
+
+.synthesis-lineage li {
+  padding: 3px 0;
+  font-size: var(--fs-sm);
+}
+
+.synthesis-lineage-text {
+  display: block;
+  color: var(--ink-dim);
+}
+
+.synthesis-lineage-space {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
+@media (max-width: 760px) {
+  .space-index-grid,
+  .resource-grid,
+  .synthesis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* "See all" hands off from the Dashboard's glance surface to the real
+   index page, so the two never carry the same full list. */
+.see-all-link {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}

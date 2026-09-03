@@ -11,12 +11,15 @@ import {
   ensureTestSpaceExists,
   createRelationalSpace,
   migrateSpaceStatuses,
+  listResourcesIndex,
+  listSynthesesIndex,
 } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
 import { createProject } from '../projects.js';
 import { addBlockToSpace, listBlocksForSpace } from '../blocks.js';
 import { createTemplate } from '../templates.js';
 import { TEST_SPACE_ID } from '../constants.js';
+import { createBlock, updateBlockContent } from '../blocks.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
 describe('createSpace / getSpaceById', () => {
@@ -420,5 +423,127 @@ describe('migrateSpaceStatuses', () => {
     migrateSpaceStatuses();
     migrateSpaceStatuses();
     expect(getSpaceById('e').status).toBe('active');
+  });
+});
+
+describe('listResourcesIndex', () => {
+  beforeEach(() => resetDb());
+
+  it('returns nothing when there are no Resources', () => {
+    expect(listResourcesIndex()).toEqual([]);
+  });
+
+  it('separates the type tags from the structural "resource" tag', () => {
+    createSpace({ title: 'A Book', tags: ['resource', 'book'] });
+    const [resource] = listResourcesIndex();
+    expect(resource.typeTags).toEqual(['book']);
+  });
+
+  it('reports a Resource nothing references -- the reading this page exists for', () => {
+    createSpace({ title: 'Unused', tags: ['resource'] });
+    const [resource] = listResourcesIndex();
+    expect(resource.referenceCount).toBe(0);
+    expect(resource.referencedBy).toEqual([]);
+  });
+
+  it('names which Spaces reference a Resource', () => {
+    const resource = createSpace({ title: 'A Book', tags: ['resource'] });
+    const user = createSpace({ title: 'Using Space' });
+    createBlock({
+      spaceId: user.id,
+      type: 'reference',
+      content: { target_space_id: resource.id },
+      position: 0,
+    });
+    const [indexed] = listResourcesIndex();
+    expect(indexed.referenceCount).toBe(1);
+    expect(indexed.referencedBy[0].spaceTitle).toBe('Using Space');
+  });
+
+  it('counts a Space once even when it references the Resource twice', () => {
+    const resource = createSpace({ title: 'A Book', tags: ['resource'] });
+    const user = createSpace({ title: 'Using Space' });
+    [0, 1].forEach((position) =>
+      createBlock({
+        spaceId: user.id,
+        type: 'reference',
+        content: { target_space_id: resource.id },
+        position,
+      })
+    );
+    expect(listResourcesIndex()[0].referenceCount).toBe(1);
+  });
+});
+
+describe('listSynthesesIndex', () => {
+  beforeEach(() => resetDb());
+
+  it('returns nothing when there are no Syntheses', () => {
+    expect(listSynthesesIndex()).toEqual([]);
+  });
+
+  it('reads the kind from the tag alongside "synthesis", and not "resource"', () => {
+    createSpace({ title: 'An Essay', tags: ['synthesis', 'essay', 'resource'] });
+    const [synthesis] = listSynthesesIndex();
+    expect(synthesis.kinds).toEqual(['essay']);
+    expect(synthesis.promoted).toBe(true);
+  });
+
+  it('reads an unpromoted Synthesis as not promoted', () => {
+    createSpace({ title: 'A Draft', tags: ['synthesis'] });
+    expect(listSynthesesIndex()[0].promoted).toBe(false);
+  });
+
+  it('resolves lineage forward to the real Work items and their Spaces', () => {
+    const source = createSpace({ title: 'Source Space' });
+    const item = createBlock({
+      spaceId: source.id,
+      type: 'assessment',
+      content: { statement: 'A claim', support: [], confidence: 'solid' },
+      position: 0,
+    });
+    const synthesis = createSpace({ title: 'The Piece', tags: ['synthesis'] });
+    createBlock({
+      spaceId: synthesis.id,
+      type: 'text',
+      content: { lines: [] },
+      properties: { sourceItemIds: [item.id] },
+      position: 0,
+    });
+
+    const [indexed] = listSynthesesIndex();
+    expect(indexed.drawnFrom).toHaveLength(1);
+    expect(indexed.drawnFrom[0]).toMatchObject({
+      type: 'assessment',
+      statement: 'A claim',
+      spaceTitle: 'Source Space',
+    });
+    expect(indexed.sourceSpaceCount).toBe(1);
+  });
+
+  it('shows a source claim as it reads now, not as it read when compiled', () => {
+    const source = createSpace({ title: 'Source Space' });
+    const item = createBlock({
+      spaceId: source.id,
+      type: 'assessment',
+      content: { statement: 'Original wording', support: [], confidence: 'solid' },
+      position: 0,
+    });
+    const synthesis = createSpace({ title: 'The Piece', tags: ['synthesis'] });
+    createBlock({
+      spaceId: synthesis.id,
+      type: 'text',
+      content: { lines: [] },
+      properties: { sourceItemIds: [item.id] },
+      position: 0,
+    });
+    updateBlockContent(item.id, { statement: 'Edited wording', support: [], confidence: 'solid' });
+
+    expect(listSynthesesIndex()[0].drawnFrom[0].statement).toBe('Edited wording');
+  });
+
+  it('reports no recorded sources for a Synthesis made before lineage was tracked', () => {
+    createSpace({ title: 'Old One', tags: ['synthesis'] });
+    expect(listSynthesesIndex()[0].drawnFrom).toEqual([]);
   });
 });

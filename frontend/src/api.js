@@ -260,6 +260,11 @@ export const createWorkspace = (spaceId, name, kind = null, starterBlocks = []) 
   });
 // Every Workspace across every Space -- the top-level page's directory.
 export const getAllWorkspaces = () => request('/workspaces');
+// The Resources and Syntheses index pages -- each is a tag listing plus
+// the one extra thing that makes the page worth having (what references
+// a Resource; what fed a Synthesis).
+export const getResourcesIndex = () => request('/resources');
+export const getSynthesesIndex = () => request('/syntheses');
 // Everywhere a phrase appears -- Space titles/goals plus entry content.
 export const searchEverything = (q) => request(`/search?q=${encodeURIComponent(q)}`);
 

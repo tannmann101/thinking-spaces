@@ -10,12 +10,15 @@ import {
   createSpaceWithSetup,
   ensureTestSpaceExists,
   createRelationalSpace,
+  listResourcesIndex,
+  listSynthesesIndex,
 } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
 import { createProject } from '../projects.js';
 import { addBlockToSpace, listBlocksForSpace } from '../blocks.js';
 import { createTemplate } from '../templates.js';
 import { TEST_SPACE_ID } from '../constants.js';
+import { createBlock, updateBlockContent } from '../blocks.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
 describe('createSpace / getSpaceById', () => {
@@ -389,5 +392,127 @@ describe('createRelationalSpace', () => {
     expect(blocks.filter((block) => block.type === 'text')).toHaveLength(1);
     const referenceTargets = blocks.filter((block) => block.type === 'reference').map((block) => block.content.target_space_id);
     expect(referenceTargets.sort()).toEqual([a.id, b.id].sort());
+  });
+});
+
+describe('listResourcesIndex', async () => {
+  beforeEach(async () => { await resetDb(env); });
+
+  it('returns nothing when there are no Resources', async () => {
+    expect(await listResourcesIndex(env)).toEqual([]);
+  });
+
+  it('separates the type tags from the structural "resource" tag', async () => {
+    await createSpace(env, { title: 'A Book', tags: ['resource', 'book'] });
+    const [resource] = await listResourcesIndex(env);
+    expect(resource.typeTags).toEqual(['book']);
+  });
+
+  it('reports a Resource nothing references -- the reading this page exists for', async () => {
+    await createSpace(env, { title: 'Unused', tags: ['resource'] });
+    const [resource] = await listResourcesIndex(env);
+    expect(resource.referenceCount).toBe(0);
+    expect(resource.referencedBy).toEqual([]);
+  });
+
+  it('names which Spaces reference a Resource', async () => {
+    const resource = await createSpace(env, { title: 'A Book', tags: ['resource'] });
+    const user = await createSpace(env, { title: 'Using Space' });
+    await createBlock(env, {
+      spaceId: user.id,
+      type: 'reference',
+      content: { target_space_id: resource.id },
+      position: 0,
+    });
+    const [indexed] = await listResourcesIndex(env);
+    expect(indexed.referenceCount).toBe(1);
+    expect(indexed.referencedBy[0].spaceTitle).toBe('Using Space');
+  });
+
+  it('counts a Space once even when it references the Resource twice', async () => {
+    const resource = await createSpace(env, { title: 'A Book', tags: ['resource'] });
+    const user = await createSpace(env, { title: 'Using Space' });
+    for (const position of [0, 1]) {
+      await createBlock(env, {
+        spaceId: user.id,
+        type: 'reference',
+        content: { target_space_id: resource.id },
+        position,
+      });
+    }
+    expect((await listResourcesIndex(env))[0].referenceCount).toBe(1);
+  });
+});
+
+describe('listSynthesesIndex', async () => {
+  beforeEach(async () => { await resetDb(env); });
+
+  it('returns nothing when there are no Syntheses', async () => {
+    expect(await listSynthesesIndex(env)).toEqual([]);
+  });
+
+  it('reads the kind from the tag alongside "synthesis", and not "resource"', async () => {
+    await createSpace(env, { title: 'An Essay', tags: ['synthesis', 'essay', 'resource'] });
+    const [synthesis] = await listSynthesesIndex(env);
+    expect(synthesis.kinds).toEqual(['essay']);
+    expect(synthesis.promoted).toBe(true);
+  });
+
+  it('reads an unpromoted Synthesis as not promoted', async () => {
+    await createSpace(env, { title: 'A Draft', tags: ['synthesis'] });
+    expect((await listSynthesesIndex(env))[0].promoted).toBe(false);
+  });
+
+  it('resolves lineage forward to the real Work items and their Spaces', async () => {
+    const source = await createSpace(env, { title: 'Source Space' });
+    const item = await createBlock(env, {
+      spaceId: source.id,
+      type: 'assessment',
+      content: { statement: 'A claim', support: [], confidence: 'solid' },
+      position: 0,
+    });
+    const synthesis = await createSpace(env, { title: 'The Piece', tags: ['synthesis'] });
+    await createBlock(env, {
+      spaceId: synthesis.id,
+      type: 'text',
+      content: { lines: [] },
+      properties: { sourceItemIds: [item.id] },
+      position: 0,
+    });
+
+    const [indexed] = await listSynthesesIndex(env);
+    expect(indexed.drawnFrom).toHaveLength(1);
+    expect(indexed.drawnFrom[0]).toMatchObject({
+      type: 'assessment',
+      statement: 'A claim',
+      spaceTitle: 'Source Space',
+    });
+    expect(indexed.sourceSpaceCount).toBe(1);
+  });
+
+  it('shows a source claim as it reads now, not as it read when compiled', async () => {
+    const source = await createSpace(env, { title: 'Source Space' });
+    const item = await createBlock(env, {
+      spaceId: source.id,
+      type: 'assessment',
+      content: { statement: 'Original wording', support: [], confidence: 'solid' },
+      position: 0,
+    });
+    const synthesis = await createSpace(env, { title: 'The Piece', tags: ['synthesis'] });
+    await createBlock(env, {
+      spaceId: synthesis.id,
+      type: 'text',
+      content: { lines: [] },
+      properties: { sourceItemIds: [item.id] },
+      position: 0,
+    });
+    await updateBlockContent(env, item.id, { statement: 'Edited wording', support: [], confidence: 'solid' });
+
+    expect((await listSynthesesIndex(env))[0].drawnFrom[0].statement).toBe('Edited wording');
+  });
+
+  it('reports no recorded sources for a Synthesis made before lineage was tracked', async () => {
+    await createSpace(env, { title: 'Old One', tags: ['synthesis'] });
+    expect((await listSynthesesIndex(env))[0].drawnFrom).toEqual([]);
   });
 });

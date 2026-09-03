@@ -6,15 +6,24 @@ import {
   getOverdueReviews,
   getWeekCalendar,
   getResurfaceSuggestion,
-  deleteSpace,
   updateBlockContent,
   createReview,
 } from '../api.js';
-import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
+import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+
+// How many recently-touched Spaces the Dashboard shows before handing
+// off to /spaces. Anything overdue is shown on top of this, since that
+// is the part that actually wants you today.
+const DASHBOARD_SPACE_LIMIT = 6;
+
+// Resources and Syntheses each have their own page now. The digests keep
+// the most recent few as a reminder that they exist, and hand off rather
+// than repeating the whole list in two places.
+const DIGEST_LIMIT = 4;
 
 function formatDate(isoLikeString) {
   // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
@@ -278,7 +287,7 @@ function ResourcesDigest({ spaces }) {
         <span className="digest-icon">⇣</span>Resources
       </summary>
       <ul>
-        {spaces.map((space) => (
+        {spaces.slice(0, DIGEST_LIMIT).map((space) => (
           <li key={space.id}>
             <Link to={`/spaces/${space.id}`}>{space.title}</Link>
             {/* A promoted Synthesis carries the "resource" tag too, so
@@ -293,6 +302,9 @@ function ResourcesDigest({ spaces }) {
           </li>
         ))}
       </ul>
+      <Link to="/resources" className="see-all-link">
+        See all {spaces.length}
+      </Link>
     </details>
   );
 }
@@ -308,7 +320,7 @@ function SynthesesDigest({ spaces }) {
         <span className="digest-icon">⇡</span>Syntheses
       </summary>
       <ul>
-        {spaces.map((space) => (
+        {spaces.slice(0, DIGEST_LIMIT).map((space) => (
           <li key={space.id}>
             <Link to={`/spaces/${space.id}`}>{space.title}</Link>
             {space.tags.includes('resource') && (
@@ -319,13 +331,15 @@ function SynthesesDigest({ spaces }) {
           </li>
         ))}
       </ul>
+      <Link to="/syntheses" className="see-all-link">
+        See all {spaces.length}
+      </Link>
     </details>
   );
 }
 
 function Dashboard() {
   usePageTitle('Dashboard');
-  const { promptToMatch } = useConfirmDialog();
   const [spaces, setSpaces] = useState(null);
   const [overdue, setOverdue] = useState([]);
   const [weekDays, setWeekDays] = useState([]);
@@ -337,8 +351,6 @@ function Dashboard() {
   // Spaces show up in the list below, same "zoom in without hiding
   // anything permanently" principle the Category filter strip already
   // established on the Space page.
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState(null);
 
   function refetchSpaces() {
     getSpaces().then(setSpaces).catch((err) => setError(err.message));
@@ -360,15 +372,6 @@ function Dashboard() {
   // Same heavier, type-the-name confirmation as the Delete control on
   // the Space page itself -- this is the one place a Space can vanish
   // for good, so it should never be a single misclick away.
-  async function handleDeleteSpace(space) {
-    const confirmed = await promptToMatch(
-      `Delete "${space.title}" and everything in it? This cannot be undone.`,
-      space.title
-    );
-    if (!confirmed) return;
-    await deleteSpace(space.id);
-    refetchSpaces();
-  }
 
   return (
     <div className="app-shell">
@@ -427,97 +430,59 @@ function Dashboard() {
       )}
 
       {spaces && spaces.length > 0 && (() => {
-        // Matches the current search text only, independent of whatever
-        // status tab happens to be active -- this is what each tab's own
-        // count reflects ("if I click this, how many would show"), not a
-        // count compounded by the currently-active filter.
-        const searchMatches = spaces.filter((space) =>
-          space.title.toLowerCase().includes(search.trim().toLowerCase())
-        );
-        const visibleSpaces = searchMatches.filter(
-          (space) => !statusFilter || space.status === statusFilter
-        );
+        // A glance surface, not the index. The full searchable list lives
+        // on /spaces now; this shows what actually wants you today --
+        // anything overdue, then the most recently touched -- so the two
+        // pages have different jobs rather than being two copies of the
+        // same list.
+        const needsYou = spaces.filter((space) => space.isOverdue);
+        const recent = spaces
+          .filter((space) => !space.isOverdue)
+          .slice()
+          .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))
+          .slice(0, DASHBOARD_SPACE_LIMIT);
+        const shown = [...needsYou, ...recent];
         return (
           <>
-            <p className="space-search-row">
-              <input
-                type="text"
-                value={search}
-                placeholder="Search Spaces by title..."
-                className="space-search-input"
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <span
-                className={`category-filter-tab${statusFilter === null ? ' category-filter-tab-active' : ''}`}
-                onClick={() => setStatusFilter(null)}
-              >
-                All ({searchMatches.length})
-              </span>
-              {SPACE_STATUSES.map((status) => (
-                <span
-                  key={status}
-                  className={`category-filter-tab${statusFilter === status ? ' category-filter-tab-active' : ''}`}
-                  onClick={() => setStatusFilter(statusFilter === status ? null : status)}
-                >
-                  {status} ({searchMatches.filter((space) => space.status === status).length})
-                </span>
-              ))}
-            </p>
-            {visibleSpaces.length === 0 && <p>No Spaces match &ldquo;{search}&rdquo;.</p>}
-            {visibleSpaces.length > 0 && (
-              <ul className="space-list">
-                {visibleSpaces.map((space) => (
-                  <li key={space.id} className="space-card" {...themeAttributes(resolveSpaceTheme(space))}>
-                    <SpaceGlyph space={space} size={30} />
-                    <div className="space-main">
-                      <div className="space-title">
-                        <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                        {space.isTestSpace && (
-                          <span className="test-flag" title="Scratch area, not real content">
-                            TEST SPACE
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-meta">
-                        <span className="status-pill" data-status={space.status}>
-                          {space.status}
+            <h2>
+              Spaces{' '}
+              <Link to="/spaces" className="see-all-link">
+                See all {spaces.length}
+              </Link>
+            </h2>
+            <ul className="space-list">
+              {shown.map((space) => (
+                <li key={space.id} className="space-card" {...themeAttributes(resolveSpaceTheme(space))}>
+                  <SpaceGlyph space={space} size={30} />
+                  <div className="space-main">
+                    <div className="space-title">
+                      <Link to={`/spaces/${space.id}`}>{space.title}</Link>
+                      {space.isTestSpace && (
+                        <span className="test-flag" title="Scratch area, not real content">
+                          TEST SPACE
                         </span>
-                        <span className="sep">·</span>
-                        <span>updated {formatDate(space.updated_at)}</span>
-                        {space.due_date && (
-                          <>
-                            <span className="sep">·</span>
-                            <span className={space.isOverdue ? 'due-date-overdue' : undefined}>
-                              due {space.due_date}
-                            </span>
-                            {space.isOverdue && <span className="overdue-badge">Overdue</span>}
-                          </>
-                        )}
-                        {space.tags.length > 0 && (
-                          <>
-                            <span className="sep">·</span>
-                            {space.tags.map((tag) => (
-                              <span key={tag} className="tag-chip">
-                                {tag}
-                              </span>
-                            ))}
-                          </>
-                        )}
-                      </div>
+                      )}
                     </div>
-                    {!space.isTestSpace && (
-                      <button
-                        type="button"
-                        className="btn-ghost-small"
-                        onClick={() => handleDeleteSpace(space)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+                    <div className="space-meta">
+                      <span className="status-pill" data-status={space.status}>
+                        {space.status}
+                      </span>
+                      <span className="sep">·</span>
+                      <span>updated {formatDate(space.updated_at)}</span>
+                      {space.due_date && (
+                        <>
+                          <span className="sep">·</span>
+                          <span className={space.isOverdue ? 'due-date-overdue' : undefined}>
+                            due {space.due_date}
+                          </span>
+                          {space.isOverdue && <span className="overdue-badge">Overdue</span>}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </>
         );
       })()}

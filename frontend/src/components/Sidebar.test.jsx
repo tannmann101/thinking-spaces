@@ -41,6 +41,12 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Log' })).toHaveAttribute('href', '/log');
   });
 
+  it('reaches Projects and Goals, the two top-level pages that hold no Space', () => {
+    renderSidebar();
+    expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('href', '/projects');
+    expect(screen.getByRole('link', { name: 'Goals' })).toHaveAttribute('href', '/goals');
+  });
+
   it('marks the current page\'s nav link, and no other, as current', () => {
     renderSidebar('tools');
     expect(screen.getByRole('link', { name: 'Tools' })).toHaveClass('nav-link-current');

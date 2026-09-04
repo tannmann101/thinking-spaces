@@ -16,7 +16,9 @@ import {
   getWorkspacesForSpace,
   createWorkspace,
   getProjectsForSpace,
-  createProject,
+  getProjects,
+  getGoals,
+  setSpaceGoals,
   deleteSpace,
   getSpaceReport,
   getBlockReport,
@@ -280,50 +282,68 @@ function CategoryManager({ space, onChanged }) {
   );
 }
 
-// "What this Space is working towards" -- a property of the Space
-// itself (like status), not a block. It sits above the content rather
-// than inside it, which is exactly what makes it different from
-// anything a Space can contain.
-function WorkingToward({ space, onChanged }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(space.goal || '');
+// Which Goals this Space is working toward.
+//
+// This replaced a single free-text "Working toward" line, which could
+// only ever hold one thing and could never be shared with another
+// Space. A Goal is a real, separate row (see GoalsPage.jsx), so the
+// same pursuit can be named once and worked toward from several
+// Spaces at once. Membership is a plain chip toggle, the same
+// many-to-many shape Categories and tags already use.
+function WorkingToward({ space, goals, onChanged }) {
+  const selected = space.goalIds || [];
 
-  async function finish() {
-    setEditing(false);
-    const trimmed = draft.trim();
-    if (trimmed === (space.goal || '')) return;
-    await updateSpace(space.id, { goal: trimmed || null });
+  async function toggle(goalId) {
+    const next = selected.includes(goalId)
+      ? selected.filter((id) => id !== goalId)
+      : [...selected, goalId];
+    await setSpaceGoals(space.id, next);
     onChanged();
   }
 
-  if (editing) {
-    return (
-      <p className="working-toward">
-        Working toward:{' '}
-        <input
-          type="text"
-          value={draft}
-          autoFocus
-          className="field-width-60"
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={finish}
-          onKeyDown={(event) => event.key === 'Enter' && finish()}
-        />
-      </p>
-    );
-  }
   return (
     <p className="working-toward">
       Working toward:{' '}
-      <span
-        className="editable"
-        onClick={() => {
-          setDraft(space.goal || '');
-          setEditing(true);
-        }}
-      >
-        {space.goal || '(not set -- click to add)'}
-      </span>
+      {goals.length === 0 ? (
+        <>
+          <span className="empty-note">no Goals defined yet</span>{' '}
+          <Link to="/goals">Name one</Link>
+        </>
+      ) : (
+        <>
+          {goals.map((goal) => (
+            <button
+              key={goal.id}
+              type="button"
+              className={selected.includes(goal.id) ? 'chip chip-on' : 'chip'}
+              onClick={() => toggle(goal.id)}
+            >
+              {goal.name}
+            </button>
+          ))}{' '}
+          <Link to="/goals">Manage Goals</Link>
+        </>
+      )}
+    </p>
+  );
+}
+
+// Which Projects this Space is contributing work to -- derived from
+// its own Milestones and Sessions, never stored, so there is nothing
+// to set here. A Project is created and managed on its own page (see
+// ProjectsPage.jsx); an entry joins one through the picker on that
+// entry itself, which is what makes this line true.
+function ProjectsHere({ projects }) {
+  if (!projects || projects.length === 0) return null;
+  return (
+    <p className="working-toward">
+      Work here feeds:{' '}
+      {projects.map((project, index) => (
+        <span key={project.id}>
+          {index > 0 && ', '}
+          <Link to={`/projects/${project.id}`}>{project.name}</Link>
+        </span>
+      ))}
     </p>
   );
 }
@@ -437,7 +457,10 @@ function WorkspaceList({ space, workspaces, onChanged }) {
 
   return (
     <div className="workspace-section">
-      <h2>Workspaces</h2>
+      {/* No heading of its own: the wrapping <details><summary> in
+          SpacePage now says "Workspaces", so an inner <h2> would just
+          repeat it -- the same duplication TrailSpine's own heading was
+          removed for. */}
       <p>Assemble Tools together into a dedicated environment for focused work.</p>
       {workspaces.length > 0 && (
         <div className="workspace-grid">
@@ -467,64 +490,31 @@ function WorkspaceList({ space, workspaces, onChanged }) {
   );
 }
 
-// A Project is a real, named goal/project inside this Space that a
-// Milestone or Session belongs to -- the Time family's own dedicated
-// concept, mirroring WorkspaceList above almost exactly. Named
-// "Project" rather than "Goal" to avoid colliding with the Space's own
-// `goal` field (the "Working toward" line above).
-function ProjectList({ space, projects, onChanged }) {
-  const [newName, setNewName] = useState('');
-
-  async function addProject(event) {
-    event.preventDefault();
-    const name = newName.trim();
-    setNewName('');
-    if (!name) return;
-    await createProject(space.id, name);
-    onChanged();
-  }
-
-  return (
-    <div className="workspace-section">
-      <h2>Projects</h2>
-      <p>Group Milestones and Sessions together under a named goal or project.</p>
-      {projects.length > 0 && (
-        <div className="workspace-grid">
-          {projects.map((project) => (
-            <Link key={project.id} to={`/spaces/${space.id}/projects/${project.id}`} className="workspace-card project-card">
-              <h3>{project.name}</h3>
-            </Link>
-          ))}
-        </div>
-      )}
-      <form onSubmit={addProject} className="workspace-add-form">
-        <input
-          type="text"
-          value={newName}
-          placeholder="+ New Project"
-          onChange={(event) => setNewName(event.target.value)}
-        />
-        <button type="submit" className="btn-ghost-small" disabled={!newName.trim()}>
-          Create
-        </button>
-      </form>
-    </div>
-  );
-}
-
 // Which Project (if any) a Milestone/Session belongs to -- a single
 // value, not a many-to-many toggle like BlockWorkspacePicker below,
 // since a checkpoint or a timed sitting most naturally serves one
 // project at a time. Scoped to just Milestone/Session blocks -- a
 // Project is specifically their dedicated concept, not a general one
 // every Tool joins the way a Workspace is.
-function BlockProjectPicker({ block, spaceProjects, onChanged }) {
-  if (spaceProjects.length === 0 || !['milestone', 'session'].includes(block.type)) return null;
+function BlockProjectPicker({ block, allProjects, onChanged }) {
+  if (!['milestone', 'session'].includes(block.type)) return null;
   const current = block.properties?.projectId || null;
 
   async function select(event) {
     await updateBlockProject(block.id, event.target.value || null);
     onChanged();
+  }
+
+  // Every Project is offered, not just ones this Space already feeds --
+  // assigning an entry here is precisely how a Space comes to feed a
+  // Project at all, so filtering to "Projects already here" would make
+  // the first assignment impossible.
+  if (allProjects.length === 0) {
+    return (
+      <p className="block-workspace-row">
+        <Link to="/projects">Start a Project</Link> to give this a home.
+      </p>
+    );
   }
 
   return (
@@ -533,7 +523,7 @@ function BlockProjectPicker({ block, spaceProjects, onChanged }) {
         Project:{' '}
         <select value={current || ''} onChange={select}>
           <option value="">(none)</option>
-          {spaceProjects.map((project) => (
+          {allProjects.map((project) => (
             <option key={project.id} value={project.id}>
               {project.name}
             </option>
@@ -598,7 +588,7 @@ function spaceHasMetadata(space) {
   const isPromotable = space.origin === 'internal' && space.tags.includes('synthesis') && !space.tags.includes('resource');
   return Boolean(
     space.theme ||
-      space.goal ||
+      (space.goalIds || []).length > 0 ||
       space.due_date ||
       space.tags.length > 0 ||
       space.categories.length > 0 ||
@@ -608,12 +598,12 @@ function spaceHasMetadata(space) {
 
 // Same adaptive-density reasoning as spaceHasMetadata above, applied to
 // the two other panels a coherence audit found should adapt the same
-// way -- a Space that's never created a Workspace or a Project
-// shouldn't show two full, empty boxed sections by default (they used
-// to, always, on every Space, forever -- a real bug this closes) and a
-// Space with no Trail history yet shouldn't open onto an empty list.
-function spaceHasOrganization(workspaces, projects) {
-  return workspaces.length > 0 || projects.length > 0;
+// way -- a Space that's never created a Workspace shouldn't show a
+// full, empty boxed section by default (it used to, always, on every
+// Space, forever -- a real bug this closes) and a Space with no Trail
+// history yet shouldn't open onto an empty list.
+function spaceHasOrganization(workspaces) {
+  return workspaces.length > 0;
 }
 
 function spaceHasHistory(trail) {
@@ -629,6 +619,10 @@ function SpacePage() {
   const [blocks, setBlocks] = useState(null);
   const [workspaces, setWorkspaces] = useState(null);
   const [projects, setProjects] = useState(null);
+  const [goals, setGoals] = useState([]);
+  // Every Project in the app -- what an entry's own Project picker
+  // offers, since a Project is global now, not this Space's own.
+  const [allProjects, setAllProjects] = useState([]);
   const [backlinks, setBacklinks] = useState(null);
   const [trail, setTrail] = useState(null);
   const [error, setError] = useState(null);
@@ -703,6 +697,10 @@ function SpacePage() {
     getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
     getWorkspacesForSpace(id).then(setWorkspaces).catch((err) => setError(err.message));
     getProjectsForSpace(id).then(setProjects).catch((err) => setError(err.message));
+    // Goals are global, not per-Space -- a failure to load them just
+    // means no chips to toggle, never a broken Space page.
+    getGoals().then(setGoals).catch(() => setGoals([]));
+    getProjects().then(setAllProjects).catch(() => setAllProjects([]));
     refetchTrail();
   }, [id, refetchTrail]);
 
@@ -743,7 +741,7 @@ function SpacePage() {
   useEffect(() => {
     if (workspaces && projects && !organizeInitialized.current) {
       organizeInitialized.current = true;
-      setOrganizeOpen(spaceHasOrganization(workspaces, projects));
+      setOrganizeOpen(spaceHasOrganization(workspaces));
     }
   }, [workspaces, projects]);
 
@@ -891,7 +889,8 @@ function SpacePage() {
             >
               <summary>Details</summary>
               <SpaceThemePicker space={space} onChanged={refetchAll} />
-              <WorkingToward space={space} onChanged={refetchAll} />
+              <WorkingToward space={space} goals={goals} onChanged={refetchAll} />
+              <ProjectsHere projects={projects} />
               <DueDate space={space} onChanged={refetchAll} />
               <TagEditor space={space} onChanged={refetchAll} />
               <PromoteToResource space={space} onChanged={refetchAll} />
@@ -913,20 +912,21 @@ function SpacePage() {
 
           </div>
 
-          {/* Organize: Workspaces and Projects together, in one
-              adaptive-density panel -- both used to render at full
-              size (heading, intro sentence, "+ New" form) even on a
-              Space that had created neither, forever. See
-              spaceHasOrganization/organizeOpen above. */}
-          {workspaces && projects && (
+          {/* Workspaces: the assembled environments inside this Space.
+              This panel was called "Organize" while it also held
+              Projects; now that a Project belongs to no Space and lives
+              on its own page, the panel holds exactly one thing and is
+              named for it. Adaptive density is unchanged -- a Space
+              that has never created a Workspace starts collapsed
+              rather than showing a full, empty boxed section. */}
+          {workspaces && (
             <details
               className="space-collapsible-panel space-organize-panel"
               open={organizeOpen}
               onToggle={(event) => setOrganizeOpen(event.target.open)}
             >
-              <summary>Organize</summary>
+              <summary>Workspaces</summary>
               <WorkspaceList space={space} workspaces={workspaces} onChanged={refetchAll} />
-              <ProjectList space={space} projects={projects} onChanged={refetchAll} />
             </details>
           )}
 
@@ -1063,7 +1063,7 @@ function SpacePage() {
                       />
                       <BlockProjectPicker
                         block={block}
-                        spaceProjects={projects || []}
+                        allProjects={allProjects}
                         onChanged={refetchAll}
                       />
                       <div className="block-report-row">

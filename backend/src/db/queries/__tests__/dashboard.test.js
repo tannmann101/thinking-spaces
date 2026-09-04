@@ -121,7 +121,7 @@ describe('getWeekCalendar', () => {
 
   it('resolves a Milestone\'s Project name when it belongs to one', () => {
     const space = createSpace({ title: 'Has a Project' });
-    const project = createProject({ spaceId: space.id, name: 'Ship the redesign' });
+    const project = createProject({ name: 'Ship the redesign' });
     const block = createBlock({
       spaceId: space.id,
       type: 'milestone',

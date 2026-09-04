@@ -50,3 +50,5 @@ ensureColumn('spaces', 'origin', 'TEXT');
 ensureColumn('spaces', 'due_date', 'TEXT');
 ensureColumn('activity_log', 'block_id', 'TEXT');
 ensureColumn('workspaces', 'kind', 'TEXT');
+ensureColumn('spaces', 'goal_ids', `TEXT NOT NULL DEFAULT '[]'`);
+ensureColumn('projects', 'goal_id', 'TEXT');

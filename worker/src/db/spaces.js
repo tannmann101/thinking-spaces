@@ -42,7 +42,7 @@ async function getMilestoneStats(env, spaceId) {
 }
 
 const SPACE_COLUMNS =
-  'id, title, status, template_id, tags, goal, categories, theme, origin, due_date, created_at, updated_at';
+  'id, title, status, template_id, tags, goal, goal_ids, categories, theme, origin, due_date, created_at, updated_at';
 
 async function withComputedSpaceFields(env, space) {
   if (!space) return space;
@@ -54,6 +54,7 @@ async function withComputedSpaceFields(env, space) {
     // per-kind defaults are a rendering concern, so only the override
     // is ever stored.
     theme: space.theme ? JSON.parse(space.theme) : null,
+    goalIds: JSON.parse(space.goal_ids || '[]'),
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: await getRelationDensity(env, space.id),
     openTensionCount: await getOpenTensionCount(env, space.id),
@@ -164,13 +165,14 @@ export async function deleteSpace(env, id) {
     payload.spaces = (await env.DB.prepare(`SELECT * FROM spaces WHERE id = ?`).bind(id).all()).results;
     payload.blocks = (await env.DB.prepare(`SELECT * FROM blocks WHERE space_id = ?`).bind(id).all()).results;
     payload.workspaces = (await env.DB.prepare(`SELECT * FROM workspaces WHERE space_id = ?`).bind(id).all()).results;
-    payload.projects = (await env.DB.prepare(`SELECT * FROM projects WHERE space_id = ?`).bind(id).all()).results;
+    // Projects are deliberately not captured: a Project no longer
+    // belongs to a Space (see projects.js), so deleting one Space must
+    // never take a Project other Spaces also feed with it.
     payload.trail_entries = (await env.DB.prepare(`SELECT * FROM trail_entries WHERE space_id = ?`).bind(id).all()).results;
     await recordTrash(env, { kind: 'space', label: existing.title, context: null, payload });
   }
   await env.DB.prepare(`DELETE FROM blocks WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM workspaces WHERE space_id = ?`).bind(id).run();
-  await env.DB.prepare(`DELETE FROM projects WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).bind(id).run();
   await env.DB.prepare(`DELETE FROM spaces WHERE id = ?`).bind(id).run();
   if (existing) {

@@ -23,6 +23,7 @@ import { db } from '../index.js';
 export const EXPORT_TABLES = [
   'templates',
   'resource_templates',
+  'goals',
   'spaces',
   'blocks',
   'workspaces',

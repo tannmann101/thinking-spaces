@@ -168,12 +168,24 @@ describe('blocks.js', () => {
       expect(containEdges).toEqual([{ kind: 'contains', spaceId: space.id, workspaceId: workspace.id }]);
     });
 
-    it('includes one contains-project edge per Project', () => {
-      const project = createProject({ spaceId: space.id, name: 'A Project' });
+    // A Project's place on the map is derived from where its member
+    // entries live, so it only appears once something is assigned to it.
+    it('includes one contains-project edge per Space a Project has work in', () => {
+      const project = createProject({ name: 'A Project' });
+      const block = addBlockToSpace(space.id, { type: 'milestone', content: {} });
+      updateBlockProject(block.id, project.id);
+
       const graph = getGraphData();
-      expect(graph.projects).toEqual([{ id: project.id, space_id: space.id, name: 'A Project' }]);
+      expect(graph.projects).toEqual([{ id: project.id, name: 'A Project', primary_space_id: space.id }]);
       const projectEdges = graph.edges.filter((e) => e.kind === 'contains-project');
       expect(projectEdges).toEqual([{ kind: 'contains-project', spaceId: space.id, projectId: project.id }]);
+    });
+
+    it('leaves a Project with no entries yet off the map entirely', () => {
+      createProject({ name: 'Not started' });
+      const graph = getGraphData();
+      expect(graph.projects).toEqual([]);
+      expect(graph.edges.filter((e) => e.kind === 'contains-project')).toEqual([]);
     });
 
     it('still includes a reference edge whose target Space was since deleted', () => {
@@ -286,7 +298,7 @@ describe('blocks.js', () => {
 
   describe('updateBlockProject', () => {
     it('sets a single Project id, independently of other properties', () => {
-      const project = createProject({ spaceId: space.id, name: 'Ship it' });
+      const project = createProject({ name: 'Ship it' });
       const block = createBlock({ spaceId: space.id, type: 'milestone', content: {}, properties: { categories: ['X'] } });
       const updated = updateBlockProject(block.id, project.id);
       expect(updated.properties.projectId).toBe(project.id);
@@ -294,7 +306,7 @@ describe('blocks.js', () => {
     });
 
     it('clears the Project id when passed null', () => {
-      const project = createProject({ spaceId: space.id, name: 'Ship it' });
+      const project = createProject({ name: 'Ship it' });
       const block = createBlock({ spaceId: space.id, type: 'milestone', content: {}, properties: {} });
       updateBlockProject(block.id, project.id);
       const cleared = updateBlockProject(block.id, null);

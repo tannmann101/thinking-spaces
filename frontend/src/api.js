@@ -284,26 +284,62 @@ export const deleteWorkspace = (id) => request(`/workspaces/${id}`, { method: 'D
 // see getWorkspaceReport in backend/src/db/queries.js.
 export const getWorkspaceReport = (workspaceId) => request(`/workspaces/${workspaceId}/report`);
 
-// Projects: a real, named goal/project inside one Space that a
-// Milestone or Session belongs to (see backend/src/db/queries.js,
-// "--- Projects ---"). Named "Project" rather than "Goal" to avoid
-// colliding with a Space's own pre-existing `goal` field.
+// Projects: a real, named piece of work you decided to take on, that a
+// Milestone or Session belongs to (see backend/src/db/queries/projects.js).
+// A Project is standalone -- it does not belong to a Space; the Spaces
+// it touches are derived from wherever its member entries live, which
+// is why creation posts to /projects rather than under a Space.
+export const getProjects = () => request('/projects');
 export const getProjectsForSpace = (spaceId) => request(`/spaces/${spaceId}/projects`);
 export const getProject = (id) => request(`/projects/${id}`);
-export const createProject = (spaceId, name) =>
-  request(`/spaces/${spaceId}/projects`, {
+// Every entry assigned to this Project, wherever it lives.
+export const getProjectBlocks = (id) => request(`/projects/${id}/blocks`);
+export const createProject = (name, goalId = null) =>
+  request('/projects', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, goalId }),
   });
 export const renameProject = (id, name) =>
   request(`/projects/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ name }),
   });
+// Which Goal this Project serves -- null to detach it from any Goal.
+export const setProjectGoal = (id, goalId) =>
+  request(`/projects/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ goalId }),
+  });
 export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
 // A structured + prose snapshot of this Project's current state --
 // see getProjectReport in backend/src/db/queries.js.
 export const getProjectReport = (projectId) => request(`/projects/${projectId}/report`);
+
+// Goals: a pursuit several Spaces can be working toward at once. In the
+// person's own words, "projects are personally initiated, goals are
+// revealed as relevant pursuits" -- so a Goal has no Milestones or
+// Sessions of its own, only reach (which Spaces work toward it, which
+// Projects serve it). See backend/src/db/queries/goals.js.
+export const getGoals = () => request('/goals');
+export const getGoal = (id) => request(`/goals/${id}`);
+export const createGoal = (name, note = null) =>
+  request('/goals', {
+    method: 'POST',
+    body: JSON.stringify({ name, note }),
+  });
+export const updateGoal = (id, fields) =>
+  request(`/goals/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  });
+export const deleteGoal = (id) => request(`/goals/${id}`, { method: 'DELETE' });
+// Which Goals a Space is working toward -- replaced in full, the same
+// way a Space's Categories and tags are edited.
+export const setSpaceGoals = (spaceId, goalIds) =>
+  request(`/spaces/${spaceId}/goals`, {
+    method: 'PUT',
+    body: JSON.stringify({ goalIds }),
+  });
 
 // The Skeleton's alternate capture path: copy an already-written line
 // into a lane, leaving the Writing Surface untouched (see fileLineInLane

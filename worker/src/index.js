@@ -45,7 +45,23 @@ import {
   updateWorkspace,
   deleteWorkspace,
 } from './db/workspaces.js';
-import { listProjectsForSpace, getProjectById, createProject, updateProject, deleteProject } from './db/projects.js';
+import {
+  listProjectsForSpace,
+  listProjectBlocks,
+  listProjectsIndex,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject,
+} from './db/projects.js';
+import {
+  listGoalsIndex,
+  getGoalById,
+  createGoal,
+  updateGoal,
+  deleteGoal,
+  updateSpaceGoals,
+} from './db/goals.js';
 import { listTemplates, getTemplateById, createTemplate, updateTemplate, deleteTemplate } from './db/templates.js';
 import {
   listResourceTemplates,
@@ -327,20 +343,28 @@ async function handleDeleteWorkspace(env, id) {
 
 // ---------- Projects ----------
 
-async function handleCreateProject(request, env, spaceId) {
+// A Project is standalone -- it gains Spaces by having entries assigned
+// to it, not by being created inside one.
+async function handleCreateProject(request, env) {
   const body = (await readJson(request)) || {};
-  const { name } = body;
+  const { name, goalId } = body;
   if (!name || !name.trim()) return errorResponse('name is required');
-  return json(await createProject(env, { spaceId, name: name.trim() }), 201);
+  return json(await createProject(env, { name: name.trim(), goalId: goalId || null }), 201);
 }
 
 async function handlePatchProject(request, env, id) {
   const existing = await getProjectById(env, id);
   if (!existing) return errorResponse('Project not found', 404);
   const body = (await readJson(request)) || {};
-  const { name } = body;
-  if (!name || !name.trim()) return errorResponse('name is required');
-  return json(await updateProject(env, id, { name: name.trim() }));
+  const { name, goalId } = body;
+  if (name !== undefined && !name.trim()) return errorResponse('name cannot be empty');
+  if (name === undefined && goalId === undefined) return errorResponse('name or goalId is required');
+  return json(
+    await updateProject(env, id, {
+      ...(name === undefined ? {} : { name: name.trim() }),
+      ...(goalId === undefined ? {} : { goalId: goalId || null }),
+    })
+  );
 }
 
 async function handleDeleteProject(env, id) {
@@ -354,6 +378,43 @@ async function handleProjectReport(env, id) {
   const report = await getProjectReport(env, id);
   if (!report) return errorResponse('Project not found', 404);
   return json({ report, narrative: renderReportText(report) });
+}
+
+// ---------- Goals ----------
+
+async function handleCreateGoal(request, env) {
+  const body = (await readJson(request)) || {};
+  const { name, note } = body;
+  if (!name || !name.trim()) return errorResponse('name is required');
+  return json(await createGoal(env, { name: name.trim(), note: note?.trim() || null }), 201);
+}
+
+async function handlePatchGoal(request, env, id) {
+  const body = (await readJson(request)) || {};
+  const { name, note } = body;
+  if (name !== undefined && !name.trim()) return errorResponse('name cannot be empty');
+  const updated = await updateGoal(env, id, {
+    ...(name === undefined ? {} : { name: name.trim() }),
+    ...(note === undefined ? {} : { note: note?.trim() || null }),
+  });
+  if (!updated) return errorResponse('Goal not found', 404);
+  return json(updated);
+}
+
+async function handleDeleteGoal(env, id) {
+  if (!(await deleteGoal(env, id))) return errorResponse('Goal not found', 404);
+  return json(null, 204);
+}
+
+// Which Goals a Space is working toward -- edited independently of the
+// Space's own content, the same way Categories and tags already are.
+async function handlePutSpaceGoals(request, env, spaceId) {
+  const body = (await readJson(request)) || {};
+  const { goalIds } = body;
+  if (!Array.isArray(goalIds)) return errorResponse('goalIds must be an array');
+  const updated = await updateSpaceGoals(env, spaceId, goalIds);
+  if (!updated) return errorResponse('Space not found', 404);
+  return json({ goalIds, changeSummary: `Now working toward ${goalIds.length} Goal(s)` });
 }
 
 // ---------- Templates ----------
@@ -576,7 +637,11 @@ export default {
       // Projects
       m = path.match(/^\/api\/spaces\/([\w-]+)\/projects$/);
       if (m && method === 'GET') return json(await listProjectsForSpace(env, m[1]));
-      if (m && method === 'POST') return await handleCreateProject(request, env, m[1]);
+
+      // Every Project, with derived Spaces and progress. Matched before
+      // /projects/:id so the literal path isn't captured as an id.
+      if (path === '/api/projects' && method === 'GET') return json(await listProjectsIndex(env));
+      if (path === '/api/projects' && method === 'POST') return await handleCreateProject(request, env);
 
       m = path.match(/^\/api\/projects\/([\w-]+)$/);
       if (m && method === 'GET') {
@@ -587,8 +652,30 @@ export default {
       if (m && method === 'PATCH') return await handlePatchProject(request, env, m[1]);
       if (m && method === 'DELETE') return await handleDeleteProject(env, m[1]);
 
+      m = path.match(/^\/api\/projects\/([\w-]+)\/blocks$/);
+      if (m && method === 'GET') {
+        if (!(await getProjectById(env, m[1]))) return errorResponse('Project not found', 404);
+        return json(await listProjectBlocks(env, m[1]));
+      }
+
       m = path.match(/^\/api\/projects\/([\w-]+)\/report$/);
       if (m && method === 'GET') return await handleProjectReport(env, m[1]);
+
+      // Goals
+      if (path === '/api/goals' && method === 'GET') return json(await listGoalsIndex(env));
+      if (path === '/api/goals' && method === 'POST') return await handleCreateGoal(request, env);
+
+      m = path.match(/^\/api\/goals\/([\w-]+)$/);
+      if (m && method === 'GET') {
+        const goal = await getGoalById(env, m[1]);
+        if (!goal) return errorResponse('Goal not found', 404);
+        return json(goal);
+      }
+      if (m && method === 'PATCH') return await handlePatchGoal(request, env, m[1]);
+      if (m && method === 'DELETE') return await handleDeleteGoal(env, m[1]);
+
+      m = path.match(/^\/api\/spaces\/([\w-]+)\/goals$/);
+      if (m && method === 'PUT') return await handlePutSpaceGoals(request, env, m[1]);
 
       // Templates
       if (path === '/api/templates' && method === 'GET') return json(await listTemplates(env));

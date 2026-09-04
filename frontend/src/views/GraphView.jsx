@@ -138,7 +138,7 @@ function GraphView({ spaces, workspaces = [], projects = [], edges }) {
       const id = `project:${project.id}`;
       const prior = existing.get(id);
       if (prior) return { ...prior, title: project.name };
-      const parent = spaceNodeById.get(project.space_id);
+      const parent = spaceNodeById.get(project.primary_space_id);
       const seed = parent
         ? { x: parent.x + (Math.random() - 0.5) * 20, y: parent.y + (Math.random() - 0.5) * 20 }
         : seededPosition(index, projects.length);
@@ -146,7 +146,7 @@ function GraphView({ spaces, workspaces = [], projects = [], edges }) {
         id,
         kind: 'project',
         rawId: project.id,
-        parentSpaceId: project.space_id,
+        parentSpaceId: project.primary_space_id,
         title: project.name,
         ...seed,
         vx: 0,
@@ -315,7 +315,7 @@ function GraphView({ spaces, workspaces = [], projects = [], edges }) {
         if (node.kind === 'workspace') {
           navigate(`/spaces/${node.parentSpaceId}/workspaces/${node.rawId}`);
         } else if (node.kind === 'project') {
-          navigate(`/spaces/${node.parentSpaceId}/projects/${node.rawId}`);
+          navigate(`/projects/${node.rawId}`);
         } else {
           navigate(`/spaces/${node.rawId}`);
         }

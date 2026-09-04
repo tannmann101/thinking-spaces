@@ -112,15 +112,32 @@ export function getGraphData() {
     )
     .all(TEST_SPACE_ID);
 
-  const projects = db
+  // A Project has no Space of its own anymore (see projects.js), so its
+  // place on the map is derived from wherever its member entries live.
+  // A Project can therefore sit against several Spaces at once, and one
+  // with no entries yet doesn't appear on the map at all -- there is
+  // nothing to attach it to.
+  const projectSpacePairs = db
     .prepare(
-      `SELECT projects.id, projects.space_id, projects.name
-       FROM projects
-       JOIN spaces ON spaces.id = projects.space_id
-       WHERE spaces.id != ?
-       ORDER BY projects.name ASC`
+      `SELECT DISTINCT projects.id AS project_id, projects.name AS name, blocks.space_id AS space_id
+         FROM projects
+         JOIN blocks ON json_extract(blocks.properties, '$.projectId') = projects.id
+         JOIN spaces ON spaces.id = blocks.space_id
+        WHERE spaces.id != ?
+        ORDER BY projects.name ASC`
     )
     .all(TEST_SPACE_ID);
+
+  // One node per Project, anchored at the first Space its work appears
+  // in -- `primary_space_id` is a computed placement hint for the map,
+  // not a stored column.
+  const projects = [];
+  const seenProject = new Set();
+  projectSpacePairs.forEach((row) => {
+    if (seenProject.has(row.project_id)) return;
+    seenProject.add(row.project_id);
+    projects.push({ id: row.project_id, name: row.name, primary_space_id: row.space_id });
+  });
 
   const referenceEdges = db
     .prepare(
@@ -148,10 +165,10 @@ export function getGraphData() {
     workspaceId: workspace.id,
   }));
 
-  const projectContainmentEdges = projects.map((project) => ({
+  const projectContainmentEdges = projectSpacePairs.map((row) => ({
     kind: 'contains-project',
-    spaceId: project.space_id,
-    projectId: project.id,
+    spaceId: row.space_id,
+    projectId: row.project_id,
   }));
 
   return {

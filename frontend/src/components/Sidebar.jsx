@@ -24,6 +24,8 @@ const LINKS = [
   { key: 'insights', to: '/insights', label: 'Insights' },
   { key: 'tools', to: '/tools', label: 'Tools' },
   { key: 'workspaces', to: '/workspaces', label: 'Workspaces' },
+  { key: 'projects', to: '/projects', label: 'Projects' },
+  { key: 'goals', to: '/goals', label: 'Goals' },
   { key: 'templates', to: '/templates', label: 'Manage Templates' },
   { key: 'graph', to: '/graph', label: 'View the Map' },
   { key: 'log', to: '/log', label: 'Log' },

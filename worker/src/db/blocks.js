@@ -103,15 +103,29 @@ export async function getGraphData(env) {
     .bind(TEST_SPACE_ID)
     .all();
 
-  const projectsResult = await env.DB.prepare(
-    `SELECT projects.id, projects.space_id, projects.name
-     FROM projects
-     JOIN spaces ON spaces.id = projects.space_id
-     WHERE spaces.id != ?
-     ORDER BY projects.name ASC`
+  // A Project has no Space of its own anymore (see projects.js), so its
+  // place on the map is derived from wherever its member entries live.
+  const projectPairsResult = await env.DB.prepare(
+    `SELECT DISTINCT projects.id AS project_id, projects.name AS name, blocks.space_id AS space_id
+       FROM projects
+       JOIN blocks ON json_extract(blocks.properties, '$.projectId') = projects.id
+       JOIN spaces ON spaces.id = blocks.space_id
+      WHERE spaces.id != ?
+      ORDER BY projects.name ASC`
   )
     .bind(TEST_SPACE_ID)
     .all();
+
+  // One node per Project, anchored at the first Space its work appears
+  // in -- `primary_space_id` is a computed placement hint for the map,
+  // not a stored column.
+  const projects = [];
+  const seenProject = new Set();
+  projectPairsResult.results.forEach((row) => {
+    if (seenProject.has(row.project_id)) return;
+    seenProject.add(row.project_id);
+    projects.push({ id: row.project_id, name: row.name, primary_space_id: row.space_id });
+  });
 
   const referenceRows = await env.DB.prepare(
     `SELECT blocks.id AS block_id, blocks.space_id AS source_space_id, blocks.content AS content
@@ -141,16 +155,16 @@ export async function getGraphData(env) {
     workspaceId: workspace.id,
   }));
 
-  const projectContainmentEdges = projectsResult.results.map((project) => ({
+  const projectContainmentEdges = projectPairsResult.results.map((row) => ({
     kind: 'contains-project',
-    spaceId: project.space_id,
-    projectId: project.id,
+    spaceId: row.space_id,
+    projectId: row.project_id,
   }));
 
   return {
     spaces: spacesResult.results,
     workspaces: workspacesResult.results,
-    projects: projectsResult.results,
+    projects,
     edges: [...referenceEdges, ...containmentEdges, ...projectContainmentEdges],
   };
 }

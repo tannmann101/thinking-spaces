@@ -56,6 +56,11 @@ CREATE TABLE IF NOT EXISTS spaces (
                                     -- Null means "use the computed default for this kind of Space" --
                                     -- see frontend/src/theme/itemTheme.js for the option lists and
                                     -- the merge. A block's own override lives in properties.theme.
+  goal_ids TEXT NOT NULL DEFAULT '[]',
+                                    -- JSON array of goal ids. The app's established many-to-many
+                                    -- shape (see spaces.tags, properties.workspaces), queried with
+                                    -- json_each. Named goal_ids, not goals, so it can't be mistaken
+                                    -- for the legacy single free-text `goal` column above.
   origin TEXT,                     -- 'external' | 'internal' | null. Distinguishes a Space brought in
                                     -- from outside the app (a Resource) from one the app itself
                                     -- produced (a Synthesis, or anything later promoted to Resource
@@ -111,28 +116,28 @@ CREATE TABLE IF NOT EXISTS workspaces (
 );
 CREATE INDEX IF NOT EXISTS idx_workspaces_space_id ON workspaces(space_id);
 
--- Projects: a real, named goal/project inside one Space that a
--- Milestone or Session belongs to -- the Time family's own equivalent
--- of a Workspace, added once the person asked for Sessions/Milestones
--- to be "associated with goals/projects" as a real dedicated concept
--- rather than individually implying structure. Named "Project" rather
--- than "Goal" to avoid colliding with the Space's own pre-existing
--- `goal` column below (a single free-text "what this Space is working
--- toward" line) -- confirmed via direct question once that collision
--- surfaced. Deliberately narrower than a Workspace in one way: a block
--- points at at most one Project (a single nullable `projectId` in its
--- own `properties`, not an array), since a checkpoint or a timed
--- sitting most naturally serves one project, not several at once the
--- way a Tool can usefully belong to several Workspaces -- see
--- updateBlockProject in queries.js.
+-- Projects: a real, named piece of work you decided to take on, that a
+-- Milestone or Session belongs to. Personally initiated, which is what
+-- distinguishes it from a Goal (below) -- a pursuit you notice you're
+-- heading toward rather than one you set out on.
+--
+-- A Project does *not* belong to a Space. Its member entries live in
+-- whatever Spaces they were created in, so a Project's Spaces are
+-- simply whichever those turn out to be -- derived at read time, never
+-- stored, which is what lets one Project span several Spaces with
+-- nothing extra to keep in sync. A block points at at most one Project
+-- (a single nullable `projectId` in its own `properties`, not an
+-- array), since a checkpoint or a timed sitting most naturally serves
+-- one project -- see updateBlockProject in queries.js.
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
-  space_id TEXT NOT NULL REFERENCES spaces(id),
   name TEXT NOT NULL,
+  -- The Goal this Project serves, if any. Single and nullable, matching
+  -- how a Milestone belongs to at most one Project.
+  goal_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_projects_space_id ON projects(space_id);
 
 -- Trail: the history layer (see Tools & Resources doc). "auto" entries
 -- are written automatically on a Skeleton structural change (an item
@@ -197,3 +202,23 @@ CREATE TABLE IF NOT EXISTS trash (
   deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_trash_deleted_at ON trash(deleted_at);
+
+-- Goals: a pursuit several Spaces can be working toward at once.
+--
+-- Distinct from a Project by intent, in the person's own framing:
+-- "projects are personally initiated, goals are revealed as relevant
+-- pursuits." So a Goal has no Milestones or Sessions of its own -- it's
+-- a direction you notice you're heading, not work you scheduled. A
+-- Project can name the Goal it serves (projects.goal_id), which is what
+-- lets you see whether initiated work is actually feeding a revealed
+-- pursuit.
+--
+-- Replaces the single free-text spaces.goal line, which could only ever
+-- hold one thing.
+CREATE TABLE IF NOT EXISTS goals (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

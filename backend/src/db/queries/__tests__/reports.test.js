@@ -67,7 +67,7 @@ describe('getBlockReport', () => {
   });
 
   it('includes a Project membership line for a Milestone/Session assigned to one', () => {
-    const project = createProject({ spaceId: space.id, name: 'Ship it' });
+    const project = createProject({ name: 'Ship it' });
     const block = createBlock({ spaceId: space.id, type: 'milestone', content: {} });
     updateBlockProject(block.id, project.id);
     const membership = getBlockReport(block.id).sections.find((s) => s.heading === 'Membership');
@@ -152,7 +152,7 @@ describe('getProjectReport', () => {
   });
 
   it('lists only the Milestones/Sessions assigned to this Project, with a reached/logged-minutes readout', () => {
-    const project = createProject({ spaceId: space.id, name: 'Ship it' });
+    const project = createProject({ name: 'Ship it' });
     const milestone = createBlock({
       spaceId: space.id,
       type: 'milestone',
@@ -207,10 +207,13 @@ describe('getSpaceReport', () => {
     createBlock({ spaceId: space.id, type: 'text', content: {} });
     createBlock({ spaceId: space.id, type: 'text', content: {} });
     createWorkspace({ spaceId: space.id, name: 'My Workspace' });
-    createProject({ spaceId: space.id, name: 'My Project' });
+    // A Project reaches a Space through its entries, not ownership.
+    const project = createProject({ name: 'My Project' });
+    const milestone = createBlock({ spaceId: space.id, type: 'milestone', content: {} });
+    updateBlockProject(milestone.id, project.id);
 
     const structure = getSpaceReport(space.id).sections.find((s) => s.heading.startsWith('Structure'));
-    expect(structure.heading).toBe('Structure (2 entries)');
+    expect(structure.heading).toBe('Structure (3 entries)');
     expect(structure.lines).toContain('2 text');
     expect(structure.lines).toContain('Workspaces: My Workspace');
     expect(structure.lines).toContain('Projects: My Project');

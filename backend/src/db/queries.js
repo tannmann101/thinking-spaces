@@ -36,3 +36,4 @@ export * from './queries/dashboard.js';
 export * from './queries/exportData.js';
 export * from './queries/search.js';
 export * from './queries/trash.js';
+export * from './queries/goals.js';

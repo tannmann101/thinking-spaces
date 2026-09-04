@@ -58,7 +58,7 @@ function getMilestoneStats(spaceId) {
 // `accent` is deliberately absent -- it's superseded by `theme` and
 // nothing reads it anymore (see schema.sql's own note on the column).
 const SPACE_COLUMNS =
-  'id, title, status, template_id, tags, goal, categories, theme, origin, due_date, created_at, updated_at';
+  'id, title, status, template_id, tags, goal, goal_ids, categories, theme, origin, due_date, created_at, updated_at';
 
 function withComputedSpaceFields(space) {
   if (!space) return space;
@@ -71,6 +71,7 @@ function withComputedSpaceFields(space) {
     // the frontend (see theme/itemTheme.js), never here, since the
     // defaults are a rendering concern rather than stored data.
     theme: space.theme ? JSON.parse(space.theme) : null,
+    goalIds: JSON.parse(space.goal_ids || '[]'),
     isTestSpace: space.id === TEST_SPACE_ID,
     relationDensity: getRelationDensity(space.id),
     openTensionCount: getOpenTensionCount(space.id),
@@ -248,7 +249,11 @@ export function deleteSpace(id) {
         spaces: db.prepare(`SELECT * FROM spaces WHERE id = ?`).all(id),
         blocks: db.prepare(`SELECT * FROM blocks WHERE space_id = ?`).all(id),
         workspaces: db.prepare(`SELECT * FROM workspaces WHERE space_id = ?`).all(id),
-        projects: db.prepare(`SELECT * FROM projects WHERE space_id = ?`).all(id),
+        // Projects are deliberately not captured here: a Project no
+        // longer belongs to a Space (see projects.js), so deleting one
+        // Space must never take a Project other Spaces also feed with
+        // it. Its member entries here go with the Space; the Project
+        // itself survives, just with fewer entries.
         trail_entries: db.prepare(`SELECT * FROM trail_entries WHERE space_id = ?`).all(id),
       },
     });
@@ -256,7 +261,6 @@ export function deleteSpace(id) {
 
   db.prepare(`DELETE FROM blocks WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM workspaces WHERE space_id = ?`).run(id);
-  db.prepare(`DELETE FROM projects WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM trail_entries WHERE space_id = ?`).run(id);
   db.prepare(`DELETE FROM spaces WHERE id = ?`).run(id);
   // Logged with a snapshotted title (not a live join) precisely because

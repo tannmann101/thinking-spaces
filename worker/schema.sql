@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS spaces (
                                           -- the manual half of personalization, overriding
                                           -- the look this kind of Space computes for itself.
                                           -- See frontend/src/theme/itemTheme.js.
+  goal_ids TEXT NOT NULL DEFAULT '[]',   -- JSON array of goal ids. Many-to-many, the same
+                                          -- shape spaces.tags uses. Named goal_ids so it
+                                          -- can't be mistaken for the legacy `goal` column.
   origin TEXT,                           -- 'external' | 'internal' | null -- Provenance
   due_date TEXT,                         -- 'YYYY-MM-DD' | null -- a real target date
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -79,14 +82,28 @@ CREATE TABLE IF NOT EXISTS workspaces (
 );
 CREATE INDEX IF NOT EXISTS idx_workspaces_space_id ON workspaces(space_id);
 
+-- Projects: a real, named piece of work you decided to take on, that a
+-- Milestone or Session belongs to. Personally initiated, which is what
+-- distinguishes it from a Goal (below) -- a pursuit you notice you're
+-- heading toward rather than one you set out on.
+--
+-- A Project does *not* belong to a Space. Its member entries live in
+-- whatever Spaces they were created in, so a Project's Spaces are
+-- simply whichever those turn out to be -- derived at read time, never
+-- stored, which is what lets one Project span several Spaces with
+-- nothing extra to keep in sync. A block points at at most one Project
+-- (a single nullable `projectId` in its own `properties`, not an
+-- array), since a checkpoint or a timed sitting most naturally serves
+-- one project -- see updateBlockProject in queries.js.
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
-  space_id TEXT NOT NULL REFERENCES spaces(id),
   name TEXT NOT NULL,
+  -- The Goal this Project serves, if any. Single and nullable, matching
+  -- how a Milestone belongs to at most one Project.
+  goal_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_projects_space_id ON projects(space_id);
 
 CREATE TABLE IF NOT EXISTS trail_entries (
   id TEXT PRIMARY KEY,
@@ -136,3 +153,23 @@ CREATE TABLE IF NOT EXISTS trash (
   deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_trash_deleted_at ON trash(deleted_at);
+
+-- Goals: a pursuit several Spaces can be working toward at once.
+--
+-- Distinct from a Project by intent, in the person's own framing:
+-- "projects are personally initiated, goals are revealed as relevant
+-- pursuits." So a Goal has no Milestones or Sessions of its own -- it's
+-- a direction you notice you're heading, not work you scheduled. A
+-- Project can name the Goal it serves (projects.goal_id), which is what
+-- lets you see whether initiated work is actually feeding a revealed
+-- pursuit.
+--
+-- Replaces the single free-text spaces.goal line, which could only ever
+-- hold one thing.
+CREATE TABLE IF NOT EXISTS goals (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

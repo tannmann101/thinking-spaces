@@ -129,7 +129,18 @@ describe('renderExportMarkdown', () => {
       payload({
         spaces: [space],
         workspaces: [{ id: 'w1', space_id: 's1', name: 'Etymology' }],
-        projects: [{ id: 'p1', space_id: 's1', name: 'Ship it' }],
+        // A Project reaches a Space through an entry assigned to it.
+        blocks: [
+          {
+            id: 'b1',
+            space_id: 's1',
+            type: 'milestone',
+            content: '{}',
+            properties: JSON.stringify({ projectId: 'p1' }),
+            position: 0,
+          },
+        ],
+        projects: [{ id: 'p1', name: 'Ship it' }],
       })
     );
     expect(md).toContain('Workspaces: Etymology');

@@ -1,13 +1,15 @@
-// Project routes: a real, named goal/project inside one Space that a
-// Milestone or Session belongs to (see the "--- Projects ---" section
-// in db/queries.js). Space-scoped routes (list/create) live under
-// /spaces/:spaceId, same convention as blocks and Workspaces; a
-// Project's own id then addresses it directly for its dedicated page
-// (get/rename/delete).
+// Project routes. A Project is standalone -- created from the Projects
+// page, not inside a Space -- so creation lives at /projects rather
+// than under /spaces/:spaceId. The Space-scoped GET remains, but now
+// answers "which Projects have work in this Space", derived from where
+// its member entries live (see the "--- Projects ---" section in
+// db/queries.js).
 
 import { Router } from 'express';
 import {
   listProjectsForSpace,
+  listProjectBlocks,
+  listProjectsIndex,
   getProjectById,
   createProject,
   updateProject,
@@ -22,12 +24,18 @@ projectsRouter.get('/spaces/:spaceId/projects', (req, res) => {
   res.json(listProjectsForSpace(req.params.spaceId));
 });
 
-projectsRouter.post('/spaces/:spaceId/projects', (req, res) => {
-  const { name } = req.body;
+// Every Project, with derived Spaces and progress. Declared before
+// /projects/:id so the literal path isn't captured as an id.
+projectsRouter.get('/projects', (req, res) => {
+  res.json(listProjectsIndex());
+});
+
+projectsRouter.post('/projects', (req, res) => {
+  const { name, goalId } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'name is required' });
   }
-  res.status(201).json(createProject({ spaceId: req.params.spaceId, name: name.trim() }));
+  res.status(201).json(createProject({ name: name.trim(), goalId: goalId || null }));
 });
 
 projectsRouter.get('/projects/:id', (req, res) => {
@@ -43,11 +51,28 @@ projectsRouter.patch('/projects/:id', (req, res) => {
   if (!existing) {
     return res.status(404).json({ error: 'Project not found' });
   }
-  const { name } = req.body;
-  if (!name || !name.trim()) {
-    return res.status(400).json({ error: 'name is required' });
+  const { name, goalId } = req.body;
+  if (name !== undefined && !name.trim()) {
+    return res.status(400).json({ error: 'name cannot be empty' });
   }
-  res.json(updateProject(req.params.id, { name: name.trim() }));
+  if (name === undefined && goalId === undefined) {
+    return res.status(400).json({ error: 'name or goalId is required' });
+  }
+  res.json(
+    updateProject(req.params.id, {
+      ...(name === undefined ? {} : { name: name.trim() }),
+      ...(goalId === undefined ? {} : { goalId: goalId || null }),
+    })
+  );
+});
+
+// Every entry assigned to this Project, wherever it lives -- what its
+// own page reads, since a Project has no Space feed of its own.
+projectsRouter.get('/projects/:id/blocks', (req, res) => {
+  if (!getProjectById(req.params.id)) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+  res.json(listProjectBlocks(req.params.id));
 });
 
 // A structured + prose snapshot of this Project's current state --

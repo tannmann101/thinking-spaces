@@ -70,7 +70,7 @@ describe('getBlockReport', () => {
   });
 
   it('includes a Project membership line for a Milestone/Session assigned to one', async () => {
-    const project = await createProject(env, { spaceId: space.id, name: 'Ship it' });
+    const project = await createProject(env, { name: 'Ship it' });
     const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
     await updateBlockProject(env, block.id, project.id);
     const report = await getBlockReport(env, block.id);
@@ -159,7 +159,7 @@ describe('getProjectReport', () => {
   });
 
   it('lists only the Milestones/Sessions assigned to this Project, with a reached/logged-minutes readout', async () => {
-    const project = await createProject(env, { spaceId: space.id, name: 'Ship it' });
+    const project = await createProject(env, { name: 'Ship it' });
     const milestone = await createBlock(env, {
       spaceId: space.id,
       type: 'milestone',
@@ -215,11 +215,14 @@ describe('getSpaceReport', () => {
     await createBlock(env, { spaceId: space.id, type: 'text', content: {} });
     await createBlock(env, { spaceId: space.id, type: 'text', content: {} });
     await createWorkspace(env, { spaceId: space.id, name: 'My Workspace' });
-    await createProject(env, { spaceId: space.id, name: 'My Project' });
+    // A Project reaches a Space through its entries, not ownership.
+    const project = await createProject(env, { name: 'My Project' });
+    const milestone = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
+    await updateBlockProject(env, milestone.id, project.id);
 
     const report = await getSpaceReport(env, space.id);
     const structure = report.sections.find((s) => s.heading.startsWith('Structure'));
-    expect(structure.heading).toBe('Structure (2 entries)');
+    expect(structure.heading).toBe('Structure (3 entries)');
     expect(structure.lines).toContain('2 text');
     expect(structure.lines).toContain('Workspaces: My Workspace');
     expect(structure.lines).toContain('Projects: My Project');

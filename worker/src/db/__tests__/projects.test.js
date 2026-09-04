@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
-import { listProjectsForSpace, getProjectById, createProject, updateProject, deleteProject } from '../projects.js';
+import {
+  listProjects,
+  listProjectsForSpace,
+  listProjectsIndex,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject,
+} from '../projects.js';
+import { createGoal } from '../goals.js';
 import { createSpace } from '../spaces.js';
 import { updateBlockProject, createBlock } from '../blocks.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
@@ -13,31 +22,84 @@ describe('projects.js', () => {
     space = await createSpace(env, { title: 'A Space' });
   });
 
-  it('creates a Project scoped to its Space and logs activity', async () => {
-    const project = await createProject(env, { spaceId: space.id, name: 'Ship the redesign' });
+  it('creates a standalone Project and logs activity', async () => {
+    const project = await createProject(env, { name: 'Ship the redesign' });
     expect(project.name).toBe('Ship the redesign');
-    expect(project.space_id).toBe(space.id);
+    expect(project.goal_id).toBeNull();
     const { results } = await env.DB.prepare(`SELECT * FROM activity_log WHERE kind = 'project_created'`).all();
     expect(results).toHaveLength(1);
   });
 
-  it('lists only Projects belonging to the given Space', async () => {
-    const other = await createSpace(env, { title: 'Other Space' });
-    await createProject(env, { spaceId: space.id, name: 'Mine' });
-    await createProject(env, { spaceId: other.id, name: 'Not mine' });
-    const list = await listProjectsForSpace(env, space.id);
-    expect(list.map((p) => p.name)).toEqual(['Mine']);
+  it('can name the Goal it serves', async () => {
+    const goal = await createGoal(env, { name: 'Understand feedback systems' });
+    const project = await createProject(env, { name: 'Read the book', goalId: goal.id });
+    expect(project.goal_id).toBe(goal.id);
   });
 
-  it('renames a Project in place', async () => {
-    const project = await createProject(env, { spaceId: space.id, name: 'Old name' });
-    const updated = await updateProject(env, project.id, { name: 'New name' });
-    expect(updated.name).toBe('New name');
+  // The whole point of the inversion: a Project's Spaces are wherever
+  // its member entries happen to live, not a stored owner.
+  it('lists a Space only the Projects its own entries were assigned to', async () => {
+    const other = await createSpace(env, { title: 'Other Space' });
+    const mine = await createProject(env, { name: 'Mine' });
+    const theirs = await createProject(env, { name: 'Not mine' });
+
+    const here = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
+    await updateBlockProject(env, here.id, mine.id);
+    const there = await createBlock(env, { spaceId: other.id, type: 'milestone', content: {} });
+    await updateBlockProject(env, there.id, theirs.id);
+
+    expect((await listProjectsForSpace(env, space.id)).map((p) => p.name)).toEqual(['Mine']);
+    expect((await listProjectsForSpace(env, other.id)).map((p) => p.name)).toEqual(['Not mine']);
+    expect((await listProjects(env)).map((p) => p.name).sort()).toEqual(['Mine', 'Not mine']);
+  });
+
+  it('one Project can span several Spaces', async () => {
+    const other = await createSpace(env, { title: 'Other Space' });
+    const project = await createProject(env, { name: 'Spans both' });
+    const a = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
+    const b = await createBlock(env, { spaceId: other.id, type: 'session', content: {} });
+    await updateBlockProject(env, a.id, project.id);
+    await updateBlockProject(env, b.id, project.id);
+
+    expect((await listProjectsForSpace(env, space.id)).map((p) => p.name)).toEqual(['Spans both']);
+    expect((await listProjectsForSpace(env, other.id)).map((p) => p.name)).toEqual(['Spans both']);
+  });
+
+  it('renames a Project in place, and can be re-pointed at another Goal', async () => {
+    const goal = await createGoal(env, { name: 'A pursuit' });
+    const project = await createProject(env, { name: 'Old name' });
+    expect((await updateProject(env, project.id, { name: 'New name' })).name).toBe('New name');
+    expect((await updateProject(env, project.id, { goalId: goal.id })).goal_id).toBe(goal.id);
     expect((await getProjectById(env, project.id)).name).toBe('New name');
   });
 
+  it('the index carries derived Spaces, progress and the Goal name', async () => {
+    const goal = await createGoal(env, { name: 'Understand feedback systems' });
+    const project = await createProject(env, { name: 'Read the book', goalId: goal.id });
+    const reached = await createBlock(env, { spaceId: space.id, type: 'milestone', content: { reached: true } });
+    const unreached = await createBlock(env, { spaceId: space.id, type: 'milestone', content: { reached: false } });
+    const session = await createBlock(env, { spaceId: space.id, type: 'session', content: { durationMinutes: 45 } });
+    for (const block of [reached, unreached, session]) {
+      await updateBlockProject(env, block.id, project.id);
+    }
+
+    const [row] = await listProjectsIndex(env);
+    expect(row.goalName).toBe('Understand feedback systems');
+    expect(row.spaces.map((s) => s.spaceTitle)).toEqual(['A Space']);
+    expect(row.milestoneCount).toBe(2);
+    expect(row.reachedCount).toBe(1);
+    expect(row.minutesLogged).toBe(45);
+  });
+
+  it('a Project with no entries yet still lists, with nothing derived', async () => {
+    await createProject(env, { name: 'Not started' });
+    const [row] = await listProjectsIndex(env);
+    expect(row.spaces).toEqual([]);
+    expect(row.milestoneCount).toBe(0);
+  });
+
   it('deleting a Project removes the row but leaves its blocks in place', async () => {
-    const project = await createProject(env, { spaceId: space.id, name: 'Doomed' });
+    const project = await createProject(env, { name: 'Doomed' });
     const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
     await updateBlockProject(env, block.id, project.id);
 

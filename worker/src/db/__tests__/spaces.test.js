@@ -14,11 +14,11 @@ import {
   listSynthesesIndex,
 } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
-import { createProject } from '../projects.js';
+import { createProject, getProjectById } from '../projects.js';
 import { addBlockToSpace, listBlocksForSpace } from '../blocks.js';
 import { createTemplate } from '../templates.js';
 import { TEST_SPACE_ID } from '../constants.js';
-import { createBlock, updateBlockContent } from '../blocks.js';
+import { createBlock, updateBlockContent, updateBlockProject } from '../blocks.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
 describe('createSpace / getSpaceById', () => {
@@ -283,13 +283,17 @@ describe('deleteSpace', () => {
     expect((await env.DB.prepare('SELECT * FROM workspaces WHERE space_id = ?').bind(space.id).all()).results).toEqual([]);
   });
 
-  it('also deletes a Space\'s own Projects -- the same foreign-key gap Workspaces once had', async () => {
-    const space = await createSpace(env, { title: 'Has a Project' });
-    await createProject(env, { spaceId: space.id, name: 'A Project' });
+  // A Project no longer belongs to a Space, so deleting a Space must
+  // leave the Project standing -- other Spaces may still feed it.
+  it('leaves a Project standing when a Space its work lived in is deleted', async () => {
+    const space = await createSpace(env, { title: 'Has work on a Project' });
+    const project = await createProject(env, { name: 'A Project' });
+    const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
+    await updateBlockProject(env, block.id, project.id);
 
-    await expect(deleteSpace(env, space.id)).resolves.not.toThrow();
+    await deleteSpace(env, space.id);
     expect(await getSpaceById(env, space.id)).toBeNull();
-    expect((await env.DB.prepare('SELECT * FROM projects WHERE space_id = ?').bind(space.id).all()).results).toEqual([]);
+    expect(await getProjectById(env, project.id)).toBeTruthy();
   });
 });
 

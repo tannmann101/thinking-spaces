@@ -149,6 +149,13 @@ export function renderExportMarkdown(exportData) {
   const trail = tables.trail_entries || [];
   const workspaces = tables.workspaces || [];
   const projects = tables.projects || [];
+  const goals = tables.goals || [];
+
+  const goalNameById = new Map(goals.map((goal) => [goal.id, goal.name]));
+  const goalNamesFor = (space) =>
+    parse(space.goal_ids, [])
+      .map((goalId) => goalNameById.get(goalId))
+      .filter(Boolean);
 
   const spaceTitleById = new Map(spaces.map((space) => [space.id, space.title]));
   const blocksBySpace = new Map();
@@ -175,7 +182,9 @@ export function renderExportMarkdown(exportData) {
     const categories = parse(space.categories, []);
     const meta = [
       `Status: ${space.status}`,
-      space.goal && `Working toward: ${space.goal}`,
+      // Goals replaced the single free-text `goal` line -- resolved by
+      // name here, since an export is meant to be readable on its own.
+      goalNamesFor(space).length > 0 && `Working toward: ${goalNamesFor(space).join(', ')}`,
       space.due_date && `Due: ${space.due_date}`,
       space.origin && `Origin: ${space.origin}`,
       tags.length > 0 && `Tags: ${tags.join(', ')}`,
@@ -202,7 +211,12 @@ export function renderExportMarkdown(exportData) {
     }
 
     const ownWorkspaces = workspaces.filter((workspace) => workspace.space_id === space.id);
-    const ownProjects = projects.filter((project) => project.space_id === space.id);
+    // A Project no longer belongs to a Space -- the Projects a Space
+    // shows are whichever ones its own entries were assigned to.
+    const ownProjectIds = new Set(
+      own.map((block) => parse(block.properties, {}).projectId).filter(Boolean)
+    );
+    const ownProjects = projects.filter((project) => ownProjectIds.has(project.id));
     if (ownWorkspaces.length > 0 || ownProjects.length > 0) {
       out.push(
         '## Structure',

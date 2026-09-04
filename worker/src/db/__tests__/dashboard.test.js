@@ -121,7 +121,7 @@ describe('getWeekCalendar', () => {
 
   it('resolves a Milestone\'s Project name when it belongs to one', async () => {
     const space = await createSpace(env, { title: 'Has a Project' });
-    const project = await createProject(env, { spaceId: space.id, name: 'Ship the redesign' });
+    const project = await createProject(env, { name: 'Ship the redesign' });
     const block = await createBlock(env, {
       spaceId: space.id,
       type: 'milestone',

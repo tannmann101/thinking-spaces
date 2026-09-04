@@ -3,6 +3,7 @@
 export const EXPORT_TABLES = [
   'templates',
   'resource_templates',
+  'goals',
   'spaces',
   'blocks',
   'workspaces',

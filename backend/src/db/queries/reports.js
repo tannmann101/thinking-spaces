@@ -4,6 +4,7 @@ import { getBlockById, listBlocksForSpace, listBacklinksForSpace } from './block
 import { getWorkspaceById, listWorkspacesForSpace } from './workspaces.js';
 import { getProjectById, listProjectsForSpace } from './projects.js';
 import { getSpaceById } from './spaces.js';
+import { getGoalById } from './goals.js';
 import { listTrailEntries } from './trail.js';
 import { getSkeletonSnapshot } from './skeleton.js';
 
@@ -282,23 +283,44 @@ export function getWorkspaceReport(workspaceId) {
 export function getProjectReport(projectId) {
   const project = getProjectById(projectId);
   if (!project) return null;
-  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(project.space_id);
-  const memberBlocks = listBlocksForSpace(project.space_id).filter(
-    (block) => block.properties?.projectId === projectId
-  );
+
+  // A Project's work can live in any number of Spaces, so its members
+  // are gathered by projectId across every Space rather than read out
+  // of one Space's own feed.
+  const memberRows = db
+    .prepare(
+      `SELECT blocks.id AS block_id, spaces.title AS space_title
+         FROM blocks
+         JOIN spaces ON spaces.id = blocks.space_id
+        WHERE json_extract(blocks.properties, '$.projectId') = ?
+        ORDER BY spaces.title ASC, blocks.position ASC`
+    )
+    .all(projectId);
+  const memberBlocks = memberRows.map((row) => ({ ...getBlockById(row.block_id), spaceTitle: row.space_title }));
+  const spaceTitles = [...new Set(memberRows.map((row) => row.space_title))];
+
   const milestones = memberBlocks.filter((block) => block.type === 'milestone');
   const sessions = memberBlocks.filter((block) => block.type === 'session');
   const reached = milestones.filter((block) => block.content.reached).length;
   const totalMinutes = sessions.reduce((sum, block) => sum + (block.content.durationMinutes || 0), 0);
 
+  const goal = project.goal_id ? getGoalById(project.goal_id) : null;
+
   const sections = [
-    { heading: 'Identity', lines: [`Space: ${space?.title || project.space_id}`, `Created: ${project.created_at}`] },
+    {
+      heading: 'Identity',
+      lines: [
+        ...(goal ? [`Goal: ${goal.name}`] : []),
+        ...(spaceTitles.length > 0 ? [`Spaces: ${spaceTitles.join(', ')}`] : ['Spaces: none yet']),
+        `Created: ${project.created_at}`,
+      ],
+    },
     {
       heading: `Assigned Milestones & Sessions (${memberBlocks.length})`,
       lines: [
         ...(milestones.length > 0 ? [`Milestones: ${reached} of ${milestones.length} reached`] : []),
         ...(sessions.length > 0 ? [`Sessions: ${totalMinutes} min logged across ${sessions.length}`] : []),
-        ...memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)}`),
+        ...memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)} (in ${block.spaceTitle})`),
       ],
     },
   ];

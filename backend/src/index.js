@@ -17,6 +17,7 @@ import { exportRouter } from './routes/exportData.js';
 import { searchRouter } from './routes/search.js';
 import { trashRouter } from './routes/trash.js';
 import { collectionsRouter } from './routes/collections.js';
+import { goalsRouter } from './routes/goals.js';
 import { linkPreviewRouter } from './routes/linkPreview.js';
 import { uploadsRouter } from './routes/uploads.js';
 import {
@@ -24,6 +25,7 @@ import {
   migrateTextBlockLines,
   migrateWorkItemSupport,
   migrateSpaceStatuses,
+  migrateProjectsSpaceless,
 } from './db/queries.js';
 import { seedTestSpaceBlocks } from './db/seedTestSpace.js';
 import { seedTemplates } from './db/seedTemplates.js';
@@ -39,6 +41,7 @@ migrateWorkItemSupport();
 // Rewrites the two retired status values (nascent/developing) onto the
 // current five-value vocabulary -- see migrateSpaceStatuses.
 migrateSpaceStatuses();
+migrateProjectsSpaceless();
 seedTemplates();
 seedResourceTemplates();
 seedTestSpaceBlocks();
@@ -64,6 +67,7 @@ app.use('/api', exportRouter);
 app.use('/api', searchRouter);
 app.use('/api', trashRouter);
 app.use('/api', collectionsRouter);
+app.use('/api', goalsRouter);
 app.use('/api', linkPreviewRouter);
 app.use('/api', uploadsRouter);
 

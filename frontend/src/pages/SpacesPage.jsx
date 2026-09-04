@@ -18,6 +18,7 @@ import { getSpaces, deleteSpace } from '../api.js';
 import SpaceGlyph, { SPACE_STATUSES } from '../glyph/SpaceGlyph.jsx';
 import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -145,6 +146,12 @@ function SpacesPage() {
           Every train of thought you&rsquo;ve started, grouped by how settled it is. The Dashboard shows what
           needs you right now; this is the whole collection.
         </p>
+
+        <PageActions>
+          <Link to="/spaces/new" className="btn">
+            + New Space
+          </Link>
+        </PageActions>
 
         {error && <p>Could not load Spaces: {error}</p>}
         {!error && !spaces && <p>Loading...</p>}

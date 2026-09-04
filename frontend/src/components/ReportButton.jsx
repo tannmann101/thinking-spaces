@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 
-function ReportButton({ fetchReport, label = 'Report' }) {
+function ReportButton({ fetchReport, label = 'Report', tier = 'entry' }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
@@ -48,7 +48,11 @@ function ReportButton({ fetchReport, label = 'Report' }) {
 
   return (
     <span className="report-button-wrap">
-      <button type="button" className="btn-ghost-small" onClick={toggle}>
+      {/* A Report on a whole page is one of that page's own actions and
+          sits in its PageActions bar, so it takes the page tier; a Report
+          on one entry stays quiet and inline with that entry. See the
+          convention above the button styles in index.css. */}
+      <button type="button" className={tier === 'page' ? 'btn' : 'btn-ghost-small'} onClick={toggle}>
         {open ? `Close ${label}` : label}
       </button>
       {open && (

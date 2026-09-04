@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTemplates, deleteTemplate } from '../api.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -37,9 +38,11 @@ function TemplatesPage() {
       <main className="app-content">
       <div className="page-head">
         <h1>Templates</h1>
-        <Link to="/templates/new" className="btn">
-          + New Template
-        </Link>
+        <PageActions>
+          <Link to="/templates/new" className="btn">
+            + New Template
+          </Link>
+        </PageActions>
       </div>
       <p>
         <Link to="/resource-templates">Manage Resource Templates</Link> -- a separate set of

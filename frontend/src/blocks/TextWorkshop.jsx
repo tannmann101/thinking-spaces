@@ -201,18 +201,23 @@ function TextWorkshop({ block, onBlocksChanged, focused = false, onFocus }) {
                 {!focused && tagPopoverId === line.id && (
                   <p className="text-workshop-popover">
                     {TEXT_ATTRIBUTION_TAGS.map((candidate) => (
-                      <span
+                      <button
+                        type="button"
                         key={candidate}
                         className={`category-chip category-chip-toggle${line.tag === candidate ? ' category-chip-active' : ''}`}
                         onClick={() => setTag(line.id, candidate)}
                       >
                         {candidate}
-                      </span>
+                      </button>
                     ))}
                     {line.tag && (
-                      <span className="category-chip category-chip-toggle" onClick={() => setTag(line.id, null)}>
+                      <button
+                        type="button"
+                        className="category-chip category-chip-toggle"
+                        onClick={() => setTag(line.id, null)}
+                      >
                         clear
-                      </span>
+                      </button>
                     )}
                   </p>
                 )}
@@ -221,9 +226,14 @@ function TextWorkshop({ block, onBlocksChanged, focused = false, onFocus }) {
                   <p className="text-workshop-popover">
                     File in:{' '}
                     {FILEABLE_LANES.map((lane) => (
-                      <span key={lane.key} className="category-chip category-chip-toggle" onClick={() => fileInLane(line, lane.key)}>
+                      <button
+                        type="button"
+                        key={lane.key}
+                        className="category-chip category-chip-toggle"
+                        onClick={() => fileInLane(line, lane.key)}
+                      >
                         {lane.label}
-                      </span>
+                      </button>
                     ))}
                   </p>
                 )}

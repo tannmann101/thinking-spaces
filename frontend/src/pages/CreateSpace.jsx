@@ -189,9 +189,9 @@ function CreateSpace() {
             {workspaceNames.map((name) => (
               <span key={name} className="workspace-chip">
                 {name}{' '}
-                <span className="editable-toggle" onClick={() => removeDraftWorkspace(name)} title="Remove">
+                <button type="button" className="editable-toggle" onClick={() => removeDraftWorkspace(name)} title="Remove">
                   ✕
-                </span>
+                </button>
               </span>
             ))}
           </p>
@@ -291,9 +291,9 @@ function CreateSpace() {
           {tags.map((tag) => (
             <span key={tag} className="tag-chip">
               {tag}{' '}
-              <span className="editable-toggle" onClick={() => removeTag(tag)} title="Remove tag">
+              <button type="button" className="editable-toggle" onClick={() => removeTag(tag)} title="Remove tag">
                 ✕
-              </span>
+              </button>
             </span>
           ))}
           <span className="tag-add-form">

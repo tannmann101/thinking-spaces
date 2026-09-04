@@ -197,6 +197,33 @@ select:focus-visible,
   background: var(--maroon-wash);
 }
 
+/* Click-to-edit affordances are real <button>s so they're keyboard
+   reachable, but they read as the text they're editing -- so the
+   browser's own button chrome is stripped back to nothing and the
+   dashed-underline signal above does all the work. */
+button.editable,
+button.editable-toggle,
+button.category-chip {
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+button.editable {
+  cursor: text;
+  border-bottom: 1px dashed var(--ink-faint);
+}
+button.editable:disabled {
+  cursor: default;
+  border-bottom-color: transparent;
+}
+button.editable:disabled:hover {
+  background: none;
+}
+
 /* Same dashed signal, but for a click-triggers-an-immediate-action
    control (confidence/trust cycling) rather than a text field. */
 .editable-toggle {
@@ -519,39 +546,8 @@ select:focus-visible,
   margin-left: 6px;
 }
 
-.new-space-btn {
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 7px 12px;
-  text-decoration: none;
-  display: inline-block;
-}
-.new-space-btn:hover {
-  border-color: var(--maroon);
-  color: var(--ink);
-}
 
-.dashboard-create-row {
-  display: flex;
-  gap: 10px;
-}
 
-/* Resource creation deliberately reads a little differently from
-   "+ New Space" -- not a second identical button, a visibly distinct
-   entry point for a visibly distinct flow. */
-.new-resource-btn {
-  border-color: var(--maroon);
-  color: var(--maroon-bright);
-}
-.new-resource-btn:hover {
-  background: var(--maroon-wash);
-}
 
 .resource-type-suggestions {
   display: flex;
@@ -672,8 +668,8 @@ select:focus-visible,
 
 /* An upcoming Milestone/running Session's inline action -- "mark
    reached"/"stop" right from the calendar cell, matching the same
-   small-mono-button treatment .new-space-btn already uses, just
-   scaled down to fit inside a week-item line. */
+   small-mono-button treatment .btn already uses, just scaled down to
+   fit inside a week-item line. */
 .week-item-action {
   font-family: var(--mono);
   font-size: var(--fs-2xs);
@@ -758,6 +754,21 @@ select:focus-visible,
 }
 
 /* ---------- generic buttons & form controls ---------- */
+/*
+ * Which button to use, so a control's weight says what it is:
+ *
+ *   .btn.btn-primary  the one submit action of a creation form
+ *   .btn              a page's own actions -- these live in .page-actions,
+ *                     the strip under the page's <h1> (see PageActions.jsx)
+ *   .btn-ghost-small  an action on one row or card, inline with it
+ *   .btn-danger       destructive, wherever it sits
+ *
+ * This convention already existed in spirit -- every creation form's
+ * submit was correctly .btn.btn-primary -- but page-level actions had
+ * drifted onto .btn-ghost-small, so a page's main action looked exactly
+ * like a "Move up" on one list item. Written out here because the rule
+ * being unwritten is how it drifted in the first place.
+ */
 
 .btn {
   font-family: var(--mono);
@@ -3025,8 +3036,12 @@ label {
   }
 }
 
-.insight-empty {
-  font-size: var(--fs-md);
+/* The muted "nothing here yet" line. .insight-empty is kept as an alias
+   of .empty-note rather than renamed across 11 Insights call sites --
+   one declaration, so the two can no longer drift apart. */
+.insight-empty,
+.empty-note {
+  font-size: var(--fs-sm);
   color: var(--ink-faint);
 }
 
@@ -3448,12 +3463,6 @@ label {
 
 /* ---------- Reports ---------- */
 
-/* A Report button appears at every level (Space, Workspace, and each
-   block in a feed) via the same shared ReportButton.jsx -- these rows
-   just give it consistent spacing wherever it lands. */
-.report-row {
-  margin: 8px 0;
-}
 .block-report-row {
   margin: 8px 0 0;
 }
@@ -3831,14 +3840,6 @@ label {
   color: var(--ink-faint);
 }
 
-/* The muted "nothing here yet, and here's why" line, used by the
-   Mapping Tools and the Workspaces directory. Insights has its own
-   .insight-empty from before this existed; the two aren't merged
-   because renaming 11 call sites buys nothing functional. */
-.empty-note {
-  font-size: var(--fs-sm);
-  color: var(--ink-faint);
-}
 
 @media (max-width: 760px) {
   .kind-grid {
@@ -4109,4 +4110,14 @@ a.legend-trigger {
   font-family: var(--mono);
   font-size: var(--fs-2xs);
   color: var(--ink-faint);
+}
+
+/* The strip under a page's <h1> holding that page's own actions. One
+   place to look on every page -- see PageActions.jsx. */
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
 }

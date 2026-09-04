@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getResourcesIndex } from '../api.js';
 import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -118,6 +119,12 @@ function ResourcesPage() {
           lenses. Grouped by what kind of thing each is, and showing which Spaces actually draw on it.
         </p>
 
+        <PageActions>
+          <Link to="/resources/new" className="btn">
+            + New Resource
+          </Link>
+        </PageActions>
+
         {error && <p>Could not load Resources: {error}</p>}
         {!error && !resources && <p>Loading...</p>}
 
@@ -133,10 +140,6 @@ function ResourcesPage() {
               {resources.length} {resources.length === 1 ? 'Resource' : 'Resources'}
               {unused.length > 0 && ` · ${unused.length} not referenced anywhere yet`}
             </p>
-            <p>
-              <Link to="/resources/new">+ New Resource</Link>
-            </p>
-
             {groups.map((group) => (
               <section key={group.type}>
                 <h2>

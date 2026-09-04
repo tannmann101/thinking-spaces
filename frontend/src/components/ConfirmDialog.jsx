@@ -14,6 +14,7 @@
 // per call site.
 
 import { createContext, useCallback, useContext, useState } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey.js';
 
 const ConfirmDialogContext = createContext(null);
 
@@ -42,6 +43,10 @@ export function ConfirmDialogProvider({ children }) {
       }),
     []
   );
+
+  // Escape cancels, the same as clicking outside or pressing Cancel.
+  // A no-op when nothing is open, so this is safe to register always.
+  useEscapeKey(() => close(false));
 
   function close(result) {
     dialog?.resolve(result);

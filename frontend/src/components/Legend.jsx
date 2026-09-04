@@ -15,6 +15,7 @@
 import { Link } from 'react-router-dom';
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 import { defaultBlockTheme } from '../theme/itemTheme.js';
+import { useEscapeKey } from '../hooks/useEscapeKey.js';
 
 const GLYPH_ROWS = [
   {
@@ -77,6 +78,8 @@ const FAMILY_ROWS = [
 ];
 
 function Legend({ onClose }) {
+  useEscapeKey(onClose);
+
   return (
     <div className="legend-overlay" onClick={onClose}>
       <div className="legend-panel" role="dialog" aria-label="How to read this app" onClick={(event) => event.stopPropagation()}>

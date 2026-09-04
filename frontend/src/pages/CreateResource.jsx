@@ -331,9 +331,9 @@ function CreateResource() {
           {typeTags.map((type) => (
             <span key={type} className="tag-chip">
               {type}{' '}
-              <span className="editable-toggle" onClick={() => removeType(type)} title="Remove">
+              <button type="button" className="editable-toggle" onClick={() => removeType(type)} title="Remove">
                 ✕
-              </span>
+              </button>
             </span>
           ))}
           <span className="tag-add-form">

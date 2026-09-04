@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getResourceTemplates, deleteResourceTemplate } from '../api.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -46,9 +47,11 @@ function ResourceTemplatesPage() {
       </Link>
       <div className="page-head">
         <h1>Resource Templates</h1>
-        <Link to="/resource-templates/new" className="btn">
-          + New Resource Template
-        </Link>
+        <PageActions>
+          <Link to="/resource-templates/new" className="btn">
+            + New Resource Template
+          </Link>
+        </PageActions>
       </div>
       <p>
         Each replaces the generic questions on <Link to="/resources/new">New Resource</Link> with a

@@ -29,6 +29,7 @@ import { newSessionSpec } from '../blocks/sessionActions.js';
 import BlockPreview from '../blocks/BlockPreview.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import ReportButton from '../components/ReportButton.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -217,9 +218,9 @@ function ProjectPage() {
           </h1>
           <p className="workspace-subtitle">A Project inside &ldquo;{space.title}&rdquo;</p>
           <ProjectProgress memberBlocks={memberBlocks} />
-          <div className="report-row">
-            <ReportButton fetchReport={() => getProjectReport(projectId)} label="Project Report" />
-          </div>
+          <PageActions>
+            <ReportButton fetchReport={() => getProjectReport(projectId)} label="Project Report" tier="page" />
+          </PageActions>
 
           {memberBlocks.length === 0 && (
             <p>Nothing assigned to this Project yet -- add a Milestone or Session below, or pull one in already on the Space.</p>

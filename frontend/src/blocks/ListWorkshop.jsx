@@ -279,9 +279,14 @@ function ListWorkshop({ block, onBlocksChanged }) {
       );
     }
     return (
-      <span className={editable ? 'editable' : undefined} onClick={() => startEditingField(item, field, String(value))}>
+      <button
+        type="button"
+        className={editable ? 'editable' : undefined}
+        disabled={!editable}
+        onClick={() => startEditingField(item, field, String(value))}
+      >
         {value}
-      </span>
+      </button>
     );
   }
 

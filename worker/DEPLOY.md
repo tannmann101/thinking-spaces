@@ -115,6 +115,68 @@ own `ensureColumn` migrations do for the Node side -- just applied once
 by hand here instead of automatically at every boot, since a Worker has
 no boot to run them at.
 
+### Queued, not yet applied to the deployed database
+
+These accumulated since the last live deployment. Run them once, in
+this order, from `worker/`:
+
+```sh
+# Adds the goals table and everything else declared in schema.sql that
+# doesn't exist yet -- every CREATE is IF NOT EXISTS, so this is safe to
+# re-run and won't touch tables that are already there.
+npx wrangler d1 execute thinking-spaces --remote --file=schema.sql
+
+# Columns an existing table can't gain from a CREATE TABLE IF NOT EXISTS.
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "ALTER TABLE activity_log ADD COLUMN block_id TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "ALTER TABLE spaces ADD COLUMN theme TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "ALTER TABLE spaces ADD COLUMN goal_ids TEXT NOT NULL DEFAULT '[]';"
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "ALTER TABLE workspaces ADD COLUMN kind TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "ALTER TABLE projects ADD COLUMN goal_id TEXT;"
+
+# Seeds the 17 built-in Resource Templates (idempotent -- INSERT OR IGNORE).
+npx wrangler d1 execute thinking-spaces --remote --file=resource-templates-seed.sql
+```
+
+One of these is a rebuild rather than an ALTER, because SQLite cannot
+drop a column carrying a foreign key. Projects no longer belong to a
+Space, and the old `projects.space_id` was NOT NULL with a foreign key
+into `spaces`, which blocks inserting a standalone Project at all. The
+Node side does this automatically at boot (`migrateProjectsSpaceless()`
+in `backend/src/db/queries/projects.js`); here it has to be run by hand:
+
+```sh
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "CREATE TABLE projects_rebuilt (id TEXT PRIMARY KEY, name TEXT NOT NULL, goal_id TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));
+   INSERT INTO projects_rebuilt (id, name, goal_id, created_at, updated_at) SELECT id, name, goal_id, created_at, updated_at FROM projects;
+   DROP TABLE projects;
+   ALTER TABLE projects_rebuilt RENAME TO projects;"
+```
+
+Skip that last one if the deployed database has no `projects.space_id`
+column (check with `PRAGMA table_info(projects);`) -- it means the
+rebuild has already been done.
+
+## One migration the Worker can never run itself
+
+`backend/src/db/index.js` runs a handful of one-time migrations at boot.
+Most have no counterpart here, because a D1 database starts fresh on the
+current shapes and so never holds a legacy-shaped row (see `CLAUDE.md`'s
+Hosting section). `migrateSpaceStatuses()` is the exception: it maps the
+two retired status values (`nascent`, `developing`) onto `active`, and
+the deployed database was populated *before* the status vocabulary
+changed, so it may still carry them. A Worker has no boot hook to run it
+at, so run it once by hand:
+
+```sh
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "UPDATE spaces SET status = 'active' WHERE status IN ('nascent', 'developing');"
+```
+
 ## Not yet done: file uploads need R2
 
 `backend/`'s content-ingestion feature (see `CLAUDE.md`) added two

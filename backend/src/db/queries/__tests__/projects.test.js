@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../index.js';
 import {
   listProjects,
+  listProjectBlocks,
   listProjectsForSpace,
   listProjectsIndex,
   getProjectById,
@@ -63,6 +64,24 @@ describe('projects.js', () => {
 
     expect(listProjectsForSpace(space.id).map((p) => p.name)).toEqual(['Spans both']);
     expect(listProjectsForSpace(other.id).map((p) => p.name)).toEqual(['Spans both']);
+  });
+
+  it('lists every entry assigned to it, wherever it lives, with its Space title', () => {
+    const other = createSpace({ title: 'Other Space' });
+    const project = createProject({ name: 'Spans both' });
+    const a = createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Here' } });
+    const b = createBlock({ spaceId: other.id, type: 'session', content: { label: 'There' } });
+    const unrelated = createBlock({ spaceId: space.id, type: 'milestone', content: { label: 'Loose' } });
+    updateBlockProject(a.id, project.id);
+    updateBlockProject(b.id, project.id);
+
+    const members = listProjectBlocks(project.id);
+    expect(members.map((m) => m.content.label).sort()).toEqual(['Here', 'There']);
+    expect(members.map((m) => m.spaceTitle).sort()).toEqual(['A Space', 'Other Space']);
+    // Content and properties come back parsed, same as any other
+    // block-reading function in this module.
+    expect(members[0].properties.projectId).toBe(project.id);
+    expect(members.some((m) => m.id === unrelated.id)).toBe(false);
   });
 
   it('renames a Project in place, and can be re-pointed at another Goal', () => {

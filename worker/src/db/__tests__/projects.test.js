@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
 import {
   listProjects,
+  listProjectBlocks,
   listProjectsForSpace,
   listProjectsIndex,
   getProjectById,
@@ -63,6 +64,22 @@ describe('projects.js', () => {
 
     expect((await listProjectsForSpace(env, space.id)).map((p) => p.name)).toEqual(['Spans both']);
     expect((await listProjectsForSpace(env, other.id)).map((p) => p.name)).toEqual(['Spans both']);
+  });
+
+  it('lists every entry assigned to it, wherever it lives, with its Space title', async () => {
+    const other = await createSpace(env, { title: 'Other Space' });
+    const project = await createProject(env, { name: 'Spans both' });
+    const a = await createBlock(env, { spaceId: space.id, type: 'milestone', content: { label: 'Here' } });
+    const b = await createBlock(env, { spaceId: other.id, type: 'session', content: { label: 'There' } });
+    const unrelated = await createBlock(env, { spaceId: space.id, type: 'milestone', content: { label: 'Loose' } });
+    await updateBlockProject(env, a.id, project.id);
+    await updateBlockProject(env, b.id, project.id);
+
+    const members = await listProjectBlocks(env, project.id);
+    expect(members.map((m) => m.content.label).sort()).toEqual(['Here', 'There']);
+    expect(members.map((m) => m.spaceTitle).sort()).toEqual(['A Space', 'Other Space']);
+    expect(members[0].properties.projectId).toBe(project.id);
+    expect(members.some((m) => m.id === unrelated.id)).toBe(false);
   });
 
   it('renames a Project in place, and can be re-pointed at another Goal', async () => {

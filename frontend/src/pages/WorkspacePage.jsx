@@ -33,6 +33,7 @@ import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import BlockPreview from '../blocks/BlockPreview.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import ReportButton from '../components/ReportButton.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -282,9 +283,9 @@ function WorkspacePage() {
                 {kind ? `${kind.label} Workspace` : 'A Workspace'} inside &ldquo;{space.title}&rdquo;
               </p>
               {kind && <p className="workspace-kind-description">{kind.description}</p>}
-              <div className="report-row">
-                <ReportButton fetchReport={() => getWorkspaceReport(workspaceId)} label="Workspace Report" />
-              </div>
+              <PageActions>
+                <ReportButton fetchReport={() => getWorkspaceReport(workspaceId)} label="Workspace Report" tier="page" />
+              </PageActions>
             </>
           )}
 

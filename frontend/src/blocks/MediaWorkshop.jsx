@@ -51,9 +51,14 @@ function MediaWorkshop({ block, onBlocksChanged }) {
       onKeyDown={(event) => event.key === 'Enter' && finishEditingCaption()}
     />
   ) : (
-    <span className={editable ? 'editable' : undefined} onClick={() => editable && setEditingCaption(true)}>
+    <button
+      type="button"
+      className={editable ? 'editable' : undefined}
+      disabled={!editable}
+      onClick={() => setEditingCaption(true)}
+    >
       {savedCaption || (editable ? '(add a caption)' : '')}
-    </span>
+    </button>
   );
 
   const urlNode = editable && (
@@ -69,9 +74,9 @@ function MediaWorkshop({ block, onBlocksChanged }) {
           onKeyDown={(event) => event.key === 'Enter' && finishEditingUrl()}
         />
       ) : (
-        <span className="editable" onClick={() => setEditingUrl(true)} title="Click to change the source URL">
+        <button type="button" className="editable" onClick={() => setEditingUrl(true)} title="Click to change the source URL">
           source: {savedUrl || '(no URL set)'}
-        </span>
+        </button>
       )}
     </p>
   );

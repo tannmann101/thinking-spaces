@@ -12,6 +12,7 @@ import {
 import SpaceGlyph from '../glyph/SpaceGlyph.jsx';
 import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -392,17 +393,17 @@ function Dashboard() {
         built. For trends across all of it, see Insights; for the complete history, see the Log.
       </p>
 
-      <p className="dashboard-create-row">
-        <Link to="/spaces/new" className="new-space-btn">
+      <PageActions>
+        <Link to="/spaces/new" className="btn">
           + New Space
         </Link>
-        <Link to="/resources/new" className="new-space-btn new-resource-btn">
+        <Link to="/resources/new" className="btn">
           + New Resource
         </Link>
-        <Link to="/synthesis/new" className="new-space-btn new-resource-btn">
+        <Link to="/synthesis/new" className="btn">
           + New Synthesis
         </Link>
-      </p>
+      </PageActions>
 
       {/* The one thing on this page meant to actually stand out --
           "see trends/metrics/insights across Spaces" was the Dashboard's
@@ -421,7 +422,7 @@ function Dashboard() {
       <ResourcesDigest spaces={resources} />
       <SynthesesDigest spaces={syntheses} />
 
-      {error && <p>Could not load spaces: {error}</p>}
+      {error && <p>Could not load Spaces: {error}</p>}
 
       {!error && spaces === null && <p>Loading spaces...</p>}
 

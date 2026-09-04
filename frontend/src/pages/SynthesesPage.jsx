@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { getSynthesesIndex } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
 import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -91,6 +92,12 @@ function SynthesesPage() {
           behind it.
         </p>
 
+        <PageActions>
+          <Link to="/synthesis/new" className="btn">
+            + New Synthesis
+          </Link>
+        </PageActions>
+
         {error && <p>Could not load Syntheses: {error}</p>}
         {!error && !syntheses && <p>Loading...</p>}
 
@@ -106,10 +113,6 @@ function SynthesesPage() {
               {syntheses.length} {syntheses.length === 1 ? 'Synthesis' : 'Syntheses'}
               {promotedCount > 0 && ` · ${promotedCount} promoted to Resource`}
             </p>
-            <p>
-              <Link to="/synthesis/new">+ New Synthesis</Link>
-            </p>
-
             <ul className="synthesis-grid">
               {syntheses.map((synthesis) => (
                 <SynthesisCard key={synthesis.id} synthesis={synthesis} />

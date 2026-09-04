@@ -38,16 +38,17 @@ function EditableText({ value, editable, placeholder, className = '', onSave, mu
   }
 
   return (
-    <span
+    <button
+      type="button"
       className={`${className}${editable ? ' editable' : ''}`.trim()}
+      disabled={!editable}
       onClick={() => {
-        if (!editable) return;
         setDraft(value || '');
         setEditing(true);
       }}
     >
       {value || placeholder}
-    </span>
+    </button>
   );
 }
 

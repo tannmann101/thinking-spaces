@@ -91,7 +91,7 @@ describe('Dashboard: Space list', () => {
   it('shows an error message when the fetch fails', async () => {
     api.getSpaces.mockRejectedValue(new Error('Network down'));
     renderDashboard();
-    expect(await screen.findByText('Could not load spaces: Network down')).toBeInTheDocument();
+    expect(await screen.findByText('Could not load Spaces: Network down')).toBeInTheDocument();
   });
 
   it('shows an Overdue badge for an overdue Space', async () => {

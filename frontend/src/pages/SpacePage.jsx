@@ -32,6 +32,7 @@ import NewBlockForm from '../blocks/NewBlockForm.jsx';
 import { newSessionSpec } from '../blocks/sessionActions.js';
 import ReportButton from '../components/ReportButton.jsx';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
+import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
@@ -210,9 +211,9 @@ function TagEditor({ space, onChanged }) {
       {space.tags.map((tag) => (
         <span key={tag} className="tag-chip">
           {tag}{' '}
-          <span className="editable-toggle" onClick={() => removeTag(tag)} title="Remove tag">
+          <button type="button" className="editable-toggle" onClick={() => removeTag(tag)} title="Remove tag">
             ✕
-          </span>
+          </button>
         </span>
       ))}
       <form onSubmit={addTag} className="tag-add-form">
@@ -257,13 +258,14 @@ function CategoryManager({ space, onChanged }) {
       {space.categories.map((category) => (
         <span key={category} className="category-chip">
           {category}{' '}
-          <span
+          <button
+            type="button"
             className="editable-toggle"
             onClick={() => removeCategory(category)}
             title="Remove category"
           >
             ✕
-          </span>
+          </button>
         </span>
       ))}
       <form onSubmit={addCategory} className="category-add-form">
@@ -856,9 +858,21 @@ function SpacePage() {
               <StatusPill space={space} onChanged={refetchAll} />
               <OriginBadge space={space} />
             </p>
-            <div className="report-row">
-              <ReportButton fetchReport={() => getSpaceReport(space.id)} label="Space Report" />
-            </div>
+            <PageActions>
+              <ReportButton fetchReport={() => getSpaceReport(space.id)} label="Space Report" tier="page" />
+              {/* Starting a Session used to sit loose in a bare <p> after
+                  the Add-Entry form, which is what made it feel like it
+                  was in a random spot -- it's one of this page's own
+                  actions, so it belongs here with the others. */}
+              <button
+                type="button"
+                className="btn"
+                onClick={handleStartSession}
+                title="Create and immediately start a new Session, skipping the Add-Entry form"
+              >
+                ▶ Start a Session
+              </button>
+            </PageActions>
 
             {/* Everything below is a property of the Space itself
                 (identity/metadata), grouped into one bordered panel so
@@ -1098,16 +1112,6 @@ function SpacePage() {
           {blocks && (
             <>
               <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />
-              <p>
-                <button
-                  type="button"
-                  className="btn-ghost-small"
-                  onClick={handleStartSession}
-                  title="Create and immediately start a new Session, skipping the Add-Entry form"
-                >
-                  ▶ Start a Session
-                </button>
-              </p>
             </>
           )}
 

@@ -43,9 +43,14 @@ function MediaBlock({ block, onSave, onBlocksChanged }) {
       onKeyDown={(event) => event.key === 'Enter' && finishEditing()}
     />
   ) : (
-    <span className={editable ? 'editable' : undefined} onClick={() => editable && setEditing(true)}>
+    <button
+      type="button"
+      className={editable ? 'editable' : undefined}
+      disabled={!editable}
+      onClick={() => setEditing(true)}
+    >
       {savedCaption || (editable ? '(add a caption)' : '')}
-    </span>
+    </button>
   );
 
   if (mediaType === 'image') {

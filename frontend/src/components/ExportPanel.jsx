@@ -13,6 +13,7 @@
 // silently navigating away from the app.
 
 import { useState } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey.js';
 
 const FILES = [
   {
@@ -32,6 +33,8 @@ const FILES = [
 ];
 
 function ExportPanel({ onClose }) {
+  useEscapeKey(onClose);
+
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
 

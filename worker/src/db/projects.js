@@ -80,6 +80,27 @@ export async function deleteProject(env, id) {
   }
 }
 
+// Every entry assigned to this Project, wherever it lives. A Project's
+// own page needs this: it has no Space of its own to read a feed from,
+// so its members are gathered by projectId across every Space instead.
+export async function listProjectBlocks(env, projectId) {
+  const { results } = await env.DB.prepare(
+    `SELECT blocks.*, spaces.title AS space_title
+       FROM blocks
+       JOIN spaces ON spaces.id = blocks.space_id
+      WHERE json_extract(blocks.properties, '$.projectId') = ?
+      ORDER BY spaces.title ASC, blocks.position ASC`
+  )
+    .bind(projectId)
+    .all();
+  return results.map((row) => ({
+    ...row,
+    content: JSON.parse(row.content),
+    properties: JSON.parse(row.properties),
+    spaceTitle: row.space_title,
+  }));
+}
+
 // Every Project, with the two things that make the index worth having:
 // where its work actually happens (derived from its member entries) and
 // how far it has got. Batched across every Project rather than queried

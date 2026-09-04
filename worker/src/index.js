@@ -47,6 +47,7 @@ import {
 } from './db/workspaces.js';
 import {
   listProjectsForSpace,
+  listProjectBlocks,
   listProjectsIndex,
   getProjectById,
   createProject,
@@ -650,6 +651,12 @@ export default {
       }
       if (m && method === 'PATCH') return await handlePatchProject(request, env, m[1]);
       if (m && method === 'DELETE') return await handleDeleteProject(env, m[1]);
+
+      m = path.match(/^\/api\/projects\/([\w-]+)\/blocks$/);
+      if (m && method === 'GET') {
+        if (!(await getProjectById(env, m[1]))) return errorResponse('Project not found', 404);
+        return json(await listProjectBlocks(env, m[1]));
+      }
 
       m = path.match(/^\/api\/projects\/([\w-]+)\/report$/);
       if (m && method === 'GET') return await handleProjectReport(env, m[1]);

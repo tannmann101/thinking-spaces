@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import {
   listProjectsForSpace,
+  listProjectBlocks,
   listProjectsIndex,
   getProjectById,
   createProject,
@@ -63,6 +64,15 @@ projectsRouter.patch('/projects/:id', (req, res) => {
       ...(goalId === undefined ? {} : { goalId: goalId || null }),
     })
   );
+});
+
+// Every entry assigned to this Project, wherever it lives -- what its
+// own page reads, since a Project has no Space feed of its own.
+projectsRouter.get('/projects/:id/blocks', (req, res) => {
+  if (!getProjectById(req.params.id)) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+  res.json(listProjectBlocks(req.params.id));
 });
 
 // A structured + prose snapshot of this Project's current state --

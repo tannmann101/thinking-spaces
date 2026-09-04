@@ -6,6 +6,8 @@ import CreateSynthesis from './pages/CreateSynthesis.jsx';
 import SpacePage from './pages/SpacePage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
 import ProjectPage from './pages/ProjectPage.jsx';
+import ProjectsPage from './pages/ProjectsPage.jsx';
+import GoalsPage from './pages/GoalsPage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
 import TemplateEditor from './pages/TemplateEditor.jsx';
 import ResourceTemplatesPage from './pages/ResourceTemplatesPage.jsx';
@@ -34,7 +36,11 @@ function App() {
           <Route path="/synthesis/new" element={<CreateSynthesis />} />
           <Route path="/spaces/:id" element={<SpacePage />} />
           <Route path="/spaces/:spaceId/workspaces/:workspaceId" element={<WorkspacePage />} />
-          <Route path="/spaces/:spaceId/projects/:projectId" element={<ProjectPage />} />
+          {/* A Project is standalone now -- it has no owning Space, so
+              its page lives at the top level rather than under one. */}
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:projectId" element={<ProjectPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/templates/new" element={<TemplateEditor />} />
           <Route path="/templates/:id/edit" element={<TemplateEditor />} />

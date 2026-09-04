@@ -27,7 +27,7 @@ describe('GraphView', () => {
         <GraphView
           spaces={[{ id: 'a', title: 'Space A', status: 'active' }, { id: 'b', title: 'Space B', status: 'mature' }]}
           workspaces={[{ id: 'ws-1', space_id: 'a', name: 'A Workspace' }]}
-          projects={[{ id: 'proj-1', space_id: 'b', name: 'A Project' }]}
+          projects={[{ id: 'proj-1', primary_space_id: 'b', name: 'A Project' }]}
           edges={[
             { kind: 'reference', blockId: 'e1', sourceSpaceId: 'a', targetSpaceId: 'b' },
             { kind: 'contains', spaceId: 'a', workspaceId: 'ws-1' },

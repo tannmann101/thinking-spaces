@@ -2602,11 +2602,40 @@ label {
    convention .block-row[data-family] already established. This is
    deliberately the one and only place Project gets a visual identity
    of its own rather than reading as an unlabeled Workspace twin. */
+/* A Project carries the Time family's own gold, since a Project is what
+   Milestones and Sessions belong to. On the Space page it sits on top of
+   .workspace-card (which supplies the box); on the Projects index it
+   stands alone, so it carries the card chrome itself. */
 .project-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   border-left: 3px solid var(--accent);
 }
 .project-card:hover {
   border-color: var(--accent);
+}
+
+/* A Goal is the pursuit a Project serves -- amber rather than gold, the
+   same family one step lighter, so the two read as related without
+   reading as the same thing. */
+.goal-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border-left: 3px solid var(--theme-accent-amber);
+}
+
+/* Which Space a group of a Project's entries actually lives in. */
+.project-space-heading {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  margin: 18px 0 6px;
 }
 
 .workspace-name-row {

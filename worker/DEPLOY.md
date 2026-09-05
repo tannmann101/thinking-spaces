@@ -127,6 +127,34 @@ the live site. Everything here is one sitting; do it in order.
 Run from `worker/`. Every command is a single line, so it works the same
 in PowerShell and in bash.
 
+**0. Make sure the checkout is current, and prove it.** This is not
+boilerplate -- skipping it is the one mistake that has actually bitten
+this runbook. `--file=` reads from *your working copy*, so a stale
+checkout silently applies a stale `schema.sql`: the command succeeds,
+reports fewer queries than it should, and quietly leaves out whichever
+tables were added since. `wrangler deploy` has the same hazard, and
+worse consequences -- it would ship Worker code that disagrees with the
+schema you just migrated.
+
+```
+git -C .. pull
+git -C .. log --oneline -1
+```
+
+Then check the statement count you're about to apply, and remember it --
+step 3 should report exactly this many:
+
+```
+findstr /R /C:"^CREATE" /C:"^ALTER" /C:"^INSERT" schema.sql | find /c /v ""
+```
+
+(On bash: `grep -cE '^\s*(CREATE|ALTER|INSERT)' schema.sql`.)
+
+If `git pull` refuses because of local changes to `package.json` /
+`package-lock.json`, those are almost certainly `npm install` artifacts:
+`git -C .. stash push -m "npm artifacts" worker/package.json worker/package-lock.json`,
+then pull.
+
 **1. Back up first.** Everything below is additive except step 4, which
 rebuilds a table. This is the person's own accumulated thinking, so take
 a copy before touching it:
@@ -148,8 +176,10 @@ npx wrangler d1 execute thinking-spaces --remote --command "PRAGMA table_info(sp
 npx wrangler d1 execute thinking-spaces --remote --command "PRAGMA table_info(activity_log);"
 ```
 
-**3. Apply the additive changes.** `schema.sql` creates any table that
-doesn't exist yet (every CREATE is `IF NOT EXISTS`, so it never touches
+**3. Apply the additive changes.** Check the query count it reports
+against what step 0 told you to expect -- a smaller number means you
+applied a stale file and some tables are silently missing.
+`schema.sql` creates any table that doesn't exist yet (every CREATE is `IF NOT EXISTS`, so it never touches
 one that does); the ALTERs add columns a CREATE can't retrofit. SQLite
 has no `ADD COLUMN IF NOT EXISTS`, so an already-applied one fails with
 `duplicate column name` -- that error means "already done", so read it

@@ -1,6 +1,14 @@
--- Built-in Templates seed data (D1). Generated from backend/src/db/seedTemplates.js --
--- do not hand-edit; regenerate from that file if a Template changes.
--- Apply with: wrangler d1 execute thinking-spaces --remote --file=templates-seed.sql
+-- Built-in Templates seed data (D1). This file is the source of truth
+-- for the 6 built-in Templates: a Worker has no boot hook to seed from,
+-- so unlike the old Express backend there's no seedTemplates.js running
+-- on startup. Adding or changing a built-in Template means editing the
+-- INSERT below and re-running this file (INSERT OR IGNORE, so existing
+-- rows are left alone -- change an existing one from the Templates page
+-- in the app instead, which is where they're meant to be edited).
+--
+-- Apply locally with:  npm run setup        (from worker/)
+-- Apply to the deployed database with:
+--   wrangler d1 execute thinking-spaces --remote --file=templates-seed.sql
 
 INSERT OR IGNORE INTO templates (id, name, block_arrangement) VALUES ('template-inquiry-analytical', 'Inquiry / Analytical', '[{"type":"text","content":{"tag":null,"text":""},"properties":{},"position":0},{"type":"list","content":{"items":[],"laneLabel":"Premises"},"properties":{"skeletonLane":"premises"},"position":1},{"type":"list","content":{"items":[],"laneLabel":"Evidence"},"properties":{"skeletonLane":"evidence"},"position":2},{"type":"list","content":{"items":[],"laneLabel":"Open Questions"},"properties":{"skeletonLane":"open-questions"},"position":3},{"type":"list","content":{"items":[],"laneLabel":"Tensions"},"properties":{"skeletonLane":"tensions"},"position":4},{"type":"text","content":{"tag":null,"text":""},"properties":{"skeletonRole":"current-best-articulation"},"position":5},{"type":"text","content":{"tag":null,"text":"Steelman: before finalizing, what is the strongest case against your current conclusion?"},"properties":{},"position":6}]');
 INSERT OR IGNORE INTO templates (id, name, block_arrangement) VALUES ('template-person-reflection', 'Person-Reflection', '[{"type":"text","content":{"tag":null,"text":""},"properties":{},"position":0},{"type":"list","content":{"items":[],"laneLabel":"What I Understand"},"properties":{"skeletonLane":"premises"},"position":1},{"type":"list","content":{"items":[],"laneLabel":"Evidence"},"properties":{"skeletonLane":"evidence"},"position":2},{"type":"list","content":{"items":[],"laneLabel":"Open Qs"},"properties":{"skeletonLane":"open-questions"},"position":3},{"type":"list","content":{"items":[],"laneLabel":"Growth Edges"},"properties":{"skeletonLane":"tensions"},"position":4},{"type":"text","content":{"tag":null,"text":""},"properties":{"skeletonRole":"current-best-articulation"},"position":5},{"type":"text","content":{"tag":null,"text":"Steelman: before finalizing, what is the strongest case against your current conclusion?"},"properties":{},"position":6}]');

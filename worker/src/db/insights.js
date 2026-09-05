@@ -1,11 +1,19 @@
-// Ported from backend/src/db/queries/insights.js.
+// --- Insights -----------------------------------------------------------
+// "See trends/metrics/insights across [Spaces]" was in the Dashboard's
+// vision from the start (see CLAUDE.md); log.js's getActivityStats was a
+// first taste of it. This is the fuller version, one function per
+// facet, all surfaced together on their own page (InsightsPage.jsx)
+// rather than folded into the Dashboard's existing digests -- there's
+// real depth here, not just another one-line stat. The Test Space is
+// excluded from every query below, same reasoning as everywhere else
+// it's excluded: scratch content, not real thinking to draw insight from.
 
 import { TEST_SPACE_ID, todayString } from './constants.js';
 import { WORK_TYPES } from './work.js';
 
 const CONFIDENCE_LEVELS = ['questioned', 'tentative', 'moderate', 'solid', 'certain'];
 
-// See backend/src/db/queries/insights.js's own comment -- these build
+// These build
 // the `reading` sentence each facet returns alongside its raw numbers.
 function capitalize(word) {
   return word.charAt(0).toUpperCase() + word.slice(1);
@@ -104,6 +112,9 @@ function buildTimeReading(overdueSpaceCount, overdueMilestoneCount, milestoneTot
   return parts.length > 0 ? parts.join(' ') : null;
 }
 
+// What kinds of thinking-work exist across every Space, and how settled
+// it feels overall -- the most direct payoff of building ten distinct
+// Work Types rather than one generic block with a label.
 export async function getWorkMixInsights(env) {
   const placeholders = WORK_TYPES.map(() => '?').join(', ');
   const { results } = await env.DB.prepare(`SELECT type, content FROM blocks WHERE type IN (${placeholders}) AND space_id != ?`)
@@ -129,6 +140,12 @@ export async function getWorkMixInsights(env) {
   };
 }
 
+// Two facets of "what's actually going on" that only show up once you
+// look across every Space at once: a Category name recurring in
+// several unrelated Spaces is a real cross-cutting theme, not just
+// per-Space organization; and every open Tension anywhere is an
+// unresolved conflict in your reasoning that today only ever shows up
+// one Space at a time (as a crack in that Space's own glyph).
 export async function getThemeInsights(env) {
   const spaceRows = await env.DB.prepare(`SELECT id, title, categories FROM spaces WHERE id != ?`).bind(TEST_SPACE_ID).all();
 
@@ -171,6 +188,13 @@ export async function getThemeInsights(env) {
   };
 }
 
+// Whether thinking is actually moving -- a weekly count of every
+// structural/Trail event over the last `weeks` (same union
+// log.js's listGlobalActivity already reads from, just bucketed by
+// week instead of listed individually) -- plus which Spaces have gone
+// quiet long enough to be worth a second look, independent of their
+// manually-set status (a Space can sit at "active" indefinitely
+// without anyone touching it).
 export async function getActivityTrendInsights(env, weeks = 8) {
   const weeklyCounts = await env.DB.prepare(
     `SELECT strftime('%Y-%W', created_at) AS week, COUNT(*) AS count
@@ -208,6 +232,15 @@ export async function getActivityTrendInsights(env, weeks = 8) {
   };
 }
 
+// The Work -> Synthesis -> Resource funnel, plus the external/internal
+// split Provenance introduced: how much of what exists was brought in
+// versus produced, and how much of the raw thinking has actually been
+// distilled into a finished piece versus still sitting as scattered
+// claims. distilledWorkItemCount reads real item-level lineage
+// (CreateSynthesis.jsx persists properties.sourceItemIds on each
+// Synthesis's own Source Material block) -- "which claims fed which
+// Synthesis" used to not be a question the data could answer at all,
+// back when Synthesis only copied its sources' text in.
 export async function getProvenanceInsights(env) {
   const originRows = await env.DB.prepare(`SELECT origin, COUNT(*) AS count FROM spaces WHERE id != ? GROUP BY origin`)
     .bind(TEST_SPACE_ID)
@@ -266,6 +299,13 @@ export async function getProvenanceInsights(env) {
   };
 }
 
+// The Time arc's own facet of Insights -- the arc's final, cross-
+// cutting layer, added now that due dates, Milestones, Sessions, and
+// Review all exist to have something worth summing up: what's coming
+// up, what's overdue, how much time has actually been logged, and
+// which Spaces have gone quiet on reflection even if they haven't
+// gone quiet on activity. The Test Space is excluded, same reasoning
+// as every other Insights query.
 export async function getTimeInsights(env) {
   const today = todayString();
 

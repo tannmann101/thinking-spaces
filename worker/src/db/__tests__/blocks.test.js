@@ -318,7 +318,7 @@ describe('blocks.js', () => {
   });
 });
 
-// See backend/src/db/queries/__tests__/blocks.test.js for why these
+// See the comment on getGraphData in ../blocks.js for why these
 // exist -- Trail was empty on essentially every real Space.
 describe('recording ordinary work', () => {
   let space;

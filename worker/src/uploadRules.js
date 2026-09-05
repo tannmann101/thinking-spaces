@@ -1,12 +1,8 @@
 // What counts as an acceptable upload, and what it gets stored as.
 //
-// Pure functions -- no filesystem, no R2, no Express, no Workers API --
-// so the same file can be a verbatim copy in worker/src/uploadRules.js,
-// exactly as linkPreview.js already is. That copying is deliberate: the
-// two backends are parallel implementations (see CLAUDE.md's Hosting
-// section), and a shared rule that silently differed between them would
-// mean a file the local app accepts being rejected by the live site, or
-// worse, the reverse.
+// Pure functions -- no filesystem, no R2, no Workers API -- so the rules
+// can be read and tested on their own, separately from the route that
+// enforces them, exactly as linkPreview.js already is.
 
 // 25 MB. Comfortably under the Workers request-body limit, and far more
 // than a PDF or a scan of something needs.

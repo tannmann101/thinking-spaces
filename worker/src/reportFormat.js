@@ -1,4 +1,4 @@
-// Ported unchanged from backend/src/reportFormat.js -- pure text
+// Pure text
 // formatting, no database access, so nothing about the Worker port
 // touches this file.
 export function renderReportText(report) {

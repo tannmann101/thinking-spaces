@@ -1,9 +1,19 @@
-// Ported from backend/src/db/queries/resourceTemplates.js. The 17
+// --- Resource Templates -------------------------------------------------
+// A deliberately separate mechanism from the ordinary Templates table
+// (templates.js) -- confirmed via direct question. Where a Space
+// Template seeds a block_arrangement wholesale, a Resource Template
+// instead REPLACES CreateResource.jsx's three generic descriptive
+// facets (What It Is / What It Affords / What It Offers) with a
+// type-tailored set of its own, keyed by `type` (matching a Resource's
+// own type tag, e.g. 'book'). See schema.sql's own comment for why the
+// fourth, structural facet (Touches / Touched By) stays universal and
+// is never part of `facets`.
+//
+// The 17
 // built-in Resource Templates aren't seeded by app code here (unlike
-// the Node backend's seedResourceTemplates.js, called at startup) --
-// see worker/resource-templates-seed.sql, applied once via wrangler d1
-// execute during deployment, same reasoning worker/templates-seed.sql
-// already established.
+// a Worker has no boot hook to run a seeder in) -- see
+// worker/resource-templates-seed.sql, applied once, same reasoning
+// worker/templates-seed.sql already established.
 
 import { logActivity } from './activityLog.js';
 import { recordTrash } from './trash.js';
@@ -22,12 +32,17 @@ export async function getResourceTemplateById(env, id) {
   return parseResourceTemplateRow(await env.DB.prepare(`SELECT * FROM resource_templates WHERE id = ?`).bind(id).first());
 }
 
+// Case-insensitive, since a Resource's own type tags are lowercased at
+// entry (see CreateResource.jsx's addType) but a Template's `type` is
+// typed in by hand wherever it's authored.
 export async function getResourceTemplateByType(env, type) {
   return parseResourceTemplateRow(
     await env.DB.prepare(`SELECT * FROM resource_templates WHERE lower(type) = lower(?)`).bind(type).first()
   );
 }
 
+// id is optional, same reasoning as createTemplate: a fixed id for the
+// built-in Resource Templates (see resource-templates-seed.sql).
 export async function createResourceTemplate(env, { id = crypto.randomUUID(), type, label, facets }) {
   await env.DB.prepare(`INSERT INTO resource_templates (id, type, label, facets) VALUES (?, ?, ?, ?)`)
     .bind(id, type, label, JSON.stringify(facets))

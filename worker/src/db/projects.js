@@ -1,5 +1,26 @@
-// Ported from backend/src/db/queries/projects.js -- see that file for the
-// full explanation of why a Project no longer belongs to one Space.
+// --- Projects ---------------------------------------------------------
+// A Project is a real, named piece of work you decided to take on, that
+// a Milestone or Session belongs to. It is *personally initiated*, which
+// is what distinguishes it from a Goal (see goals.js) -- a Goal is a
+// pursuit you notice you're heading toward. A Project can name the Goal
+// it serves, which is how you see whether the work you scheduled is
+// actually feeding the direction you found yourself in.
+//
+// A Project no longer belongs to one Space. Its member entries live in
+// whatever Spaces they were created in, so a Project's Spaces are simply
+// *whichever those turn out to be* -- derived, never stored. That means
+// assigning an entry to a Project stays the only action there is, and a
+// Project can span Spaces without a second thing to keep in sync.
+// `projects.space_id` is gone. Unlike `spaces.accent`, it could not
+// simply be left in place and ignored: it carried NOT NULL plus a
+// foreign key into spaces, so a standalone Project could not be
+// inserted at all while it existed. migrateProjectsSpaceless() below
+// rebuilds the table for any database created before this change.
+//
+// A block joins a Project via a single `projectId` in its own
+// `properties` (see updateBlockProject in blocks.js), not an array the
+// way Workspace membership is -- a checkpoint or a timed sitting most
+// naturally serves one project at a time.
 //
 // A Project's Spaces are derived from wherever its member entries live,
 // never stored. `projects.space_id` is gone from schema.sql entirely.
@@ -9,6 +30,7 @@ import { recordTrash } from './trash.js';
 
 // Every Project whose work actually happens in this Space -- derived
 // from where its member entries live rather than from stored ownership.
+// A Space "pulls in" the Projects it is contributing to.
 export async function listProjectsForSpace(env, spaceId) {
   const { results } = await env.DB.prepare(
     `SELECT DISTINCT projects.*
@@ -57,7 +79,8 @@ export async function updateProject(env, id, { name, goalId }) {
 // Deleting a Project only ever removes the projects row itself -- any
 // block that pointed at this id via properties.projectId just ends up
 // with a stale id nothing resolves to, exactly how a removed Workspace
-// or Category is already handled.
+// or Category is already handled. Nothing crashes; the frontend simply
+// doesn't find a matching Project to show a chip for anymore.
 export async function deleteProject(env, id) {
   const trashed = await getProjectById(env, id);
   if (trashed) {

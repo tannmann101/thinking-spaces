@@ -1,4 +1,12 @@
-// Ported from backend/src/db/queries/blocks.js.
+// --- Blocks (Entries) -------------------------------------------------
+// An entry is one piece of content inside a Space -- a paragraph, a
+// list, a Work item, a Milestone. Every type shares this one table; what
+// differs is the JSON in `content` and the markers in `properties`
+// (which Categories it belongs to, which Workspaces it was assembled
+// into, which Project it serves, its own theme override).
+//
+// Editing content and editing those markers are separate functions on
+// purpose: they're independent edits, and a PATCH can carry any subset.
 
 import { TEST_SPACE_ID } from './constants.js';
 import { logActivity, logBlockEdit } from './activityLog.js';
@@ -60,9 +68,10 @@ export async function listBlocksForSpace(env, spaceId) {
   return hydrateReferenceBlocks(env, results.map(parseBlockRow));
 }
 
-// "What references this Space" -- the basic backlink lookup. No graph
-// structure is stored; this just queries Reference blocks by their
-// target_space_id, using the index built for exactly this purpose.
+// "What references this Space" -- the basic backlink lookup CLAUDE.md
+// asks for. No graph structure is stored; this just queries Reference
+// blocks by their target_space_id, using the index built for exactly
+// this purpose.
 export async function listBacklinksForSpace(env, spaceId) {
   const { results } = await env.DB.prepare(
     `SELECT blocks.id AS block_id, blocks.content AS content,
@@ -83,12 +92,20 @@ export async function listBacklinksForSpace(env, spaceId) {
   }));
 }
 
-// The Graph view: every Reference block across every Space, as nodes
-// (Spaces) and edges (References), plus every Workspace and every
-// Project as their own nodes connected to their parent Space by a
-// "contains" edge. Still a plain query over existing tables -- no
-// separate graph structure is modeled or cached. The Test Space is
-// left out, same as every other cross-Space view.
+// The Graph view (Pass 5's "Map"): every Reference block across every
+// Space, as nodes (Spaces) and edges (References), plus every Workspace
+// and every Project as their own nodes connected to their parent Space
+// by a "contains" edge -- the Relational Map integration Workspaces
+// originally deferred, and Projects picked up in the same pass once an
+// outside-review audit found Projects had been left out of the Graph
+// entirely with no reason on record (unlike the Workspace precedent,
+// this wasn't a deliberate deferral, just an unflagged gap). Still a
+// plain query over existing tables -- CLAUDE.md is explicit that no
+// separate graph structure gets modeled or cached, so this always
+// reflects whatever the blocks/workspaces/projects tables currently
+// hold. The Test Space (and anything inside it) is left out for the
+// same reason it's left out of every other cross-Space view: it's
+// scratch content, not part of the real Map.
 export async function getGraphData(env) {
   const spacesResult = await env.DB.prepare(`SELECT id, title, status FROM spaces WHERE id != ? ORDER BY title ASC`)
     .bind(TEST_SPACE_ID)
@@ -184,7 +201,9 @@ export async function getBlockById(env, id) {
 // Same as getBlockById, plus the parent Space's own title -- backs the
 // standalone GET /blocks/:id route specifically, so a cross-Space
 // support-point pointer (see WorkBlock.jsx) can show which Space a
-// linked claim actually lives in, not just its text.
+// linked claim actually lives in, not just its text. A separate,
+// dedicated function rather than adding this to getBlockById itself,
+// which is called everywhere else in this file and has no need for it.
 export async function getBlockByIdWithSpaceTitle(env, id) {
   const block = await getBlockById(env, id);
   if (!block) return block;
@@ -192,6 +211,9 @@ export async function getBlockByIdWithSpaceTitle(env, id) {
   return { ...block, spaceTitle: space?.title ?? null };
 }
 
+// type is optional: pass it to count only blocks of that type, which is
+// what lets the Test Space seed each Block type independently as it's
+// built, without re-seeding types that already have demo content.
 export async function countBlocksForSpace(env, spaceId, type = null) {
   const row = type
     ? await env.DB.prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ? AND type = ?`).bind(spaceId, type).first()
@@ -199,6 +221,10 @@ export async function countBlocksForSpace(env, spaceId, type = null) {
   return row.count;
 }
 
+// Used by seedTestSpace.js so each seeded block can check "does the
+// block I'm responsible for already exist" independently of every
+// other seeded block, rather than one shared "has any list been seeded"
+// flag blocking the rest.
 export async function blockExistsAtPosition(env, spaceId, position) {
   const row = await env.DB.prepare(`SELECT id FROM blocks WHERE space_id = ? AND position = ?`)
     .bind(spaceId, position)
@@ -207,7 +233,11 @@ export async function blockExistsAtPosition(env, spaceId, position) {
 }
 
 // The next free `position` for a new block in this Space -- used both
-// by addBlockToSpace below and by skeleton.js's ensureSkeletonLanes.
+// by addBlockToSpace below and by skeleton.js's ensureSkeletonLanes
+// (a Skeleton lane is just an ordinary List block, appended the same
+// way). Lives here rather than in skeleton.js since "what position
+// comes next" is a Blocks-table concern regardless of which Tool is
+// being added.
 export async function nextPosition(env, spaceId) {
   const row = await env.DB.prepare(`SELECT MAX(position) AS maxPosition FROM blocks WHERE space_id = ?`)
     .bind(spaceId)
@@ -229,7 +259,11 @@ export async function createBlock(env, { spaceId, type, content = {}, properties
 }
 
 // Adding a block to an already-live Space -- same createBlock as
-// everything else uses, just appended at the end.
+// everything else uses, just appended at the end. Logged here
+// specifically (not inside createBlock itself), since createBlock also
+// fires once per starter block when a Template is applied -- that
+// would bury "a Space was created" under a burst of near-duplicate
+// block-added entries for the same moment.
 export async function addBlockToSpace(env, spaceId, { type, content = {}, properties = {} }) {
   const position = await nextPosition(env, spaceId);
   const block = await createBlock(env, { spaceId, type, content, properties, position });
@@ -271,8 +305,10 @@ export async function deleteBlock(env, id) {
   }
 }
 
-// Reordering blocks on a live Space: swaps two blocks' `position`
-// values directly rather than renumbering the whole list.
+// Reordering blocks on a live Space (distinct from ListBlock's own
+// item reordering, which stays inside one block's content): swaps two
+// blocks' `position` values directly rather than renumbering the
+// whole list, so it works regardless of what positions currently are.
 export async function moveBlockInSpace(env, spaceId, blockId, direction) {
   const blocks = await listBlocksForSpace(env, spaceId);
   const index = blocks.findIndex((block) => block.id === blockId);
@@ -285,10 +321,21 @@ export async function moveBlockInSpace(env, spaceId, blockId, direction) {
   await env.DB.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).bind(current.position, target.id).run();
 }
 
-// Every edit is recorded, in one of two shapes -- see the matching
-// comment in backend/src/db/queries/blocks.js. `logEdit: false` is for
-// callers (skeleton.js) that already write their own Trail entry for
-// the same change.
+// First editable block content: replaces a block's whole content blob.
+// Whichever block-editing UI calls this is responsible for merging in
+// unchanged fields (e.g. keeping an existing tag when only text changes).
+//
+// Every edit is recorded, in one of two shapes: a change
+// describeBlockContentChange can actually name (a Milestone reached, a
+// Session completed) gets its own row, since it happened once and is
+// worth seeing on its own; anything else coalesces into a plain
+// "edited" row (see logBlockEdit) so a writing session doesn't fill the
+// history with twenty identical lines.
+//
+// `logEdit: false` is for callers that already write their own history
+// entry for the same change -- skeleton.js's promotion/filing/Tension
+// functions each log a Trail entry describing what they just did, and
+// recording it a second time here would double-report one action.
 export async function updateBlockContent(env, id, content, { logEdit = true } = {}) {
   const existing = await getBlockById(env, id);
   await env.DB.prepare(`UPDATE blocks SET content = ?, updated_at = datetime('now') WHERE id = ?`)
@@ -318,6 +365,13 @@ export async function updateBlockContent(env, id, content, { logEdit = true } = 
   return getBlockById(env, id);
 }
 
+// Which of a Space's own Categories (freely-named facets specific to
+// its topic, see spaces.js's updateSpace) this block belongs to -- a
+// block can belong to more than one at once, or none. This lives in
+// `properties` (it's an attribute of the block, not its content)
+// alongside the existing skeletonLane/skeletonRole markers, which is
+// why it's a dedicated function rather than going through
+// updateBlockContent.
 export async function updateBlockCategories(env, id, categories) {
   const block = await getBlockById(env, id);
   if (!block) return null;
@@ -328,6 +382,14 @@ export async function updateBlockCategories(env, id, categories) {
   return getBlockById(env, id);
 }
 
+// Which Workspaces (see workspaces.js) this block has been deliberately
+// assembled into -- a block can belong to several, or none, same
+// many-to-many shape as Categories, stored the same way in `properties`
+// for the same reason (it's an attribute of the block, not its
+// content). Unlike Categories, a Workspace is a real row elsewhere (it
+// has its own name, its own page, it can be renamed or deleted
+// independently), so this array holds workspace ids, not names -- the
+// frontend resolves id -> current name/existence itself.
 export async function updateBlockWorkspaces(env, id, workspaceIds) {
   const block = await getBlockById(env, id);
   if (!block) return null;
@@ -338,6 +400,14 @@ export async function updateBlockWorkspaces(env, id, workspaceIds) {
   return getBlockById(env, id);
 }
 
+// Which Project (see projects.js) this block belongs to -- a single
+// nullable id, not an array, since a Milestone or Session most
+// naturally serves one project at a time (unlike a Tool, which can
+// usefully belong to several Workspaces). Pass null to clear it. Scoped
+// in practice to Milestone and Session (the two Time Types a "goal/
+// project" is really about), but nothing here enforces that -- same
+// "properties are just properties" looseness
+// updateBlockCategories/updateBlockWorkspaces already have.
 export async function updateBlockProject(env, id, projectId) {
   const block = await getBlockById(env, id);
   if (!block) return null;
@@ -348,10 +418,14 @@ export async function updateBlockProject(env, id, projectId) {
   return getBlockById(env, id);
 }
 
-// The manual half of this Tool's own look -- any subset of {accent,
-// shape, density, typeface} overriding its type's distinct default, or
-// null to clear back onto that default. See
-// frontend/src/theme/itemTheme.js.
+// The manual half of this Tool's own look -- any subset of
+// {accent, shape, density, typeface} overriding the distinct default
+// its own type already computes (see frontend/src/theme/itemTheme.js).
+// Passing null clears the override entirely, putting the block back on
+// its type's default. Stored in `properties` alongside categories/
+// workspaces/projectId rather than as its own column, same reasoning
+// every other per-block attribute already follows: it's a property of
+// the block, not its content.
 export async function updateBlockTheme(env, id, theme) {
   const block = await getBlockById(env, id);
   if (!block) return null;

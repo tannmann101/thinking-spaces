@@ -1,10 +1,9 @@
 // Pure logic for the "paste a link" side of content ingestion: deciding
 // whether a URL is safe to fetch server-side, and pulling a title/
-// description/image out of the HTML that comes back. Identical to
-// backend/src/linkPreview.js -- no Node-only APIs, so this file is a
-// verbatim copy rather than a divergent reimplementation, the same
-// "pure JS, ported unchanged" treatment the report-text formatter and
-// registry-driven readers already got when they moved to worker/.
+// description/image out of the HTML that comes back. Kept separate from
+// the router the same way reportFormat.js and exportFormat.js are: no
+// database, no Workers API, so it can be read and tested as plain
+// functions.
 
 // Blocks the classic SSRF targets: loopback, link-local, and every
 // RFC1918 private range, plus bare hostnames like "localhost". This is a

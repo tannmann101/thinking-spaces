@@ -175,7 +175,7 @@ describe('getSkeletonSnapshot', () => {
   });
 
   it('reads the Current Best Articulation text back out of its {lines} content', async () => {
-    // Regression test (see the matching backend test): getSkeletonSnapshot
+    // Regression test: getSkeletonSnapshot
     // used to read articulationBlock.content.text directly, a field that
     // stopped existing once Text blocks moved to {lines}. createBlock
     // normalizes the {tag, text} shape below into {lines} immediately.

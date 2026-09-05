@@ -1,5 +1,16 @@
-// Ported from backend/src/db/queries/goals.js -- see that file for why a
-// Goal deliberately has no Milestones or Sessions of its own.
+// --- Goals -----------------------------------------------------------
+// A pursuit that several Spaces can be working toward at once.
+//
+// Distinct from a Project by intent, in the person's own words:
+// "projects are personally initiated, goals are revealed as relevant
+// pursuits." So a Goal deliberately has no Milestones or Sessions of
+// its own -- give it those and it just becomes a Project with a
+// different name. What it has instead is reach: which Spaces are
+// working toward it, and which Projects are serving it.
+//
+// This replaces the single free-text `spaces.goal` line, which could
+// only ever hold one thing. That column is retained but no longer read
+// (see the schema), same treatment `spaces.accent` got.
 
 import { TEST_SPACE_ID } from './constants.js';
 import { recordTrash } from './trash.js';
@@ -29,7 +40,8 @@ export async function updateGoal(env, id, { name, note }) {
 }
 
 // Deleting a Goal leaves a stale id in any Space's goal_ids or Project's
-// goal_id, exactly how a removed Workspace or Category is handled.
+// goal_id, exactly how a removed Workspace or Category is already
+// handled -- nothing resolves to it, and nothing crashes.
 export async function deleteGoal(env, id) {
   const existing = await getGoalById(env, id);
   if (!existing) return false;
@@ -44,8 +56,10 @@ export async function deleteGoal(env, id) {
   return true;
 }
 
-// Which Spaces work toward each Goal, and which Projects serve it --
-// batched across every Goal rather than queried one at a time.
+// Which Spaces are working toward this Goal, and which Projects serve
+// it -- the two things that make a Goal worth looking at as a whole.
+// Batched across every Goal rather than queried one at a time, the same
+// approach listResourcesIndex and listAllWorkspaces already use.
 export async function listGoalsIndex(env) {
   const goals = await listGoals(env);
   if (goals.length === 0) return [];
@@ -84,6 +98,8 @@ export async function listGoalsIndex(env) {
   }));
 }
 
+// A Space works toward any number of Goals. Stored as a JSON array on
+// the Space, the same many-to-many shape tags and block workspaces use.
 export async function updateSpaceGoals(env, spaceId, goalIds) {
   const space = await env.DB.prepare(`SELECT id FROM spaces WHERE id = ?`).bind(spaceId).first();
   if (!space) return null;

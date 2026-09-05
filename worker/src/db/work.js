@@ -1,17 +1,49 @@
-// Ported from backend/src/db/queries/work.js. migrateWorkItemSupport is
-// deliberately NOT ported: it exists on the Node side to upgrade rows
-// written before the {support} shape existed, but a D1 database starts
-// fresh on the current schema/content shapes, so there are never any
-// old-shaped rows to migrate here.
+// --- Work -----------------------------------------------------------
+// "Work" is the umbrella for a new kind of Tool: not a generic Text/
+// List block with a label, but a real, distinct Tool per kind of
+// thinking-act (Assessment, Question, and whatever gets added later).
+// Every kind shares one underlying shape ({statement, support,
+// confidence} -- see WorkBlock.jsx on the frontend) so Synthesis (below)
+// can treat them uniformly, but each is still its own registered Block
+// type with its own component and catalog entry -- see
+// frontend/src/registry/blocks.js. `support` is a list of discrete
+// points (each free text, or a live pointer to another existing claim)
+// -- see normalizeWorkContent (normalize.js) for how an older
+// {rationale} blob upgrades into this shape.
+//
+// Adding a new kind of Work later means adding its block type here and
+// registering it on the frontend; nothing else needs to change --
+// listWorkItems and the Synthesis picker both pick it up automatically.
+//
+// There is no shape-upgrade migration in here. The Express backend had
+// one (migrateWorkItemSupport) to upgrade rows written before the
+// {support} shape existed; this database was created on the current
+// shapes, so there has never been an old-shaped row to migrate.
 //
 // Every function in this Worker takes `env` explicitly (for env.DB, the
 // D1 binding) rather than reading a module-level `db` singleton the way
-// the Node backend does -- Workers have no safe place to stash a
+// a Node server could -- Workers have no safe place to stash a
 // per-request value at module scope, so it's threaded as a plain
 // parameter everywhere, same as gardners-hub's own Worker already does.
 
 import { TEST_SPACE_ID } from './constants.js';
 
+// --- Work -----------------------------------------------------------
+// "Work" is the umbrella for a new kind of Tool: not a generic Text/
+// List block with a label, but a real, distinct Tool per kind of
+// thinking-act (Assessment, Question, and whatever gets added later).
+// Every kind shares one underlying shape ({statement, support,
+// confidence} -- see WorkBlock.jsx on the frontend) so Synthesis (below)
+// can treat them uniformly, but each is still its own registered Block
+// type with its own component and catalog entry -- see
+// frontend/src/registry/blocks.js. `support` is a list of discrete
+// points (each free text, or a live pointer to another existing claim)
+// -- see normalizeWorkContent (normalize.js) for how an older
+// {rationale} blob upgrades into this shape.
+//
+// Adding a new kind of Work later means adding its block type here and
+// registering it on the frontend; nothing else needs to change --
+// listWorkItems and the Synthesis picker both pick it up automatically.
 export const WORK_TYPES = [
   'assessment',
   'question',

@@ -16,7 +16,7 @@
 // resolved live rather than copied -- the same pattern Tensions'
 // statementA/statementB pointers already established in ListWorkshop.
 // A block created before this redesign may still be on the old
-// {rationale} shape; normalizeWorkContent in backend/src/db/queries.js
+// {rationale} shape; normalizeWorkContent in worker/src/db/normalize.js
 // upgrades it on the way out, same approach normalizeTextContent
 // already takes for Text blocks, so this component only ever sees the
 // current shape.
@@ -28,7 +28,7 @@ import { useEffect, useState } from 'react';
 import { getBlocksForSpace, updateBlockContent, getWorkItems, getSkeletonClaims, getBlock } from '../api.js';
 import { CONFIDENCE_LEVELS } from '../registry/blocks.js';
 
-// Mirrors backend/src/db/queries.js's WORK_TYPES -- the frontend and
+// Mirrors worker/src/db/work.js's WORK_TYPES -- the frontend and
 // backend are separate bundles, so this can't be a shared import, only
 // a matching literal (same reasoning as SKELETON_LANE_LABELS in
 // registry/skeleton.js mirroring the backend's SKELETON_LANES). Used
@@ -49,7 +49,7 @@ const WORK_TYPES = [
 
 // A Tension pairs claims from these three Skeleton lanes; the same set
 // makes sense as link candidates here. Mirrors CLAIM_LANE_KEYS in
-// ListWorkshop.jsx and backend/src/routes/skeleton.js.
+// ListWorkshop.jsx and worker/src/index.js.
 const CLAIM_LANE_KEYS = ['premises', 'evidence', 'open-questions'];
 
 function capitalize(word) {

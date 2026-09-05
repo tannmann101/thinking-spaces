@@ -15,11 +15,14 @@ export default defineConfig({
     // otherwise -- without this, the dev server refuses the request
     // before React ever loads.
     allowedHosts: ['.app.github.dev'],
-    // Forward /api requests to the Express backend during development,
-    // so the frontend can call fetch('/api/...') without worrying about
-    // ports or CORS.
+    // Forward /api requests to the Worker during development, so the
+    // frontend can call fetch('/api/...') without worrying about ports
+    // or CORS. Port 8787 is wrangler dev's default -- run `npm run dev`
+    // in worker/ alongside this one (or use launcher/, which starts
+    // both). Local development and the deployed site now run the same
+    // backend code; see CLAUDE.md's Hosting section.
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/api': 'http://localhost:8787',
     },
   },
 })

@@ -1,7 +1,7 @@
 // Insights: the fuller version of "see trends/metrics/insights across
 // [Spaces]" that was in the Dashboard's original vision from the start
 // (see CLAUDE.md). Four sections, each reading straight off its own
-// query function in backend/src/db/queries.js via one combined
+// query function in worker/src/db/insights.js via one combined
 // GET /insights call -- nothing here is computed client-side.
 //
 // Deliberately its own dedicated page rather than more Dashboard

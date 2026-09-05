@@ -37,7 +37,7 @@
 // The person's own five words for how they actually think about a
 // Space's state, replacing the app's earlier invented four (nascent/
 // developing/mature/dormant) -- see migrateSpaceStatuses in
-// backend/src/db/queries/spaces.js for how existing rows moved over.
+// worker/src/db/spaces.js for how existing rows moved over.
 // Ordered as an ascending scale of engagement, which is what the glyph
 // draws: fainter and thinner at the dormant end, fully filled in at the
 // mature end. `interesting` is the one that isn't purely a stage -- it

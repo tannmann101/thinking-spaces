@@ -37,9 +37,15 @@ For either shortcut:
    without doing that by hand.
 2. Installs backend/frontend dependencies the first time only (skipped
    on every later run once `node_modules` exists).
-3. Starts both dev servers, each in its own window (closing either
-   window stops that server, same as doing it manually).
-4. Opens `http://localhost:5173` in your default browser once the
+3. Creates the local database the first time only — the tables plus the
+   built-in Templates and Resource Templates, and no Spaces. Your real
+   thinking lives in the deployed database; the local one is a scratch
+   copy this never syncs with.
+4. Starts both dev servers, each in its own window (closing either
+   window stops that server, same as doing it manually) — the Worker on
+   port 8787 and the frontend on 5173. Local development runs the same
+   backend code the deployed site does.
+5. Opens `http://localhost:5173` in your default browser once the
    frontend has had a moment to start.
 
 Leave the two server windows open while you're using the app; close them

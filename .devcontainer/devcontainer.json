@@ -3,14 +3,14 @@
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "postStartCommand": "bash .devcontainer/start-dev.sh",
-  "forwardPorts": [5173, 3001],
+  "forwardPorts": [5173, 8787],
   "portsAttributes": {
     "5173": {
       "label": "Thinking Spaces (open this one)",
       "onAutoForward": "openPreview"
     },
-    "3001": {
-      "label": "Backend API",
+    "8787": {
+      "label": "Backend API (Worker)",
       "onAutoForward": "silent"
     }
   }

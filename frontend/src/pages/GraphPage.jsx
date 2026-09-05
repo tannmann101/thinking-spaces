@@ -4,7 +4,7 @@
 // "Relational Space" -- an ordinary Space, tagged 'relational', pre-
 // seeded with a Reference block to each selection and one blank Text
 // block for your own writing about the connection. See
-// createRelationalSpace in backend/src/db/queries.js: no new schema,
+// createRelationalSpace in worker/src/db/spaces.js: no new schema,
 // just the same createSpace/addBlockToSpace every other Space uses.
 // Deliberately doesn't call that blank Text block "for the synthesis"
 // -- "Synthesis" is also a separate, formal top-level feature elsewhere

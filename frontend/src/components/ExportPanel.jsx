@@ -5,7 +5,7 @@
 // nothing dropped) and the Markdown is the readable archive for when
 // this app isn't around. Both are rendered server-side from the same
 // payload, so they can't describe different data -- see
-// backend/src/db/queries/exportData.js.
+// worker/src/db/exportData.js.
 //
 // The download is done by fetching the route and handing the browser a
 // blob rather than pointing a plain <a href> at it. Both would work, but

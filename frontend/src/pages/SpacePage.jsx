@@ -1116,7 +1116,7 @@ function SpacePage() {
 
           {blocks && (
             <>
-              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} />
+              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} spaceId={space.id} />
             </>
           )}
 

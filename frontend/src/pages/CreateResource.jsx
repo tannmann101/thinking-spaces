@@ -46,6 +46,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createSpace, getSpaces, getResourceTemplateByType, getLinkPreview, uploadFile } from '../api.js';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import { mediaContentFromLink, mediaContentFromUpload } from '../blocks/mediaSource.js';
 
 // Deliberately says "app," not "tool" -- a sub-type suggestion here
 // named "tool" would collide with the app's own capitalized "Tool"
@@ -236,15 +237,7 @@ function CreateResource() {
       extraBlocks = [
         {
           type: 'media',
-          content: {
-            mediaType: 'link',
-            url: linkUrl.trim(),
-            caption: sourceCaption.trim(),
-            linkTitle: linkPreview?.title || null,
-            linkDescription: linkPreview?.description || null,
-            linkImage: linkPreview?.image || null,
-            linkSiteName: linkPreview?.siteName || null,
-          },
+          content: mediaContentFromLink(linkUrl, sourceCaption, linkPreview),
           properties: { categories: ['Source'] },
         },
         ...relationBlocks,
@@ -254,13 +247,7 @@ function CreateResource() {
       extraBlocks = [
         {
           type: 'media',
-          content: {
-            mediaType: uploadedFile.mimeType.startsWith('image/') ? 'image' : 'document',
-            url: uploadedFile.url,
-            caption: sourceCaption.trim(),
-            fileName: uploadedFile.originalName,
-            fileType: uploadedFile.mimeType,
-          },
+          content: mediaContentFromUpload(uploadedFile, sourceCaption),
           properties: { categories: ['Source'] },
         },
         ...relationBlocks,

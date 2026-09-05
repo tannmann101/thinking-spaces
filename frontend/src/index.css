@@ -2196,6 +2196,14 @@ label {
   border-bottom: none;
 }
 
+/* Which of the three intakes a new Media entry is using. */
+.media-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
 /* A recorded activity row inside Trail. Deliberately quieter than a
    real Trail entry: an entry you wrote (or a Review you ran) is the
    narrative, and what the app noticed happening is the context around

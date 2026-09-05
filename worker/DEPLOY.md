@@ -117,51 +117,88 @@ no boot to run them at.
 
 ### Queued, not yet applied to the deployed database
 
-These accumulated since the last live deployment. Run them once, in
-this order, from `worker/`:
+**The frontend is already ahead of this.** GitHub Pages redeploys itself
+on every push to `main` that touches `frontend/**`, so the live site is
+already serving a build that calls `/api/goals`, `/api/projects`,
+`/api/search`, `/api/trash` and more -- none of which the currently
+deployed Worker has. Until the steps below are run, those pages error on
+the live site. Everything here is one sitting; do it in order.
 
-```sh
-# Adds the goals table and everything else declared in schema.sql that
-# doesn't exist yet -- every CREATE is IF NOT EXISTS, so this is safe to
-# re-run and won't touch tables that are already there.
+Run from `worker/`. Every command is a single line, so it works the same
+in PowerShell and in bash.
+
+**1. Back up first.** Everything below is additive except step 4, which
+rebuilds a table. This is the person's own accumulated thinking, so take
+a copy before touching it:
+
+```
+npx wrangler d1 export thinking-spaces --remote --output=backup-before-migration.sql
+```
+
+Keep that file somewhere outside the repo -- it is real personal data,
+and the repo's `.gitignore` does not know about this name.
+
+**2. Look at what's actually there**, so you only run what's missing and
+you know whether step 4 applies at all:
+
+```
+npx wrangler d1 execute thinking-spaces --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+npx wrangler d1 execute thinking-spaces --remote --command "PRAGMA table_info(projects);"
+npx wrangler d1 execute thinking-spaces --remote --command "PRAGMA table_info(spaces);"
+npx wrangler d1 execute thinking-spaces --remote --command "PRAGMA table_info(activity_log);"
+```
+
+**3. Apply the additive changes.** `schema.sql` creates any table that
+doesn't exist yet (every CREATE is `IF NOT EXISTS`, so it never touches
+one that does); the ALTERs add columns a CREATE can't retrofit. SQLite
+has no `ADD COLUMN IF NOT EXISTS`, so an already-applied one fails with
+`duplicate column name` -- that error means "already done", so read it
+and move on rather than stopping:
+
+```
 npx wrangler d1 execute thinking-spaces --remote --file=schema.sql
-
-# Columns an existing table can't gain from a CREATE TABLE IF NOT EXISTS.
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "ALTER TABLE activity_log ADD COLUMN block_id TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "ALTER TABLE spaces ADD COLUMN theme TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "ALTER TABLE spaces ADD COLUMN goal_ids TEXT NOT NULL DEFAULT '[]';"
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "ALTER TABLE workspaces ADD COLUMN kind TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "ALTER TABLE projects ADD COLUMN goal_id TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "ALTER TABLE activity_log ADD COLUMN event_count INTEGER NOT NULL DEFAULT 1;"
-
-# Seeds the 17 built-in Resource Templates (idempotent -- INSERT OR IGNORE).
+npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE activity_log ADD COLUMN block_id TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE activity_log ADD COLUMN event_count INTEGER NOT NULL DEFAULT 1;"
+npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE spaces ADD COLUMN theme TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE spaces ADD COLUMN goal_ids TEXT NOT NULL DEFAULT '[]';"
+npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE workspaces ADD COLUMN kind TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE projects ADD COLUMN goal_id TEXT;"
 npx wrangler d1 execute thinking-spaces --remote --file=resource-templates-seed.sql
 ```
 
-One of these is a rebuild rather than an ALTER, because SQLite cannot
-drop a column carrying a foreign key. Projects no longer belong to a
-Space, and the old `projects.space_id` was NOT NULL with a foreign key
-into `spaces`, which blocks inserting a standalone Project at all. The
-Node side does this automatically at boot (`migrateProjectsSpaceless()`
-in `backend/src/db/queries/projects.js`); here it has to be run by hand:
+**4. Rebuild the projects table -- only if step 2 showed a `space_id`
+column on it.** A Project no longer belongs to a Space, and that column
+was NOT NULL with a foreign key into `spaces`, which blocks inserting a
+standalone Project at all. SQLite cannot drop a column carrying a
+foreign key, so this is the standard make-copy-swap. It is **not**
+idempotent -- if `PRAGMA table_info(projects)` showed no `space_id`, the
+rebuild has already happened and running it again would fail:
 
-```sh
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "CREATE TABLE projects_rebuilt (id TEXT PRIMARY KEY, name TEXT NOT NULL, goal_id TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));
-   INSERT INTO projects_rebuilt (id, name, goal_id, created_at, updated_at) SELECT id, name, goal_id, created_at, updated_at FROM projects;
-   DROP TABLE projects;
-   ALTER TABLE projects_rebuilt RENAME TO projects;"
+```
+npx wrangler d1 execute thinking-spaces --remote --file=projects-spaceless-rebuild.sql
 ```
 
-Skip that last one if the deployed database has no `projects.space_id`
-column (check with `PRAGMA table_info(projects);`) -- it means the
-rebuild has already been done.
+**5. Fix the retired status values.** See the next section for why this
+one has no automatic counterpart here:
+
+```
+npx wrangler d1 execute thinking-spaces --remote --command "UPDATE spaces SET status = 'active' WHERE status IN ('nascent', 'developing');"
+```
+
+**6. Deploy the Worker, immediately.** This has to come *after* the
+schema, since the new Worker code reads columns that don't exist until
+step 3 -- and it has to follow step 4 promptly, since the rebuild
+removes a column the currently-deployed Worker still reads:
+
+```
+npx wrangler deploy
+```
+
+**7. Check it.** Open `https://thinking.thegardners.xyz`, sign in
+through the Access PIN, and confirm: your real Spaces still load, the
+Goals and Projects entries in the sidebar open working pages, search
+returns results, and a Space page's Trail shows recorded activity rather
+than "No history yet."
 
 ## One migration the Worker can never run itself
 
@@ -172,12 +209,9 @@ Hosting section). `migrateSpaceStatuses()` is the exception: it maps the
 two retired status values (`nascent`, `developing`) onto `active`, and
 the deployed database was populated *before* the status vocabulary
 changed, so it may still carry them. A Worker has no boot hook to run it
-at, so run it once by hand:
-
-```sh
-npx wrangler d1 execute thinking-spaces --remote --command \
-  "UPDATE spaces SET status = 'active' WHERE status IN ('nascent', 'developing');"
-```
+at, so it has to be run by hand -- which is what step 5 of the checklist
+above does. It is safe to re-run at any time: once no row carries a
+retired value, the UPDATE simply matches nothing.
 
 ## Not yet done: file uploads need R2
 

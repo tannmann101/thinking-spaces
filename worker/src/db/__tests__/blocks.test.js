@@ -317,3 +317,60 @@ describe('blocks.js', () => {
     });
   });
 });
+
+// See backend/src/db/queries/__tests__/blocks.test.js for why these
+// exist -- Trail was empty on essentially every real Space.
+describe('recording ordinary work', () => {
+  let space;
+
+  beforeEach(async () => {
+    await resetDb(env);
+    space = await createSpace(env, { title: 'A Space' });
+  });
+
+  async function activityRows() {
+    const { results } = await env.DB.prepare(
+      `SELECT kind, summary, event_count FROM activity_log ORDER BY rowid`
+    ).all();
+    return results;
+  }
+
+  it('records an ordinary content edit', async () => {
+    const block = await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    await updateBlockContent(env, block.id, { lines: [{ id: '1', text: 'written', tag: null }] });
+
+    const edits = (await activityRows()).filter((row) => row.kind === 'block_edited');
+    expect(edits).toHaveLength(1);
+    expect(edits[0].summary).toBe('Edited a text entry in "A Space"');
+  });
+
+  it('folds repeated edits to the same entry into one row', async () => {
+    const block = await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    for (let i = 0; i < 5; i += 1) {
+      await updateBlockContent(env, block.id, { lines: [{ id: '1', text: `draft ${i}`, tag: null }] });
+    }
+
+    const edits = (await activityRows()).filter((row) => row.kind === 'block_edited');
+    expect(edits).toHaveLength(1);
+    expect(edits[0].event_count).toBe(5);
+  });
+
+  it('gives a change with a real implication its own row, never coalesced', async () => {
+    const block = await addBlockToSpace(env, space.id, {
+      type: 'milestone',
+      content: { label: 'Ship', reached: false },
+    });
+    await updateBlockContent(env, block.id, { label: 'Ship', reached: true, reachedAt: '2026-01-01' });
+
+    const changed = (await activityRows()).filter((row) => row.kind === 'block_changed');
+    expect(changed).toHaveLength(1);
+    expect(changed[0].summary).toContain('Milestone reached');
+  });
+
+  it('does not double-record an edit whose caller logs its own history', async () => {
+    const block = await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    await updateBlockContent(env, block.id, { lines: [{ id: '1', text: 'quiet', tag: null }] }, { logEdit: false });
+
+    expect((await activityRows()).filter((row) => row.kind === 'block_edited')).toHaveLength(0);
+  });
+});

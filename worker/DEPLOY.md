@@ -137,6 +137,8 @@ npx wrangler d1 execute thinking-spaces --remote --command \
   "ALTER TABLE workspaces ADD COLUMN kind TEXT;"
 npx wrangler d1 execute thinking-spaces --remote --command \
   "ALTER TABLE projects ADD COLUMN goal_id TEXT;"
+npx wrangler d1 execute thinking-spaces --remote --command \
+  "ALTER TABLE activity_log ADD COLUMN event_count INTEGER NOT NULL DEFAULT 1;"
 
 # Seeds the 17 built-in Resource Templates (idempotent -- INSERT OR IGNORE).
 npx wrangler d1 execute thinking-spaces --remote --file=resource-templates-seed.sql

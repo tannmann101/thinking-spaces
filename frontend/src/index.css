@@ -2195,6 +2195,35 @@ label {
 .trail-list li:last-child {
   border-bottom: none;
 }
+
+/* A recorded activity row inside Trail. Deliberately quieter than a
+   real Trail entry: an entry you wrote (or a Review you ran) is the
+   narrative, and what the app noticed happening is the context around
+   it -- so this reads as supporting detail rather than competing with
+   it for the same weight. */
+.trail-activity-row {
+  color: var(--ink-dim);
+}
+.trail-activity-kind {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* How many occurrences one coalesced row stands for. */
+.trail-activity-count,
+.log-event-count {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--accent);
+}
+.trail-activity-date {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--ink-faint);
+}
+
 .rewind-snapshot {
   border: 1px solid var(--border);
   background: var(--surface);

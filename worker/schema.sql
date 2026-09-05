@@ -129,6 +129,11 @@ CREATE TABLE IF NOT EXISTS activity_log (
   block_id TEXT,
   kind TEXT NOT NULL,
   summary TEXT NOT NULL,
+  -- How many occurrences this one row stands for. Always 1 except for a
+  -- coalesced 'block_edited' row: repeated edits to the same entry
+  -- inside a short window bump this instead of inserting another row,
+  -- so a long writing session reads as one line rather than twenty.
+  event_count INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at);

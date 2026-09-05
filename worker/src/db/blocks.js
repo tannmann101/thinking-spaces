@@ -1,10 +1,11 @@
 // Ported from backend/src/db/queries/blocks.js.
 
 import { TEST_SPACE_ID } from './constants.js';
-import { logActivity } from './activityLog.js';
+import { logActivity, logBlockEdit } from './activityLog.js';
 import { normalizeTextContent, normalizeWorkContent } from './normalize.js';
 import { WORK_TYPES } from './work.js';
 import { recordTrash } from './trash.js';
+import { describeBlockContentChange } from '../changeSummary.js';
 
 function parseBlockRow(row) {
   if (!row) return row;
@@ -284,10 +285,36 @@ export async function moveBlockInSpace(env, spaceId, blockId, direction) {
   await env.DB.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).bind(current.position, target.id).run();
 }
 
-export async function updateBlockContent(env, id, content) {
+// Every edit is recorded, in one of two shapes -- see the matching
+// comment in backend/src/db/queries/blocks.js. `logEdit: false` is for
+// callers (skeleton.js) that already write their own Trail entry for
+// the same change.
+export async function updateBlockContent(env, id, content, { logEdit = true } = {}) {
+  const existing = await getBlockById(env, id);
   await env.DB.prepare(`UPDATE blocks SET content = ?, updated_at = datetime('now') WHERE id = ?`)
     .bind(JSON.stringify(content), id)
     .run();
+
+  if (logEdit && existing) {
+    const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(existing.space_id).first();
+    const named = describeBlockContentChange(existing, content);
+    if (named) {
+      await logActivity(env, {
+        spaceId: existing.space_id,
+        spaceTitle: space?.title ?? null,
+        blockId: id,
+        kind: 'block_changed',
+        summary: named,
+      });
+    } else {
+      await logBlockEdit(env, {
+        spaceId: existing.space_id,
+        spaceTitle: space?.title ?? null,
+        blockId: id,
+        summary: `Edited a ${existing.type} entry in "${space?.title ?? existing.space_id}"`,
+      });
+    }
+  }
   return getBlockById(env, id);
 }
 

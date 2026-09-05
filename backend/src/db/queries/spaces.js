@@ -174,9 +174,10 @@ export function updateSpace(id, { title, status, tags, goal, categories, theme, 
     `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, theme = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).run(next.title, next.status, next.tags, next.goal, next.categories, next.theme, next.due_date, id);
-  // Only a status change gets logged, not every title/tag/goal edit --
-  // status progression (inactive -> active -> mature) is genuinely
-  // trend-worthy; a renamed tag isn't.
+  // A status change and a due-date change get logged; a title/tag/goal
+  // edit doesn't. Status progression (inactive -> active -> mature) and
+  // a real commitment date are both genuinely worth seeing later; a
+  // renamed tag isn't.
   //
   // changeSummary (see changeSummary.js) is a lighter-weight cousin of
   // this: a short sentence attached to the response so the toast (see
@@ -206,6 +207,15 @@ export function updateSpace(id, { title, status, tags, goal, categories, theme, 
         ? `Due ${next.due_date} -- already overdue`
         : `Due ${next.due_date} -- now shows on your Week digest`;
     }
+    // Recorded as well as toasted: a due date is a real commitment
+    // about this Space, so its own history should say when it was set
+    // or moved, not just flash it once at the moment of the change.
+    logActivity({
+      spaceId: id,
+      spaceTitle: next.title,
+      kind: 'space_due_date_changed',
+      summary: `"${next.title}": ${changeSummary.replace(/ -- .*$/, '')}`,
+    });
   }
   const result = getSpaceById(id);
   return changeSummary ? { ...result, changeSummary } : result;

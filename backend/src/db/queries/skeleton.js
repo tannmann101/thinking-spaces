@@ -5,6 +5,11 @@ import { normalizeTextContent } from './normalize.js';
 import { logTrailEntry } from './trail.js';
 import { TEST_SPACE_ID } from './constants.js';
 
+// NOTE: every updateBlockContent call in this file passes
+// `{ logEdit: false }` -- each of these functions writes its own Trail
+// entry describing the same change, and letting updateBlockContent
+// record it too would report one action twice.
+//
 // NOTE on the skeleton.js <-> trail.js circular import: this module
 // calls logTrailEntry (trail.js) from inside saveTextBlockWithPromotion/
 // fileLineInLane/createTensionPair, and trail.js calls getSkeletonSnapshot
@@ -114,11 +119,11 @@ export function saveTextBlockWithPromotion(blockId, newLines) {
     promotions.forEach(({ laneKey, text }) => {
       const lane = findSkeletonLaneBlock(block.space_id, laneKey);
       const newItem = { id: randomUUID(), text, confidence: 'tentative' };
-      updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+      updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] }, { logEdit: false });
     });
   }
 
-  const updated = updateBlockContent(blockId, { lines: keptLines });
+  const updated = updateBlockContent(blockId, { lines: keptLines }, { logEdit: false });
 
   // Log a Trail entry for whichever structural change just happened --
   // items promoted into lanes, or (if this was the articulation block
@@ -187,7 +192,7 @@ export function fileLineInLane(spaceId, laneKey, text) {
   ensureSkeletonLanes(spaceId);
   const lane = findSkeletonLaneBlock(spaceId, laneKey);
   const newItem = { id: randomUUID(), text, confidence: 'tentative' };
-  const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] }, { logEdit: false });
   const summary = `Filed into ${lane.content.laneLabel}`;
   logTrailEntry({ spaceId, kind: 'auto', summary });
   return { ...updated, changeSummary: summary };
@@ -207,7 +212,7 @@ export function createTensionPair(spaceId, { label, statementA, statementB }) {
   ensureSkeletonLanes(spaceId);
   const lane = findSkeletonLaneBlock(spaceId, 'tensions');
   const newItem = { id: randomUUID(), text: label, confidence: 'tentative', statementA, statementB };
-  const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  const updated = updateBlockContent(lane.id, { ...lane.content, items: [...lane.content.items, newItem] }, { logEdit: false });
   const summary = `Tension paired: "${label}" -- now counted as an open Tension in Insights`;
   logTrailEntry({ spaceId, kind: 'auto', summary: `Tension created: "${label}"` });
   return { ...updated, changeSummary: summary };

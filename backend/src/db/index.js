@@ -49,6 +49,7 @@ ensureColumn('spaces', 'theme', 'TEXT');
 ensureColumn('spaces', 'origin', 'TEXT');
 ensureColumn('spaces', 'due_date', 'TEXT');
 ensureColumn('activity_log', 'block_id', 'TEXT');
+ensureColumn('activity_log', 'event_count', 'INTEGER NOT NULL DEFAULT 1');
 ensureColumn('workspaces', 'kind', 'TEXT');
 ensureColumn('spaces', 'goal_ids', `TEXT NOT NULL DEFAULT '[]'`);
 ensureColumn('projects', 'goal_id', 'TEXT');

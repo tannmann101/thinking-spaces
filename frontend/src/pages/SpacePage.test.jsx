@@ -178,6 +178,28 @@ describe('SpacePage: adaptive density', () => {
     await waitFor(() => expect(document.querySelector('.space-organize-panel').open).toBe(false));
   });
 
+  // Trail is never literally empty now -- every Space records its own
+  // creation -- so the panel has to look past that or it would always
+  // default open, quietly undoing its own adaptive density.
+  it('stays collapsed when the only history is the Space being created', async () => {
+    api.getTrailEntries.mockResolvedValue([
+      { id: 'a1', source: 'activity', kind: 'space_created', summary: 'Created this Space', created_at: '2026-01-01 10:00:00' },
+    ]);
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-trail-panel').open).toBe(false));
+  });
+
+  it('opens once something has actually happened in the Space', async () => {
+    api.getTrailEntries.mockResolvedValue([
+      { id: 'a1', source: 'activity', kind: 'space_created', summary: 'Created this Space', created_at: '2026-01-01 10:00:00' },
+      { id: 'a2', source: 'activity', kind: 'block_added', summary: 'Added a text entry', created_at: '2026-01-01 10:01:00' },
+    ]);
+    renderPage();
+    await screen.findByText('My Space');
+    await waitFor(() => expect(document.querySelector('.space-trail-panel').open).toBe(true));
+  });
+
   it('starts the Trail panel collapsed when the Space has no history yet', async () => {
     renderPage();
     await screen.findByText('My Space');

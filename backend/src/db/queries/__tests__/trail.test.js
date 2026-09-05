@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../index.js';
-import { parseTrailRow, logTrailEntry, addManualTrailEntry, listTrailEntries, updateTrailEntry } from '../trail.js';
-import { createSpace } from '../spaces.js';
-import { createBlock } from '../blocks.js';
+import {
+  parseTrailRow,
+  logTrailEntry,
+  addManualTrailEntry,
+  listTrailEntries,
+  listSpaceHistory,
+  updateTrailEntry,
+} from '../trail.js';
+import { createSpace, updateSpace } from '../spaces.js';
+import { createBlock, addBlockToSpace } from '../blocks.js';
 import { resetDb } from '../../../../test/helpers/resetDb.js';
 
 describe('trail.js', () => {
@@ -92,5 +99,57 @@ describe('trail.js', () => {
       const row = db.prepare('SELECT * FROM trail_entries WHERE id = ?').get('raw-1');
       expect(parseTrailRow(row).skeleton_snapshot).toEqual({ lanes: {}, articulation: 'y' });
     });
+  });
+});
+
+// The mirror of what listGlobalActivity already does for the Log:
+// a Space's own recorded activity shown alongside its Trail entries.
+describe('listSpaceHistory', () => {
+  let space;
+
+  beforeEach(() => {
+    resetDb();
+    space = createSpace({ title: 'A Space' });
+  });
+
+  it("returns a Space's activity alongside its Trail entries, oldest first", () => {
+    addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    addManualTrailEntry(space.id, 'why this matters');
+
+    const history = listSpaceHistory(space.id);
+    expect(history.map((row) => row.source)).toEqual(['activity', 'activity', 'trail']);
+    expect(history.at(-1).note).toBe('why this matters');
+  });
+
+  it('marks which rows can actually be rewound to', () => {
+    addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    addManualTrailEntry(space.id, 'a note');
+
+    // Only a Trail row carries a snapshot -- an activity row must not
+    // claim one, or the page would offer a Rewind it can't fulfil.
+    listSpaceHistory(space.id).forEach((row) => {
+      expect(Boolean(row.skeleton_snapshot)).toBe(row.source === 'trail');
+    });
+  });
+
+  it("drops the Space's own name from summaries, since every row is about this Space", () => {
+    addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    updateSpace(space.id, { status: 'mature' });
+
+    const summaries = listSpaceHistory(space.id).map((row) => row.summary);
+    expect(summaries).toContain('Added a text entry');
+    expect(summaries).toContain('Status changed to mature');
+    summaries.forEach((summary) => expect(summary).not.toContain('A Space'));
+  });
+
+  it("leaves another Space's activity out of it", () => {
+    const other = createSpace({ title: 'Other Space' });
+    addBlockToSpace(other.id, { type: 'text', content: { lines: [] } });
+
+    expect(listSpaceHistory(space.id).some((row) => row.summary.includes('text entry'))).toBe(false);
+  });
+
+  it('returns an empty history for a Space that does not exist', () => {
+    expect(listSpaceHistory('nonexistent')).toEqual([]);
   });
 });

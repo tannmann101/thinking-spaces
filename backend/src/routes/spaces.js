@@ -9,7 +9,7 @@ import {
   updateSpace,
   deleteSpace,
   listBacklinksForSpace,
-  listTrailEntries,
+  listSpaceHistory,
   addManualTrailEntry,
   updateTrailEntry,
   createSpaceWithSetup,
@@ -157,8 +157,12 @@ spacesRouter.post('/spaces/:id/reviews', (req, res) => {
   res.status(201).json(review);
 });
 
+// A Space's full history -- its Trail entries and the activity
+// recorded against it, merged (see listSpaceHistory). Trail entries on
+// their own left this almost always empty; the path keeps its name
+// because Trail is still what the section is called.
 spacesRouter.get('/spaces/:id/trail', (req, res) => {
-  res.json(listTrailEntries(req.params.id));
+  res.json(listSpaceHistory(req.params.id));
 });
 
 spacesRouter.post('/spaces/:id/trail', (req, res) => {

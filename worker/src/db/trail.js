@@ -44,6 +44,49 @@ export async function listTrailEntries(env, spaceId) {
 // For a manual entry, note *is* its own text, so its summary (the
 // truncated preview the Log page shows) is recomputed to match; an
 // auto/review entry's summary is left alone.
+// A Space's own full history -- its Trail entries and the activity
+// recorded against it, merged. See backend/src/db/queries/trail.js for
+// why this exists and why every row carries `source`.
+export async function listSpaceHistory(env, spaceId) {
+  const trail = (await listTrailEntries(env, spaceId)).map((entry) => ({ ...entry, source: 'trail' }));
+
+  // The Space's own name is stripped from each summary -- see the
+  // matching comment in backend/src/db/queries/trail.js for why.
+  const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(spaceId).first();
+  const withoutSpaceName = (summary) => {
+    if (!space?.title) return summary;
+    const title = space.title;
+    return summary
+      .replace(` in "${title}"`, '')
+      .replace(` to "${title}"`, '')
+      .replace(` from "${title}"`, '')
+      .replace(`"${title}": `, '')
+      .replace(`"${title}" `, '')
+      .replace(`"${title}"`, 'this Space');
+  };
+  const sentence = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, kind, summary, block_id, event_count, created_at
+       FROM activity_log
+      WHERE space_id = ?
+      ORDER BY created_at ASC`
+  )
+    .bind(spaceId)
+    .all();
+  const activity = results.map((row) => ({
+    ...row,
+    summary: sentence(withoutSpaceName(row.summary)),
+    source: 'activity',
+  }));
+
+  return [...activity, ...trail].sort((a, b) => {
+    if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : 1;
+    if (a.source === b.source) return 0;
+    return a.source === 'activity' ? -1 : 1;
+  });
+}
+
 export async function updateTrailEntry(env, id, note) {
   const existing = await env.DB.prepare(`SELECT * FROM trail_entries WHERE id = ?`).bind(id).first();
   if (!existing) return null;

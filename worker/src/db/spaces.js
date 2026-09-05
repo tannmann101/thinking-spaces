@@ -144,6 +144,14 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
         ? `Due ${next.due_date} -- already overdue`
         : `Due ${next.due_date} -- now shows on your Week digest`;
     }
+    // Recorded as well as toasted -- see the matching comment in
+    // backend/src/db/queries/spaces.js.
+    await logActivity(env, {
+      spaceId: id,
+      spaceTitle: next.title,
+      kind: 'space_due_date_changed',
+      summary: `"${next.title}": ${changeSummary.replace(/ -- .*$/, '')}`,
+    });
   }
   const result = await getSpaceById(env, id);
   return changeSummary ? { ...result, changeSummary } : result;

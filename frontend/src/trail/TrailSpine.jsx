@@ -1,16 +1,29 @@
-// The Trail: a history spine for one Space. "auto" entries are logged
-// by the backend whenever a Skeleton structural change happens
-// (saveTextBlockWithPromotion); "manual" entries are added here by the
-// person, with a narrative "why"; "review" entries (see ReviewStarter
-// below) are a third kind -- a deliberate, structured look-back at
-// what changed since the last one, not a separate concept from Trail,
-// just a different way of getting an entry onto it. Collapsed rows
-// show type + date only, per the doc -- expanding reveals the
-// summary/note, an optional attached "why" for an auto or review entry,
-// and Rewind: a read-only Now-vs-As-of comparison of the Skeleton
-// against how it stood at that entry.
+// The Trail: a history spine for one Space.
+//
+// Two kinds of row share it, and the difference is real rather than
+// cosmetic. A **Trail entry** carries a full Skeleton snapshot and an
+// editable note: "auto" ones are logged by the backend on a Skeleton
+// structural change (saveTextBlockWithPromotion), "manual" ones are a
+// narrative "why" typed here, and "review" ones (see ReviewStarter
+// below) are a deliberate structured look-back. Collapsed they show
+// type + date; expanding reveals the summary/note, the attached "why",
+// and Rewind -- a read-only Now-vs-As-of comparison of the Skeleton
+// against how it stood at that moment.
+//
+// An **activity row** is a plain recorded fact -- an entry added,
+// edited, a Milestone reached, the status changed. It has no snapshot
+// and no note, so it doesn't expand; pretending otherwise would offer
+// a Rewind that couldn't reconstruct anything.
+//
+// Trail used to show only the first kind, which meant it was empty on
+// essentially every real Space: an auto entry only ever wrote itself
+// on a Skeleton edit, so unless you worked through the promotion
+// shorthand there was nothing here at all, while the Space's real
+// activity was being recorded elsewhere the whole time. See
+// listSpaceHistory in backend/src/db/queries/trail.js.
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { addTrailNote, updateTrailNote, getCurrentSkeleton, getReviewDraft, createReview } from '../api.js';
 
 function formatDate(isoLikeString) {
@@ -129,6 +142,41 @@ function TrailNoteEditor({ entry, spaceId, onSaved }) {
 }
 
 const ENTRY_KIND_LABELS = { manual: 'Note', review: 'Review' };
+
+// What a recorded activity row is called on this page. Deliberately
+// shorter than the Log page's own labels: there, a row has to say which
+// Space it belongs to, whereas here every row is about this Space
+// already, so the label only needs to name what kind of thing happened.
+const ACTIVITY_KIND_LABELS = {
+  space_created: 'Created',
+  space_status_changed: 'Status',
+  space_due_date_changed: 'Due date',
+  block_added: 'Added',
+  block_removed: 'Removed',
+  block_edited: 'Edited',
+  block_changed: 'Changed',
+  workspace_created: 'Workspace',
+  workspace_deleted: 'Workspace',
+};
+
+// A recorded fact: no snapshot to rewind to, no note to attach, so this
+// stays a single flat line rather than an expandable one. It links
+// through to the entry it's about when there still is one -- reusing
+// the ?highlight= convention the Dashboard and Insights already use.
+function ActivityRow({ entry, spaceId }) {
+  return (
+    <li className="trail-activity-row">
+      <span className="trail-activity-kind">{ACTIVITY_KIND_LABELS[entry.kind] || 'Activity'}</span>{' '}
+      {entry.block_id ? (
+        <Link to={`/spaces/${spaceId}?highlight=${entry.block_id}`}>{entry.summary}</Link>
+      ) : (
+        entry.summary
+      )}
+      {entry.event_count > 1 && <span className="trail-activity-count"> &times;{entry.event_count}</span>}
+      <span className="trail-activity-date"> {formatDate(entry.created_at)}</span>
+    </li>
+  );
+}
 
 function TrailEntryRow({ entry, spaceId, onEntryChanged }) {
   const [expanded, setExpanded] = useState(false);
@@ -274,9 +322,13 @@ function TrailSpine({ spaceId, entries, onEntryAdded }) {
       {entries.length === 0 && <p>No history yet.</p>}
       {entries.length > 0 && (
         <ul className="trail-list">
-          {entries.map((entry) => (
-            <TrailEntryRow key={entry.id} entry={entry} spaceId={spaceId} onEntryChanged={onEntryAdded} />
-          ))}
+          {entries.map((entry) =>
+            entry.source === 'activity' ? (
+              <ActivityRow key={entry.id} entry={entry} spaceId={spaceId} />
+            ) : (
+              <TrailEntryRow key={entry.id} entry={entry} spaceId={spaceId} onEntryChanged={onEntryAdded} />
+            )
+          )}
         </ul>
       )}
       <form onSubmit={submitNote} className="add-item-row">

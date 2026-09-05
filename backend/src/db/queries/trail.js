@@ -50,6 +50,76 @@ export function listTrailEntries(spaceId) {
   return rows.map(parseTrailRow);
 }
 
+// A Space's own full history: its Trail entries *and* the activity
+// recorded against it, in one chronological list.
+//
+// listGlobalActivity (log.js) already merges Trail into the Log; this
+// is the missing mirror. It exists because Trail on its own was empty
+// on essentially every real Space -- an auto entry only ever wrote
+// itself on a Skeleton edit, so unless the person used the promotion
+// shorthand, a Space had no recorded history at all, while
+// activity_log had been quietly recording that Space's real events the
+// whole time.
+//
+// Every row carries `source`, because the two kinds are genuinely
+// different and the page must not pretend otherwise: a 'trail' row has
+// a Skeleton snapshot (so Rewind can reconstruct that moment) and an
+// editable note; an 'activity' row is a recorded fact with neither.
+// Merged in JS rather than SQL because a trail row needs its snapshot
+// parsed and an activity row has no snapshot column to select -- a
+// UNION would mean inventing null columns on both sides to line them
+// up, which reads worse than two small reads and a sort.
+export function listSpaceHistory(spaceId) {
+  const trail = listTrailEntries(spaceId).map((entry) => ({ ...entry, source: 'trail' }));
+
+  // An activity summary is written for the Log, where a row has to say
+  // which Space it belongs to ("Added a text entry to \"Foo\""). On that
+  // Space's own page every row is about this Space already, so the name
+  // is pure repetition on every single line -- exactly the noise that
+  // makes a history hard to read. Stripped here rather than stored
+  // twice: this is an exact match against the Space's own known title,
+  // not a guess at the shape of arbitrary prose, and it leaves the
+  // stored summary (which the Log still needs in full) untouched.
+  const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(spaceId);
+  const withoutSpaceName = (summary) => {
+    if (!space?.title) return summary;
+    const title = space.title;
+    return summary
+      .replace(` in "${title}"`, '')
+      .replace(` to "${title}"`, '')
+      .replace(` from "${title}"`, '')
+      .replace(`"${title}": `, '')
+      .replace(`"${title}" `, '')
+      .replace(`"${title}"`, 'this Space');
+  };
+  // Stripping a leading `"Title" ` can leave a sentence starting
+  // mid-word ("status changed to mature"), so the first letter is
+  // restored -- a small thing, but every row on the page reads through
+  // it.
+  const sentence = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+
+  const activity = db
+    .prepare(
+      `SELECT id, kind, summary, block_id, event_count, created_at
+         FROM activity_log
+        WHERE space_id = ?
+        ORDER BY created_at ASC`
+    )
+    .all(spaceId)
+    .map((row) => ({ ...row, summary: sentence(withoutSpaceName(row.summary)), source: 'activity' }));
+
+  // Oldest first, matching listTrailEntries' own order (TrailSpine
+  // reads a Space's history as a narrative, unlike the Log page's
+  // newest-first feed). created_at has second granularity, so a tie is
+  // possible -- Trail entries sort first within one second, since a
+  // Trail entry is written *after* the change it describes.
+  return [...activity, ...trail].sort((a, b) => {
+    if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : 1;
+    if (a.source === b.source) return 0;
+    return a.source === 'activity' ? -1 : 1;
+  });
+}
+
 // Entries used to be write-once -- an auto entry that wrote itself
 // (e.g. "Promoted: 2 Premises") had no way to get a manual "why"
 // attached afterward, and a manual note had no way to fix a typo once

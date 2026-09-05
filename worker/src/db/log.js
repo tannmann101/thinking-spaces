@@ -9,13 +9,14 @@ import { TEST_SPACE_ID } from './constants.js';
 // one block.
 export async function listGlobalActivity(env, limit = 300) {
   const { results } = await env.DB.prepare(
-    `SELECT id, space_id, space_title, block_id, kind, summary, created_at
+    `SELECT id, space_id, space_title, block_id, kind, summary, event_count, created_at
      FROM (
-       SELECT id, space_id, space_title, block_id, kind, summary, created_at
+       SELECT id, space_id, space_title, block_id, kind, summary, event_count, created_at
        FROM activity_log
        UNION ALL
        SELECT trail_entries.id, trail_entries.space_id, spaces.title AS space_title,
-              NULL AS block_id, 'trail_' || trail_entries.kind AS kind, trail_entries.summary, trail_entries.created_at
+              NULL AS block_id, 'trail_' || trail_entries.kind AS kind, trail_entries.summary,
+                1 AS event_count, trail_entries.created_at
        FROM trail_entries
        JOIN spaces ON spaces.id = trail_entries.space_id
        WHERE spaces.id != ?

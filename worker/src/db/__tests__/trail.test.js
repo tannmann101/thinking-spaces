@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
-import { parseTrailRow, logTrailEntry, addManualTrailEntry, listTrailEntries, updateTrailEntry } from '../trail.js';
-import { createSpace } from '../spaces.js';
-import { createBlock } from '../blocks.js';
+import { parseTrailRow, logTrailEntry, addManualTrailEntry, listSpaceHistory, listTrailEntries, updateTrailEntry } from '../trail.js';
+import { createSpace, updateSpace } from '../spaces.js';
+import { createBlock, addBlockToSpace } from '../blocks.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
 describe('trail.js', () => {
@@ -94,5 +94,46 @@ describe('trail.js', () => {
       const row = await env.DB.prepare('SELECT * FROM trail_entries WHERE id = ?').bind('raw-1').first();
       expect(parseTrailRow(row).skeleton_snapshot).toEqual({ lanes: {}, articulation: 'y' });
     });
+  });
+});
+
+// The mirror of what listGlobalActivity already does for the Log.
+describe('listSpaceHistory', () => {
+  let space;
+
+  beforeEach(async () => {
+    await resetDb(env);
+    space = await createSpace(env, { title: 'A Space' });
+  });
+
+  it("returns a Space's activity alongside its Trail entries, oldest first", async () => {
+    await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    await addManualTrailEntry(env, space.id, 'why this matters');
+
+    const history = await listSpaceHistory(env, space.id);
+    expect(history.map((row) => row.source)).toEqual(['activity', 'activity', 'trail']);
+    expect(history.at(-1).note).toBe('why this matters');
+  });
+
+  it('marks which rows can actually be rewound to', async () => {
+    await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    await addManualTrailEntry(env, space.id, 'a note');
+
+    (await listSpaceHistory(env, space.id)).forEach((row) => {
+      expect(Boolean(row.skeleton_snapshot)).toBe(row.source === 'trail');
+    });
+  });
+
+  it("drops the Space's own name from summaries", async () => {
+    await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    await updateSpace(env, space.id, { status: 'mature' });
+
+    const summaries = (await listSpaceHistory(env, space.id)).map((row) => row.summary);
+    expect(summaries).toContain('Added a text entry');
+    expect(summaries).toContain('Status changed to mature');
+  });
+
+  it('returns an empty history for a Space that does not exist', async () => {
+    expect(await listSpaceHistory(env, 'nonexistent')).toEqual([]);
   });
 });

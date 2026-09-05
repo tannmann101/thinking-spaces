@@ -22,6 +22,9 @@ const KIND_LABELS = {
   space_status_changed: 'Status',
   block_added: 'Tool',
   block_removed: 'Tool',
+  block_edited: 'Edit',
+  block_changed: 'Change',
+  space_due_date_changed: 'Due date',
   workspace_created: 'Workspace',
   workspace_deleted: 'Workspace',
   project_created: 'Project',
@@ -159,6 +162,13 @@ function LogPage() {
                               </Link>
                             ) : (
                               <span>{entry.summary}</span>
+                            )}
+                            {/* A coalesced edit row stands for several
+                                occurrences (see logBlockEdit) -- saying
+                                so is the honest alternative to either
+                                twenty rows or a silently lossy one. */}
+                            {entry.event_count > 1 && (
+                              <span className="log-event-count"> &times;{entry.event_count}</span>
                             )}
                             <span className="log-timestamp">{formatTime(entry.created_at)}</span>
                           </li>

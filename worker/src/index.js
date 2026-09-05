@@ -72,7 +72,7 @@ import {
   deleteResourceTemplate,
 } from './db/resourceTemplates.js';
 import { SKELETON_LANES, saveTextBlockWithPromotion, fileLineInLane, createTensionPair, getSkeletonSnapshot, listAllSkeletonClaims } from './db/skeleton.js';
-import { listTrailEntries, addManualTrailEntry, updateTrailEntry } from './db/trail.js';
+import { listSpaceHistory, addManualTrailEntry, updateTrailEntry } from './db/trail.js';
 import { getReviewDraft, createReview } from './db/review.js';
 import { listWorkItems } from './db/work.js';
 import { listGlobalActivity, getActivityStats } from './db/log.js';
@@ -541,7 +541,10 @@ export default {
       if (m && method === 'POST') return await handleCreateReview(env, m[1]);
 
       m = path.match(/^\/api\/spaces\/([\w-]+)\/trail$/);
-      if (m && method === 'GET') return json(await listTrailEntries(env, m[1]));
+      // The Space's full history, Trail plus recorded activity -- see
+      // listSpaceHistory. The path keeps its name; Trail is still what
+      // the section on the page is called.
+      if (m && method === 'GET') return json(await listSpaceHistory(env, m[1]));
       if (m && method === 'POST') return await handleAddManualTrail(request, env, m[1]);
 
       m = path.match(/^\/api\/spaces\/([\w-]+)\/trail\/([\w-]+)$/);

@@ -318,3 +318,96 @@ describe('blocks.js', () => {
     });
   });
 });
+
+// Trail used to be empty on essentially every real Space, because an
+// auto entry only ever wrote itself on a Skeleton edit. These cover the
+// two halves of the fix: that ordinary work is recorded at all, and
+// that recording it doesn't flood the history.
+describe('recording ordinary work', () => {
+  let space;
+
+  beforeEach(() => {
+    resetDb();
+    space = createSpace({ title: 'A Space' });
+  });
+
+  function activityRows() {
+    return db.prepare(`SELECT kind, summary, event_count FROM activity_log ORDER BY rowid`).all();
+  }
+
+  it('records an ordinary content edit, which used to go unlogged entirely', () => {
+    const block = addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    updateBlockContent(block.id, { lines: [{ id: '1', text: 'written', tag: null }] });
+
+    const edits = activityRows().filter((row) => row.kind === 'block_edited');
+    expect(edits).toHaveLength(1);
+    expect(edits[0].summary).toBe('Edited a text entry in "A Space"');
+    expect(edits[0].event_count).toBe(1);
+  });
+
+  it('folds repeated edits to the same entry into one row', () => {
+    const block = addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    for (let i = 0; i < 5; i += 1) {
+      updateBlockContent(block.id, { lines: [{ id: '1', text: `draft ${i}`, tag: null }] });
+    }
+
+    const edits = activityRows().filter((row) => row.kind === 'block_edited');
+    expect(edits).toHaveLength(1);
+    expect(edits[0].event_count).toBe(5);
+  });
+
+  it('keeps two different entries edited in the same window apart', () => {
+    const a = addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    const b = addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    updateBlockContent(a.id, { lines: [{ id: '1', text: 'a', tag: null }] });
+    updateBlockContent(b.id, { lines: [{ id: '1', text: 'b', tag: null }] });
+
+    expect(activityRows().filter((row) => row.kind === 'block_edited')).toHaveLength(2);
+  });
+
+  it('gives a change with a real implication its own row, never coalesced', () => {
+    const block = addBlockToSpace(space.id, { type: 'milestone', content: { label: 'Ship', reached: false } });
+    updateBlockContent(block.id, { label: 'Ship', reached: true, reachedAt: '2026-01-01' });
+    updateBlockContent(block.id, { label: 'Ship it', reached: true, reachedAt: '2026-01-01' });
+
+    const rows = activityRows();
+    const changed = rows.filter((row) => row.kind === 'block_changed');
+    expect(changed).toHaveLength(1);
+    expect(changed[0].summary).toContain('Milestone reached');
+    expect(changed[0].event_count).toBe(1);
+    // The follow-up rename is an ordinary edit, so it lands separately.
+    expect(rows.filter((row) => row.kind === 'block_edited')).toHaveLength(1);
+  });
+
+  it('records a Session completing', () => {
+    const block = addBlockToSpace(space.id, {
+      type: 'session',
+      content: { label: 'Sitting', startedAt: '2026-01-01T10:00:00Z', endedAt: null },
+    });
+    updateBlockContent(block.id, {
+      label: 'Sitting',
+      startedAt: '2026-01-01T10:00:00Z',
+      endedAt: '2026-01-01T10:42:00Z',
+      durationMinutes: 42,
+    });
+
+    expect(activityRows().find((row) => row.kind === 'block_changed').summary).toContain('42 min logged');
+  });
+
+  it('leaves the Test Space out, same as every other kind of activity', () => {
+    createSpace({ id: TEST_SPACE_ID, title: 'Test Space' });
+    const block = addBlockToSpace(TEST_SPACE_ID, { type: 'text', content: { lines: [] } });
+    updateBlockContent(block.id, { lines: [{ id: '1', text: 'scratch', tag: null }] });
+
+    expect(activityRows().filter((row) => row.kind === 'block_edited')).toHaveLength(0);
+  });
+
+  // Skeleton's own functions each write a Trail entry describing the
+  // same change; recording it here too would report one action twice.
+  it('does not double-record an edit whose caller logs its own history', () => {
+    const block = addBlockToSpace(space.id, { type: 'text', content: { lines: [] } });
+    updateBlockContent(block.id, { lines: [{ id: '1', text: 'quiet', tag: null }] }, { logEdit: false });
+
+    expect(activityRows().filter((row) => row.kind === 'block_edited')).toHaveLength(0);
+  });
+});

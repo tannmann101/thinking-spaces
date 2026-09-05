@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '../index.js';
 import { TEST_SPACE_ID } from './constants.js';
-import { logActivity } from './activityLog.js';
+import { logActivity, logBlockEdit } from './activityLog.js';
 import { recordTrash } from './trash.js';
 import { normalizeTextContent, normalizeWorkContent } from './normalize.js';
 import { WORK_TYPES } from './work.js';
+import { describeBlockContentChange } from '../../changeSummary.js';
 
 function parseBlockRow(row) {
   if (!row) return row;
@@ -311,10 +312,44 @@ export function moveBlockInSpace(spaceId, blockId, direction) {
 // First editable block content: replaces a block's whole content blob.
 // Whichever block-editing UI calls this is responsible for merging in
 // unchanged fields (e.g. keeping an existing tag when only text changes).
-export function updateBlockContent(id, content) {
+//
+// Every edit is recorded, in one of two shapes: a change
+// describeBlockContentChange can actually name (a Milestone reached, a
+// Session completed) gets its own row, since it happened once and is
+// worth seeing on its own; anything else coalesces into a plain
+// "edited" row (see logBlockEdit) so a writing session doesn't fill the
+// history with twenty identical lines.
+//
+// `logEdit: false` is for callers that already write their own history
+// entry for the same change -- skeleton.js's promotion/filing/Tension
+// functions each log a Trail entry describing what they just did, and
+// recording it a second time here would double-report one action.
+export function updateBlockContent(id, content, { logEdit = true } = {}) {
+  const existing = getBlockById(id);
   db.prepare(
     `UPDATE blocks SET content = ?, updated_at = datetime('now') WHERE id = ?`
   ).run(JSON.stringify(content), id);
+
+  if (logEdit && existing) {
+    const space = db.prepare(`SELECT title FROM spaces WHERE id = ?`).get(existing.space_id);
+    const named = describeBlockContentChange(existing, content);
+    if (named) {
+      logActivity({
+        spaceId: existing.space_id,
+        spaceTitle: space?.title ?? null,
+        blockId: id,
+        kind: 'block_changed',
+        summary: named,
+      });
+    } else {
+      logBlockEdit({
+        spaceId: existing.space_id,
+        spaceTitle: space?.title ?? null,
+        blockId: id,
+        summary: `Edited a ${existing.type} entry in "${space?.title ?? existing.space_id}"`,
+      });
+    }
+  }
   return getBlockById(id);
 }
 

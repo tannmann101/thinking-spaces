@@ -1,5 +1,10 @@
 // Ported from backend/src/db/queries/skeleton.js.
 //
+// NOTE: every updateBlockContent call in this file passes
+// `{ logEdit: false }` -- each of these functions writes its own Trail
+// entry describing the same change, and letting updateBlockContent
+// record it too would report one action twice.
+//
 // NOTE on the skeleton.js <-> trail.js circular import: this module
 // calls logTrailEntry (trail.js) from inside saveTextBlockWithPromotion/
 // fileLineInLane/createTensionPair, and trail.js calls
@@ -81,11 +86,11 @@ export async function saveTextBlockWithPromotion(env, blockId, newLines) {
     for (const { laneKey, text } of promotions) {
       const lane = await findSkeletonLaneBlock(env, block.space_id, laneKey);
       const newItem = { id: crypto.randomUUID(), text, confidence: 'tentative' };
-      await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+      await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] }, { logEdit: false });
     }
   }
 
-  const updated = await updateBlockContent(env, blockId, { lines: keptLines });
+  const updated = await updateBlockContent(env, blockId, { lines: keptLines }, { logEdit: false });
 
   // changeSummary surfaces the promotion (this app's own "invisible
   // magic" -- see backend/src/db/queries/skeleton.js) as a toast, not
@@ -117,7 +122,7 @@ export async function fileLineInLane(env, spaceId, laneKey, text) {
   await ensureSkeletonLanes(env, spaceId);
   const lane = await findSkeletonLaneBlock(env, spaceId, laneKey);
   const newItem = { id: crypto.randomUUID(), text, confidence: 'tentative' };
-  const updated = await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  const updated = await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] }, { logEdit: false });
   const summary = `Filed into ${lane.content.laneLabel}`;
   await logTrailEntry(env, { spaceId, kind: 'auto', summary });
   return { ...updated, changeSummary: summary };
@@ -127,7 +132,7 @@ export async function createTensionPair(env, spaceId, { label, statementA, state
   await ensureSkeletonLanes(env, spaceId);
   const lane = await findSkeletonLaneBlock(env, spaceId, 'tensions');
   const newItem = { id: crypto.randomUUID(), text: label, confidence: 'tentative', statementA, statementB };
-  const updated = await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] });
+  const updated = await updateBlockContent(env, lane.id, { ...lane.content, items: [...lane.content.items, newItem] }, { logEdit: false });
   const summary = `Tension paired: "${label}" -- now counted as an open Tension in Insights`;
   await logTrailEntry(env, { spaceId, kind: 'auto', summary: `Tension created: "${label}"` });
   return { ...updated, changeSummary: summary };

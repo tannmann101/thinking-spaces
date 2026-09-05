@@ -606,8 +606,13 @@ function spaceHasOrganization(workspaces) {
   return workspaces.length > 0;
 }
 
+// Trail is never literally empty anymore -- every Space at least
+// records its own creation -- so "has history" has to mean more than
+// `length > 0` or this panel would always default open, quietly
+// undoing the adaptive density it was given. A Space whose whole
+// history is "you made this" still counts as nothing to look at yet.
 function spaceHasHistory(trail) {
-  return trail.length > 0;
+  return trail.some((entry) => entry.kind !== 'space_created');
 }
 
 function SpacePage() {

@@ -320,7 +320,12 @@ function WorkspacePage() {
           {!focusedBlockId && (
             <>
               <h2>Add a new Tool to this Workspace</h2>
-              <NewBlockForm onAdd={handleAddBlock} categories={space.categories} leadTypes={kind?.leadTools} />
+              <NewBlockForm
+                onAdd={handleAddBlock}
+                categories={space.categories}
+                leadTypes={kind?.leadTools}
+                spaceId={space.id}
+              />
 
               {nonMemberBlocks.length > 0 && (
                 <>

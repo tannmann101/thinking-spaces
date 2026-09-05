@@ -3,10 +3,18 @@
 // (where it POSTs immediately) -- what a new Text, List, Work, or Time
 // block needs at creation is the same question in both places.
 //
-// Limited to the self-contained Tools: Reference and Media need real
-// external input (a target Space, an image URL) that doesn't fit a
-// quick "+ Add Block" form, and Comparison needs two sub-blocks -- none
-// of those belong here. Every Work Type fits the same mold Text and
+// This used to be limited to the self-contained Tools, on the reasoning
+// that Reference and Media need real external input (a target Space, an
+// image URL) and Comparison needs two sub-blocks. The consequence was
+// that three of the five General Tools couldn't be added from a Space
+// at all: attaching a PDF to a thought you were already having meant
+// leaving for "+ New Resource", which creates a whole separate Space
+// you didn't ask for. They're offered here now, each with the smallest
+// intake it genuinely needs -- but only where they mean something: a
+// `spaceId` marks a live Space, and without one (the Template editor,
+// Creation Mode's drafts) they stay hidden, since a Template carrying a
+// hardcoded Reference to one particular Space isn't a Template.
+// Every Work Type fits the same mold Text and
 // List already do (nothing but its own starting text), so they all
 // join this form rather than getting a separate creation flow -- and
 // the dropdown's Work/Time options are read straight from
@@ -44,8 +52,14 @@
 // everywhere else: this form only ever describes intent, never ids
 // it can't yet know.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { blockRegistry } from '../registry/blocks.js';
+import { getSpaces, getLinkPreview, uploadFile } from '../api.js';
+import {
+  mediaContentFromImageUrl,
+  mediaContentFromLink,
+  mediaContentFromUpload,
+} from './mediaSource.js';
 
 // A nicer starting-text placeholder for a Work Type than the generic
 // "The <label>" fallback below -- optional, since a new Work Type
@@ -65,7 +79,14 @@ function workTypeStarterPrompt(type) {
   return WORK_TYPE_STARTER_PROMPTS[type] || `The ${blockRegistry[type].label.toLowerCase()}`;
 }
 
-function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes = null }) {
+// The three ways a Media entry gets its content -- see mediaSource.js.
+const MEDIA_SOURCES = [
+  { key: 'link', label: 'Paste a link' },
+  { key: 'file', label: 'Upload a file' },
+  { key: 'image', label: 'Image URL' },
+];
+
+function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes = null, spaceId = null }) {
   // When a Workspace has a kind, start the picker on that kind's own
   // first Tool rather than on Writing -- "leads with" should mean the
   // selection too, not just the order of the list.
@@ -75,6 +96,66 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
   const [itemLines, setItemLines] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedWorkspaceNames, setSelectedWorkspaceNames] = useState([]);
+
+  // Reference: which Space this points at. Fetched only once Reference
+  // is actually picked -- no reason to load every Space to add a
+  // paragraph.
+  const [spaces, setSpaces] = useState([]);
+  const [targetSpaceId, setTargetSpaceId] = useState('');
+
+  // Media: which of the three intakes, and whatever that one produced.
+  const [mediaSource, setMediaSource] = useState('link');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaCaption, setMediaCaption] = useState('');
+  const [linkPreview, setLinkPreview] = useState(null);
+  const [uploaded, setUploaded] = useState(null);
+  const [busy, setBusy] = useState('');
+  const [mediaError, setMediaError] = useState(null);
+
+  // Comparison: the two sides, as plain text. Either can be turned into
+  // a Reference afterward in the Comparison's own Workshop.
+  const [leftText, setLeftText] = useState('');
+  const [rightText, setRightText] = useState('');
+
+  useEffect(() => {
+    if (type !== 'reference' || spaces.length > 0) return;
+    getSpaces()
+      .then((all) => setSpaces(all.filter((space) => space.id !== spaceId)))
+      .catch(() => setSpaces([]));
+  }, [type, spaceId, spaces.length]);
+
+  // Fetched on blur rather than per keystroke -- one discrete action,
+  // the same reasoning save-on-blur uses elsewhere. A failed preview
+  // never blocks adding the link itself; MediaBlock falls back to
+  // showing the raw URL.
+  async function fetchPreview() {
+    const url = mediaUrl.trim();
+    if (!url || mediaSource !== 'link') return;
+    setBusy('preview');
+    setMediaError(null);
+    try {
+      setLinkPreview(await getLinkPreview(url));
+    } catch (err) {
+      setLinkPreview(null);
+      setMediaError(`Could not preview that link (${err.message}) -- it can still be added.`);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function handleFileChosen(file) {
+    if (!file) return;
+    setBusy('upload');
+    setMediaError(null);
+    try {
+      setUploaded(await uploadFile(file));
+    } catch (err) {
+      setUploaded(null);
+      setMediaError(err.message);
+    } finally {
+      setBusy('');
+    }
+  }
 
   function toggleCategory(category) {
     setSelectedCategories((current) =>
@@ -123,6 +204,37 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
         content: { label: text.trim(), startedAt: null, endedAt: null, durationMinutes: null, note: '' },
         properties,
       });
+    } else if (type === 'reference') {
+      // A pointer at another Space. The note is optional and editable
+      // afterward on the entry itself, same as every other field here.
+      onAdd({
+        type: 'reference',
+        content: { target_space_id: targetSpaceId, note: text.trim() },
+        properties,
+      });
+    } else if (type === 'media') {
+      // Whichever of the three intakes was used -- the content shapes
+      // live in mediaSource.js, shared with CreateResource.jsx.
+      const content =
+        mediaSource === 'file'
+          ? mediaContentFromUpload(uploaded, mediaCaption)
+          : mediaSource === 'link'
+            ? mediaContentFromLink(mediaUrl, mediaCaption, linkPreview)
+            : mediaContentFromImageUrl(mediaUrl, mediaCaption);
+      onAdd({ type: 'media', content, properties });
+    } else if (type === 'comparison') {
+      // Both sides start as plain text; either can be swapped for a
+      // Reference afterward in the Comparison's own Workshop.
+      onAdd({
+        type: 'comparison',
+        content: {
+          left: { kind: 'text', tag: null, text: leftText.trim() },
+          right: { kind: 'text', tag: null, text: rightText.trim() },
+          contrast: false,
+          contrastNote: '',
+        },
+        properties,
+      });
     } else if (type === 'wordEvolution') {
       // Starts with just the term; each sense-shift is added afterward
       // on the block itself.
@@ -156,7 +268,27 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
     setItemLines('');
     setSelectedCategories([]);
     setSelectedWorkspaceNames([]);
+    setTargetSpaceId('');
+    setMediaUrl('');
+    setMediaCaption('');
+    setLinkPreview(null);
+    setUploaded(null);
+    setMediaError(null);
+    setLeftText('');
+    setRightText('');
   }
+
+  // What each of the three needs before it can be added at all.
+  const canSubmit =
+    type === 'reference'
+      ? Boolean(targetSpaceId)
+      : type === 'media'
+        ? mediaSource === 'file'
+          ? Boolean(uploaded)
+          : Boolean(mediaUrl.trim())
+        : type === 'comparison'
+          ? Boolean(leftText.trim() && rightText.trim())
+          : true;
 
   return (
     <div className="new-block-form">
@@ -181,6 +313,11 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
           <optgroup label="General">
             <option value="text">Writing</option>
             <option value="list">List</option>
+            {/* Only on a live Space -- see the note at the top of this
+                file for why a Template can't carry these. */}
+            {spaceId && <option value="reference">Reference</option>}
+            {spaceId && <option value="media">Media</option>}
+            {spaceId && <option value="comparison">Comparison</option>}
           </optgroup>
           <optgroup label="Work">
             {WORK_TYPES.map(([key, entry]) => (
@@ -243,7 +380,95 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
         </dl>
       </details>
       <br />
-      {type !== 'list' ? (
+      {type === 'reference' ? (
+        <>
+          <label className="stacked-field">
+            Points at:{' '}
+            <select value={targetSpaceId} onChange={(event) => setTargetSpaceId(event.target.value)}>
+              <option value="">(pick a Space)</option>
+              {spaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                  {space.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            type="text"
+            value={text}
+            placeholder="Why this connects (optional)"
+            className="stacked-field"
+            onChange={(event) => setText(event.target.value)}
+          />
+        </>
+      ) : type === 'media' ? (
+        <>
+          <p className="media-source-row">
+            {MEDIA_SOURCES.map((source) => (
+              <button
+                key={source.key}
+                type="button"
+                className={mediaSource === source.key ? 'chip chip-on' : 'chip'}
+                onClick={() => {
+                  setMediaSource(source.key);
+                  setLinkPreview(null);
+                  setUploaded(null);
+                  setMediaError(null);
+                }}
+              >
+                {source.label}
+              </button>
+            ))}
+          </p>
+          {mediaSource === 'file' ? (
+            <>
+              <input
+                type="file"
+                className="stacked-field"
+                onChange={(event) => handleFileChosen(event.target.files?.[0])}
+              />
+              {busy === 'upload' && <p className="empty-note">Uploading...</p>}
+              {uploaded && <p className="empty-note">Attached: {uploaded.originalName}</p>}
+            </>
+          ) : (
+            <input
+              type="url"
+              value={mediaUrl}
+              placeholder={mediaSource === 'link' ? 'https://...' : 'Image URL'}
+              className="stacked-field"
+              onChange={(event) => setMediaUrl(event.target.value)}
+              onBlur={fetchPreview}
+            />
+          )}
+          {busy === 'preview' && <p className="empty-note">Fetching preview...</p>}
+          {linkPreview?.title && <p className="empty-note">Preview: {linkPreview.title}</p>}
+          {mediaError && <p className="empty-note">{mediaError}</p>}
+          <input
+            type="text"
+            value={mediaCaption}
+            placeholder="Caption (optional)"
+            className="stacked-field"
+            onChange={(event) => setMediaCaption(event.target.value)}
+          />
+        </>
+      ) : type === 'comparison' ? (
+        <>
+          <input
+            type="text"
+            value={leftText}
+            placeholder="One side"
+            className="stacked-field"
+            onChange={(event) => setLeftText(event.target.value)}
+          />
+          <input
+            type="text"
+            value={rightText}
+            placeholder="The other side"
+            className="stacked-field"
+            onChange={(event) => setRightText(event.target.value)}
+          />
+        </>
+      ) : type !== 'list' ? (
         <textarea
           value={text}
           placeholder={
@@ -316,7 +541,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
         </p>
       )}
       <p>
-        <button type="button" className="btn" onClick={handleSubmit}>
+        <button type="button" className="btn" onClick={handleSubmit} disabled={!canSubmit || Boolean(busy)}>
           + Add Entry
         </button>
       </p>

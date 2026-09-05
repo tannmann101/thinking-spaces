@@ -14,3 +14,13 @@ routes = [
 binding = "DB"
 database_name = "thinking-spaces"
 database_id = "a2250941-5880-4048-816b-25deeaaf83f4"
+
+# Object storage for uploaded files (the "document" half of content
+# ingestion). A Worker has no filesystem, so where backend/ writes to
+# backend/data/uploads/, the deployed side puts objects here instead --
+# see worker/src/index.js's /uploads routes. The bucket has to be
+# created once by hand before the first deploy that uses it; DEPLOY.md
+# has the command.
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "thinking-spaces-uploads"

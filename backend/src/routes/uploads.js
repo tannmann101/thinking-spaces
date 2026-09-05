@@ -5,10 +5,10 @@
 //
 // Files land on the local filesystem under backend/data/uploads/ (already
 // covered by the repo's blanket backend/data/ gitignore -- see Hosting in
-// CLAUDE.md). This is backend/-only for now: worker/'s Cloudflare-hosted
-// version would need R2 (Cloudflare's object storage) to do the same job,
-// which this session can't provision without the person's help, mirroring
-// the earlier D1-API-token precedent -- not ported yet, see CLAUDE.md Open.
+// CLAUDE.md). worker/ does the same job against R2 instead, since a
+// Worker has no filesystem; both sides share uploadRules.js (a verbatim
+// copy on each, like linkPreview.js) so what counts as an acceptable
+// file, and what it gets stored as, can't drift between them.
 
 import express from 'express';
 import multer from 'multer';
@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { MAX_UPLOAD_BYTES, isAllowedFile, storedFilenameFor } from '../uploadRules.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
@@ -27,39 +28,14 @@ fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 // server writes to or reads from.
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).slice(0, 10);
-    cb(null, `${randomUUID()}${ext}`);
-  },
+  filename: (req, file, cb) => cb(null, storedFilenameFor(file.originalname, randomUUID())),
 });
-
-const ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'text/markdown',
-  'text/plain',
-  'text/x-markdown',
-  'image/png',
-  'image/jpeg',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-]);
 
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: MAX_UPLOAD_BYTES },
   fileFilter: (req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.has(file.mimetype)) return cb(null, true);
-    // Markdown/.txt sometimes arrive with no recognizable mimetype at all
-    // depending on the browser/OS -- fall back to checking the extension.
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (['.md', '.markdown', '.txt'].includes(ext)) return cb(null, true);
+    if (isAllowedFile(file.mimetype, file.originalname)) return cb(null, true);
     cb(new Error('Unsupported file type.'));
   },
 });

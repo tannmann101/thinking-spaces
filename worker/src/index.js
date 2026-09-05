@@ -86,6 +86,12 @@ import { listTrash, restoreFromTrash, purgeTrashEntry, emptyTrash } from './db/t
 import { renderExportMarkdown } from './exportFormat.js';
 import { isSafeUrl, extractLinkMeta } from './linkPreview.js';
 import { describeBlockContentChange } from './changeSummary.js';
+import {
+  MAX_UPLOAD_BYTES,
+  isAllowedFile,
+  isValidStoredFilename,
+  storedFilenameFor,
+} from './uploadRules.js';
 
 function json(data, status = 200) {
   return new Response(data === null ? null : JSON.stringify(data), {
@@ -481,9 +487,7 @@ async function handleCreateTensionPair(request, env, id) {
 // ---------- Link preview ----------
 // Mirrors backend/src/routes/linkPreview.js exactly -- fetches a URL
 // server-side and pulls a title/description/image out of it via the pure
-// functions in linkPreview.js. No upload route on this side yet: file
-// storage needs R2 (Cloudflare's object storage), which this session
-// can't provision without the person's help -- see CLAUDE.md Open.
+// functions in linkPreview.js.
 async function handleLinkPreview(request) {
   const body = (await readJson(request)) || {};
   const { url } = body;
@@ -504,6 +508,74 @@ async function handleLinkPreview(request) {
   } catch (err) {
     return errorResponse(`Could not fetch that link: ${err.message}`, 502);
   }
+}
+
+
+// ---------- Uploads ----------
+// The R2 counterpart to backend/src/routes/uploads.js. Same routes, same
+// request and response shapes, same rules (uploadRules.js is a verbatim
+// copy on both sides) -- so the frontend can't tell which backend it is
+// talking to, which is the whole point of the parallel port.
+//
+// What differs is only where bytes live: a Worker has no filesystem, so
+// where the Node side writes into backend/data/uploads/, this puts an
+// object into the R2 bucket bound as env.UPLOADS. multer is gone with
+// it -- Workers parse multipart natively via request.formData().
+
+async function handleUpload(request, env) {
+  if (!env.UPLOADS) return errorResponse('File storage is not configured on this deployment.', 501);
+
+  let form;
+  try {
+    form = await request.formData();
+  } catch {
+    return errorResponse('Expected a multipart form upload.');
+  }
+
+  const file = form.get('file');
+  // A text field named "file" would also come back from get('file'), so
+  // this checks for something file-shaped rather than merely present.
+  if (!file || typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
+    return errorResponse('No file was uploaded.');
+  }
+
+  const originalName = file.name || 'upload';
+  const mimeType = file.type || '';
+  if (!isAllowedFile(mimeType, originalName)) return errorResponse('Unsupported file type.');
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return errorResponse(`File is too large (limit ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)} MB).`);
+  }
+
+  const filename = storedFilenameFor(originalName, crypto.randomUUID());
+  await env.UPLOADS.put(filename, await file.arrayBuffer(), {
+    httpMetadata: { contentType: mimeType || 'application/octet-stream' },
+    // The original name is kept as metadata, not as the key -- the key
+    // stays a generated UUID, and this is only ever read back out as a
+    // label. See uploadRules.js.
+    customMetadata: { originalName },
+  });
+
+  return json({
+    filename,
+    originalName,
+    mimeType,
+    size: file.size,
+    url: `/api/uploads/${filename}`,
+  });
+}
+
+async function handleServeUpload(env, filename) {
+  if (!env.UPLOADS) return errorResponse('File storage is not configured on this deployment.', 501);
+  // Only ever serve back something this app could have written.
+  if (!isValidStoredFilename(filename)) return errorResponse('File not found', 404);
+
+  const object = await env.UPLOADS.get(filename);
+  if (!object) return errorResponse('File not found', 404);
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('etag', object.httpEtag);
+  return new Response(object.body, { headers });
 }
 
 // ---------- Router ----------
@@ -742,6 +814,12 @@ export default {
       }
 
       if (path === '/api/link-preview' && method === 'POST') return await handleLinkPreview(request);
+
+      // Uploads
+      if (path === '/api/uploads' && method === 'POST') return await handleUpload(request, env);
+
+      m = path.match(/^\/api\/uploads\/([\w.-]+)$/);
+      if (m && method === 'GET') return await handleServeUpload(env, m[1]);
 
       return errorResponse('not found', 404);
     } catch (err) {

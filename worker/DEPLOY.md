@@ -243,21 +243,53 @@ at, so it has to be run by hand -- which is what step 5 of the checklist
 above does. It is safe to re-run at any time: once no row carries a
 retired value, the UPDATE simply matches nothing.
 
-## Not yet done: file uploads need R2
+## Adding the uploads bucket (one-time)
 
-`backend/`'s content-ingestion feature (see `CLAUDE.md`) added two
-pieces: a link-preview route (`POST /link-preview`, no storage needed --
-already ported to `worker/src/linkPreview.js` and wired into
-`worker/src/index.js`) and a file-upload route (`POST /uploads`,
-`GET /uploads/:filename`, storing files on the local filesystem under
-`backend/data/uploads/`). The upload route was deliberately *not*
-ported here -- a Worker has no local filesystem to write to, so it needs
-R2 (Cloudflare's S3-compatible object storage) instead, which requires
-creating a bucket and adding an R2 binding to `wrangler.toml`, the same
-kind of one-time Cloudflare-account setup the original D1 database
-needed. Not done yet since this session has no live Cloudflare access of
-its own (see `CLAUDE.md`'s Open list) -- once a bucket exists, port
-`backend/src/routes/uploads.js`'s two routes into `worker/src/index.js`
-using `env.UPLOADS.put()`/`.get()` in place of `fs.writeFileSync`/
-`res.sendFile`, keeping the same UUID-filename and file-type-allowlist
-logic.
+File uploads are the one part of the app that needs storage beyond D1.
+A Worker has no filesystem, so where `backend/` writes into
+`backend/data/uploads/`, the deployed side puts objects into R2
+(Cloudflare's object storage). The code is in place -- `wrangler.toml`
+declares the `UPLOADS` binding and `worker/src/index.js` has both
+routes -- but the bucket itself has to exist before a deploy that uses
+it, the same one-time account-level setup the D1 database needed.
+
+Note before starting: enabling R2 on a Cloudflare account may ask for a
+payment method even though this app's usage sits far inside the free
+tier (10 GB of storage, and no charge for bandwidth out). Worth
+checking in the dashboard first if that matters to you -- everything
+else in this deployment stays free either way, and skipping this step
+costs you only file uploads on the live site. Local uploads keep
+working regardless.
+
+From `worker/`:
+
+```
+npx wrangler r2 bucket create thinking-spaces-uploads
+npx wrangler deploy
+```
+
+Then check it end to end on the live site: go to `+ New Resource`,
+choose **Upload a file**, pick a small PDF or `.txt`, and confirm the
+new Resource's page renders it. A PDF should show inline; a text or
+markdown file should show its contents; anything else offers a download
+link.
+
+Until the bucket exists, the upload route answers `501 File storage is
+not configured on this deployment.` rather than failing obscurely --
+deploying the code before creating the bucket is untidy, not harmful.
+
+## How uploads differ between the two backends
+
+Only in where the bytes go. `backend/` writes to the local filesystem
+with multer; the Worker puts an object into R2 and parses the multipart
+form natively via `request.formData()`, no multer involved. Both routes
+take the same request and return the same JSON, so the frontend cannot
+tell which one it is talking to.
+
+The rules they share -- what file types are allowed, the 25 MB limit,
+and the generated UUID filename -- live in `uploadRules.js`, a verbatim
+copy in `backend/src/` and `worker/src/`, exactly like `linkPreview.js`.
+Copied rather than imported across the boundary because the two
+backends are deliberately parallel implementations; a rule that
+silently differed between them would mean a file the local app accepts
+being rejected by the live site, or the reverse.

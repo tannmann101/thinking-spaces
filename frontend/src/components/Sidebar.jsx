@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createSpace, getNotificationCount } from '../api.js';
+import { captureThought, getNotificationCount } from '../api.js';
 import Legend from './Legend.jsx';
 import ExportPanel from './ExportPanel.jsx';
 
@@ -34,12 +34,18 @@ const LINKS = [
 function Sidebar({ current }) {
   const navigate = useNavigate();
   const [needsAttentionCount, setNeedsAttentionCount] = useState(0);
+  const [inboxCount, setInboxCount] = useState(0);
   const [capturing, setCapturing] = useState(false);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [searchDraft, setSearchDraft] = useState('');
+  // Only meaningful on a narrow screen, where the sidebar becomes a
+  // compact top bar and everything but the wordmark and quick capture
+  // folds behind a toggle. Above 760px the toggle is display:none and
+  // this is ignored -- the nav is always shown there.
+  const [navOpen, setNavOpen] = useState(false);
 
   // Fetched on every page, since the sidebar renders everywhere -- a
   // deliberately narrow, already-actionable count (overdue List
@@ -54,16 +60,27 @@ function Sidebar({ current }) {
     // specific call, so this has to degrade to "0 notifications"
     // instead of throwing.
     Promise.resolve(getNotificationCount())
-      .then((result) => setNeedsAttentionCount(result?.count ?? 0))
+      .then((result) => {
+        setNeedsAttentionCount(result?.count ?? 0);
+        setInboxCount(result?.inbox ?? 0);
+      })
       .catch(() => {});
   }, []);
 
   // Quick capture: the fast path the app didn't have -- getting a
   // thought in previously always meant the full Creation Mode flow
-  // (name it, pick a cluster, tags, ...). This is deliberately just a
-  // title -- the same "Start Blank" a Space already supports, minus
-  // every step between typing a name and landing on the page to
-  // actually think in.
+  // (name it, pick a cluster, tags, ...).
+  //
+  // It captures the *thought*, not a title, and appends it to the Inbox
+  // rather than minting a Space. Two reasons: away from the desk the
+  // thought is the content, and naming the container for it is exactly
+  // the work you can't do at that moment; and a Space per stray thought
+  // fills the index with one-line stubs. Deliberately starting a real
+  // Space is what "+ New Space" is for.
+  //
+  // It also does not navigate. Capturing should leave you where you
+  // were -- the toast confirms it landed, and the Inbox link below shows
+  // how much is waiting.
   // Search lives in the Sidebar rather than on one page because the
   // original complaint was "hard to find things" -- a search you have to
   // navigate to first only half solves that. Submitting hands off to the
@@ -77,24 +94,37 @@ function Sidebar({ current }) {
 
   async function submitCapture(event) {
     event.preventDefault();
-    const title = draft.trim();
-    if (!title || submitting) return;
+    const text = draft.trim();
+    if (!text || submitting) return;
     setSubmitting(true);
     try {
-      const space = await createSpace({ title });
+      await captureThought(text);
       setDraft('');
       setCapturing(false);
-      navigate(`/spaces/${space.id}`);
+      setInboxCount((count) => count + 1);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" data-nav-open={navOpen ? 'true' : 'false'}>
       <Link to="/" className="wordmark">
         Thinking Spaces<span className="dot">.</span>
       </Link>
+
+      {/* Narrow screens only (display:none above 760px). Capture stays
+          in the bar itself, since getting a thought in is the one thing
+          worth a single tap; everything else is a tap further away. */}
+      <button
+        type="button"
+        className="sidebar-menu-toggle"
+        aria-expanded={navOpen}
+        aria-label={navOpen ? 'Hide menu' : 'Show menu'}
+        onClick={() => setNavOpen((open) => !open)}
+      >
+        {navOpen ? '\u2715' : '\u2630'}
+      </button>
 
       {capturing ? (
         <form className="quick-capture-form" onSubmit={submitCapture}>
@@ -102,13 +132,13 @@ function Sidebar({ current }) {
             type="text"
             autoFocus
             value={draft}
-            placeholder="Quick capture: what's on your mind?"
+            placeholder="What's on your mind?"
             onChange={(event) => setDraft(event.target.value)}
             onBlur={() => !draft.trim() && setCapturing(false)}
             onKeyDown={(event) => event.key === 'Escape' && setCapturing(false)}
           />
           <button type="submit" className="btn-ghost-small" disabled={!draft.trim() || submitting}>
-            Create
+            Capture
           </button>
         </form>
       ) : (
@@ -134,6 +164,12 @@ function Sidebar({ current }) {
           </Link>
         ))}
       </nav>
+
+      {inboxCount > 0 && (
+        <Link to={`/spaces/inbox`} className="inbox-link" title={`${inboxCount} unfiled in your Inbox`}>
+          Inbox <span className="inbox-count">{inboxCount}</span>
+        </Link>
+      )}
 
       {needsAttentionCount > 0 && (
         <Link to="/" className="needs-attention-badge" title={`${needsAttentionCount} item(s) need attention`}>

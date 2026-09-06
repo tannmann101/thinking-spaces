@@ -10,7 +10,7 @@
 // Spaces) that an extra indexed query per Space in a list isn't worth
 // the complexity of pre-aggregating.
 
-import { TEST_SPACE_ID, todayString } from './constants.js';
+import { TEST_SPACE_ID, INBOX_SPACE_ID, todayString } from './constants.js';
 import { logActivity } from './activityLog.js';
 import { applyTemplate } from './templates.js';
 import { createWorkspace } from './workspaces.js';
@@ -66,6 +66,10 @@ async function withComputedSpaceFields(env, space) {
     theme: space.theme ? JSON.parse(space.theme) : null,
     goalIds: JSON.parse(space.goal_ids || '[]'),
     isTestSpace: space.id === TEST_SPACE_ID,
+    // Both of these exist so the frontend never offers a delete the
+    // backend is going to refuse -- same reasoning as hiding the
+    // "Move to..." picker on a Skeleton section.
+    isInbox: space.id === INBOX_SPACE_ID,
     relationDensity: await getRelationDensity(env, space.id),
     openTensionCount: await getOpenTensionCount(env, space.id),
     isOverdue: Boolean(space.due_date && space.due_date < todayString()),
@@ -219,6 +223,13 @@ export async function deleteSpace(env, id) {
   if (id === TEST_SPACE_ID) {
     throw new Error('The Test Space cannot be deleted');
   }
+  // Deleting the Inbox would take the capture destination with it, not
+  // just a Space -- the next capture would silently make a new empty
+  // one and the thoughts would be in the trash. Empty it entry by entry
+  // instead, or file them somewhere.
+  if (id === INBOX_SPACE_ID) {
+    throw new Error('The Inbox cannot be deleted');
+  }
   const existing = await getSpaceById(env, id);
 
   // Snapshot everything about to be removed, so this is undoable.
@@ -308,6 +319,46 @@ export async function ensureTestSpaceExists(env) {
   const existing = await getSpaceById(env, TEST_SPACE_ID);
   if (existing) return existing;
   return createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space', status: 'active' });
+}
+
+// The Inbox: where a captured thought lands when you don't want to stop
+// and decide where it belongs. Created on demand rather than seeded,
+// unlike the Test Space -- there is nothing to show until something has
+// actually been captured, and a database that never captures never
+// grows one.
+//
+// Not idempotent by luck: the SELECT-then-INSERT is safe here because
+// this app has exactly one user making one request at a time. A
+// concurrent second capture could in principle race, and the cost would
+// be a failed insert on a duplicate primary key, not two Inboxes.
+export async function ensureInboxExists(env) {
+  const existing = await getSpaceById(env, INBOX_SPACE_ID);
+  if (existing) return existing;
+  return createSpace(env, {
+    id: INBOX_SPACE_ID,
+    title: 'Inbox',
+    status: 'active',
+    categories: [],
+  });
+}
+
+// One captured thought. Deliberately the whole thought as the entry's
+// own text, not a title with an empty Space behind it: away from the
+// desk the thought *is* the content, and naming it is exactly the work
+// you don't want to be doing at that moment.
+export async function captureToInbox(env, text) {
+  const inbox = await ensureInboxExists(env);
+  const block = await addBlockToSpace(env, inbox.id, { type: 'text', content: { text } });
+  return { ...block, spaceId: inbox.id, changeSummary: 'Captured to your Inbox' };
+}
+
+// How much is sitting unfiled. Read alongside the needs-attention count
+// so the Sidebar can show both without a second round trip.
+export async function getInboxCount(env) {
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS count FROM blocks WHERE space_id = ?`)
+    .bind(INBOX_SPACE_ID)
+    .first();
+  return row?.count ?? 0;
 }
 
 // A "Relational Space" isn't a distinct schema -- CLAUDE.md is explicit

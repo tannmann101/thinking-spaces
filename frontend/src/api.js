@@ -160,6 +160,12 @@ export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getWeekCalendar = () => request('/dashboard/week');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
 // The sidebar's "needs attention" badge -- fetched on every page.
+// A captured thought, appended to the Inbox as an entry. Deliberately
+// not createSpace: away from the desk the thought is the content, and
+// naming a Space for it is exactly the work you don't want to do at
+// that moment. See captureToInbox in worker/src/db/spaces.js.
+export const captureThought = (text) =>
+  request('/capture', { method: 'POST', body: JSON.stringify({ text }) });
 export const getNotificationCount = () => request('/notifications/count');
 // Everything InsightsPage.jsx needs in one call -- work mix, themes/
 // tensions, activity trend, and provenance/synthesis yield, all
@@ -206,6 +212,16 @@ export const addBlockToSpace = (spaceId, { type, content, properties }) =>
   request(`/spaces/${spaceId}/blocks`, {
     method: 'POST',
     body: JSON.stringify({ type, content, properties }),
+  });
+// Moving an entry to a different Space -- its own route rather than
+// another PATCH field, since the ways it can fail (no such Space, a
+// Skeleton section that must not leave) are specific enough to report
+// as themselves. See moveBlockToSpace in worker/src/db/blocks.js for
+// which of an entry's properties survive the move and why.
+export const moveBlockToSpace = (blockId, targetSpaceId) =>
+  request(`/blocks/${blockId}/move-to-space`, {
+    method: 'POST',
+    body: JSON.stringify({ targetSpaceId }),
   });
 export const deleteBlockApi = (blockId) => request(`/blocks/${blockId}`, { method: 'DELETE' });
 // A structured + prose snapshot of this one block's current state --

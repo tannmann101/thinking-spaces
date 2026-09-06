@@ -13,6 +13,7 @@ import {
   addBlockToSpace,
   deleteBlock,
   moveBlockInSpace,
+  moveBlockToSpace,
   updateBlockContent,
   updateBlockCategories,
   updateBlockWorkspaces,
@@ -22,6 +23,7 @@ import {
 import { createSpace } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
 import { createProject } from '../projects.js';
+import { listSpaceHistory } from '../trail.js';
 import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
@@ -221,6 +223,74 @@ describe('blocks.js', () => {
 
     it('is a no-op (does not throw) for an id that does not exist', async () => {
       await expect(deleteBlock(env, 'nonexistent')).resolves.not.toThrow();
+    });
+  });
+
+  describe('moveBlockToSpace', () => {
+    it('moves an entry, appending it at the end of the target Space', async () => {
+      const other = await createSpace(env, { title: 'Somewhere Else' });
+      await addBlockToSpace(env, other.id, { type: 'text', content: { text: 'already here' } });
+      const block = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'travelling' } });
+
+      const moved = await moveBlockToSpace(env, block.id, other.id);
+      expect(moved.space_id).toBe(other.id);
+      expect(moved.changeSummary).toContain('Somewhere Else');
+
+      expect((await listBlocksForSpace(env, space.id)).map((b) => b.id)).not.toContain(block.id);
+      const arrived = await listBlocksForSpace(env, other.id);
+      expect(arrived.map((b) => b.id)).toEqual([arrived[0].id, block.id]);
+    });
+
+    it('clears the Space-scoped properties and keeps the ones that travel', async () => {
+      const other = await createSpace(env, { title: 'Somewhere Else' });
+      const workspace = await createWorkspace(env, { spaceId: space.id, name: 'A Workspace' });
+      const project = await createProject(env, { name: 'A Project' });
+      const block = await addBlockToSpace(env, space.id, { type: 'milestone', content: { label: 'Ship it' } });
+      await updateBlockCategories(env, block.id, ['Risk']);
+      await updateBlockWorkspaces(env, block.id, [workspace.id]);
+      await updateBlockProject(env, block.id, project.id);
+      await updateBlockTheme(env, block.id, { accent: 'moss' });
+
+      const moved = await moveBlockToSpace(env, block.id, other.id);
+      // Categories name the source Space's own facets; Workspace ids
+      // belong to the source Space. Neither means anything here.
+      expect(moved.properties.categories).toBeUndefined();
+      expect(moved.properties.workspaces).toBeUndefined();
+      // A Project belongs to no Space, and a hand-picked look is the
+      // person's, not the Space's.
+      expect(moved.properties.projectId).toBe(project.id);
+      expect(moved.properties.theme).toEqual({ accent: 'moss' });
+    });
+
+    it('refuses to move a Skeleton section out of its Space', async () => {
+      const other = await createSpace(env, { title: 'Somewhere Else' });
+      const lane = await addBlockToSpace(env, space.id, {
+        type: 'list',
+        content: { heading: 'Premises', items: [] },
+        properties: { skeletonLane: 'premises' },
+      });
+      const result = await moveBlockToSpace(env, lane.id, other.id);
+      expect(result.error).toMatch(/Skeleton/);
+      expect((await getBlockById(env, lane.id)).space_id).toBe(space.id);
+    });
+
+    it('reports a missing entry, a missing target, and a no-op move', async () => {
+      const other = await createSpace(env, { title: 'Somewhere Else' });
+      const block = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'here' } });
+      expect((await moveBlockToSpace(env, 'nope', other.id)).error).toBe('not found');
+      expect((await moveBlockToSpace(env, block.id, 'nope')).error).toBe('target space not found');
+      expect((await moveBlockToSpace(env, block.id, space.id)).error).toBe('already there');
+    });
+
+    it('records the move in both Spaces\' own histories', async () => {
+      const other = await createSpace(env, { title: 'Somewhere Else' });
+      const block = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'travelling' } });
+      await moveBlockToSpace(env, block.id, other.id);
+
+      const from = await listSpaceHistory(env, space.id);
+      const to = await listSpaceHistory(env, other.id);
+      expect(from.some((row) => /Moved a text entry out/.test(row.summary))).toBe(true);
+      expect(to.some((row) => /Moved a text entry in/.test(row.summary))).toBe(true);
     });
   });
 

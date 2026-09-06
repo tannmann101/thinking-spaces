@@ -93,34 +93,103 @@ describe('Sidebar: needs-attention badge', () => {
 });
 
 describe('Sidebar: quick capture', () => {
-  it('opens a title field on click, and closes it again on blur if left empty', async () => {
+  it('opens a field on click, and closes it again on blur if left empty', async () => {
     const user = userEvent.setup();
     renderSidebar();
     await user.click(screen.getByRole('button', { name: '+ Quick Capture' }));
-    const input = screen.getByPlaceholderText("Quick capture: what's on your mind?");
-    expect(input).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
 
     await user.click(document.body);
-    expect(screen.queryByPlaceholderText("Quick capture: what's on your mind?")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("What's on your mind?")).not.toBeInTheDocument();
   });
 
-  it('creates a blank Space from just a title, and navigates to it', async () => {
+  // The thought itself is the content -- capture deliberately does not
+  // mint a Space and does not name one.
+  it('captures the thought to the Inbox rather than creating a Space', async () => {
     const user = userEvent.setup();
-    api.createSpace.mockResolvedValue({ id: 'new-space-id' });
+    api.captureThought.mockResolvedValue({});
     renderSidebar();
     await user.click(screen.getByRole('button', { name: '+ Quick Capture' }));
-    await user.type(screen.getByPlaceholderText("Quick capture: what's on your mind?"), 'A stray thought{Enter}');
+    await user.type(screen.getByPlaceholderText("What's on your mind?"), 'A stray thought{Enter}');
 
-    await waitFor(() => expect(api.createSpace).toHaveBeenCalledWith({ title: 'A stray thought' }));
-    expect(mockNavigate).toHaveBeenCalledWith('/spaces/new-space-id');
-  });
-
-  it('does not submit an empty or whitespace-only title', async () => {
-    const user = userEvent.setup();
-    renderSidebar();
-    await user.click(screen.getByRole('button', { name: '+ Quick Capture' }));
-    await user.type(screen.getByPlaceholderText("Quick capture: what's on your mind?"), '   {Enter}');
+    await waitFor(() => expect(api.captureThought).toHaveBeenCalledWith('A stray thought'));
     expect(api.createSpace).not.toHaveBeenCalled();
+  });
+
+  // Capturing should not interrupt whatever you were doing.
+  it('stays on the current page after capturing', async () => {
+    const user = userEvent.setup();
+    api.captureThought.mockResolvedValue({});
+    renderSidebar();
+    await user.click(screen.getByRole('button', { name: '+ Quick Capture' }));
+    await user.type(screen.getByPlaceholderText("What's on your mind?"), 'A stray thought{Enter}');
+
+    await waitFor(() => expect(api.captureThought).toHaveBeenCalled());
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('does not submit an empty or whitespace-only thought', async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole('button', { name: '+ Quick Capture' }));
+    await user.type(screen.getByPlaceholderText("What's on your mind?"), '   {Enter}');
+    expect(api.captureThought).not.toHaveBeenCalled();
+  });
+});
+
+describe('Sidebar: the Inbox link', () => {
+  it('shows how much is unfiled, and links to the Inbox', async () => {
+    api.getNotificationCount.mockResolvedValue({ count: 0, inbox: 3 });
+    renderSidebar();
+    const link = await screen.findByRole('link', { name: /Inbox 3/ });
+    expect(link).toHaveAttribute('href', '/spaces/inbox');
+  });
+
+  it('shows nothing when the Inbox is empty', async () => {
+    api.getNotificationCount.mockResolvedValue({ count: 0, inbox: 0 });
+    renderSidebar();
+    await waitFor(() => expect(api.getNotificationCount).toHaveBeenCalled());
+    expect(screen.queryByRole('link', { name: /Inbox/ })).not.toBeInTheDocument();
+  });
+
+  it('counts up as you capture, without a refetch', async () => {
+    const user = userEvent.setup();
+    api.getNotificationCount.mockResolvedValue({ count: 0, inbox: 1 });
+    api.captureThought.mockResolvedValue({});
+    renderSidebar();
+    await screen.findByRole('link', { name: /Inbox 1/ });
+
+    await user.click(screen.getByRole('button', { name: '+ Quick Capture' }));
+    await user.type(screen.getByPlaceholderText("What's on your mind?"), 'another{Enter}');
+    await screen.findByRole('link', { name: /Inbox 2/ });
+  });
+});
+
+describe('Sidebar: the narrow-screen menu', () => {
+  // The toggle is display:none above 760px, which jsdom can't tell us
+  // (no layout), so these test the behaviour the CSS keys off rather
+  // than the visibility itself: does the toggle flip the attribute the
+  // media query reads.
+  it('starts collapsed', () => {
+    renderSidebar();
+    expect(document.querySelector('.sidebar')).toHaveAttribute('data-nav-open', 'false');
+  });
+
+  it('opens and closes on the toggle', async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole('button', { name: 'Show menu' }));
+    expect(document.querySelector('.sidebar')).toHaveAttribute('data-nav-open', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Hide menu' }));
+    expect(document.querySelector('.sidebar')).toHaveAttribute('data-nav-open', 'false');
+  });
+
+  // Quick capture stays in the bar itself at every width -- getting a
+  // thought in is the one thing worth a single tap on a phone.
+  it('leaves quick capture outside the collapsed menu', () => {
+    renderSidebar();
+    expect(screen.getByRole('button', { name: '+ Quick Capture' })).toBeInTheDocument();
   });
 });
 

@@ -305,6 +305,41 @@ button.editable:disabled:hover {
    rail via the sidebar's own flex column + this element's auto
    top-margin, so it reads as a standing status rather than competing
    with ordinary navigation for attention at the top. */
+/* How much is sitting unfiled in the Inbox. Quieter than the
+   needs-attention badge below it -- unfiled thoughts are a normal
+   working state, not something overdue -- but it earns the same bottom
+   position, since both answer "is there anything waiting for me?".
+
+   Both carry margin-top: auto to sit at the foot of the sidebar's
+   flex column. When both are showing, only the first should absorb the
+   free space, or the two drift apart -- hence the adjacent-sibling
+   override further down. */
+.inbox-link {
+  display: block;
+  margin-top: auto;
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.3px;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  text-decoration: none;
+  text-align: center;
+}
+.inbox-link:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.inbox-count {
+  color: var(--accent);
+  font-weight: 500;
+}
+.inbox-link + .needs-attention-badge {
+  margin-top: 6px;
+}
+
 .needs-attention-badge {
   display: block;
   margin-top: auto;
@@ -369,6 +404,18 @@ button.editable:disabled:hover {
   max-width: none;
 }
 
+/* Only shown on a narrow screen -- above 760px the sidebar is the whole
+   nav and there is nothing to toggle. */
+.sidebar-menu-toggle {
+  display: none;
+}
+
+/* Below 760px the sidebar becomes a compact top bar. It used to flatten
+   into a wrapped row of every link at once, which ate 381px of a 664px
+   phone viewport -- 57% of the screen was chrome before any content.
+   Now only the wordmark and quick capture stay in the bar; everything
+   else folds behind the toggle, because capturing a thought is the one
+   thing worth a single tap on a phone. */
 @media (max-width: 760px) {
   .app-shell {
     flex-direction: column;
@@ -376,18 +423,72 @@ button.editable:disabled:hover {
   .sidebar {
     width: auto;
     height: auto;
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 5;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg);
     border-right: none;
     border-bottom: 1px solid var(--border-soft);
+  }
+  .sidebar .wordmark {
+    flex: 1;
+    margin: 0;
+    font-size: var(--fs-lg);
+  }
+  .sidebar-menu-toggle {
+    display: block;
+    font-family: var(--mono);
+    font-size: var(--fs-md);
+    line-height: 1;
+    color: var(--ink-faint);
+    background: transparent;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .quick-capture-toggle,
+  .quick-capture-form {
+    margin: 0;
+    order: 2;
+  }
+  /* Everything past the bar itself is behind the toggle. Listed by
+     class rather than by position so adding something to the sidebar
+     later doesn't silently appear in the collapsed bar. */
+  .sidebar[data-nav-open='false'] .nav-links,
+  .sidebar[data-nav-open='false'] .sidebar-search,
+  .sidebar[data-nav-open='false'] .legend-trigger,
+  .sidebar[data-nav-open='false'] .inbox-link,
+  .sidebar[data-nav-open='false'] .needs-attention-badge {
+    display: none;
+  }
+  /* Everything revealed by the toggle stacks below the bar, in the same
+     order it has on the desktop rail. Without an explicit order the
+     secondary links (legend, trash, export) default to 0 and float up
+     *above* quick capture, which is exactly backwards. */
+  .sidebar[data-nav-open='true'] .sidebar-search,
+  .sidebar[data-nav-open='true'] .nav-links,
+  .sidebar[data-nav-open='true'] .inbox-link,
+  .sidebar[data-nav-open='true'] .needs-attention-badge,
+  .sidebar[data-nav-open='true'] .legend-trigger {
+    order: 3;
+    width: 100%;
+  }
+  .sidebar[data-nav-open='true'] .legend-trigger {
+    order: 4;
+    text-align: center;
   }
   .nav-links {
     flex-direction: row;
     flex-wrap: wrap;
   }
-  .needs-attention-badge {
+  .needs-attention-badge,
+  .inbox-link {
     margin-top: 0;
   }
   .app-content {
@@ -814,6 +915,26 @@ button.editable:disabled:hover {
   padding: 3px 8px;
   cursor: pointer;
 }
+/* The per-entry "Move to..." picker. A select rather than a button,
+   since it needs to name a destination, but styled to sit quietly in
+   the same row as Move up / Move down / Remove entry rather than
+   reading as a form field. */
+.block-move-select {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.3px;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.block-move-select:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+
 .btn-ghost-small:hover:not(:disabled) {
   border-color: var(--maroon);
   color: var(--ink);

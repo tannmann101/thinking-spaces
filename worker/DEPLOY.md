@@ -111,14 +111,35 @@ database with `wrangler d1 execute`. There's no automatic migration
 step: a Worker has no boot to run one at, so a schema change is always
 something applied deliberately, before the deploy that needs it.
 
-### Queued, not yet applied to the deployed database
+### The September 2026 catch-up migration (done -- kept as a worked example)
 
-**The frontend is already ahead of this.** GitHub Pages redeploys itself
-on every push to `main` that touches `frontend/**`, so the live site is
-already serving a build that calls `/api/goals`, `/api/projects`,
-`/api/search`, `/api/trash` and more -- none of which the currently
-deployed Worker has. Until the steps below are run, those pages error on
-the live site. Everything here is one sitting; do it in order.
+**This has been run.** On 2026-09-05 the deployed database was 20 commits
+behind the frontend, which GitHub Pages had already shipped, so `/goals`,
+`/projects`, `/search` and `/trash` were erroring live. The steps below
+brought it current. They are kept because two things went wrong in the
+doing, and the lessons are the reason step 0 exists at all -- not because
+anything here is still pending.
+
+**Do not re-run step 4 blindly.** The projects rebuild is the one
+non-idempotent step in this file; it is guarded, but read the guard.
+
+**What went wrong, and why step 0 is not boilerplate:** `--file=` reads
+from *your working copy*. The checkout was 20 commits stale, so
+`--file=schema.sql` silently applied the **old** 8-table schema -- the
+command *succeeded*, reported 14 queries where the current file has 16,
+and quietly left out `goals` and `trash`. That only surfaced later as a
+`no such table: goals` on the live site. `--file=projects-spaceless-rebuild.sql`
+failed outright for the same reason: the file didn't exist in the stale
+checkout. Re-running after pulling fixed it with no data loss. A stale
+checkout makes `wrangler d1 execute --file=` fail *quietly and
+partially*, which is the worst shape a migration failure can take -- so
+step 0 pulls, prints the resulting commit, and counts the statements the
+file is about to apply, so step 3's reported count can be checked against
+a number known in advance.
+
+<details>
+<summary>The steps as run</summary>
+
 
 Run from `worker/`. Every command is a single line, so it works the same
 in PowerShell and in bash.
@@ -226,6 +247,7 @@ Goals and Projects entries in the sidebar open working pages, search
 returns results, and a Space page's Trail shows recorded activity rather
 than "No history yet."
 
+</details>
 ## One migration the Worker can never run itself
 
 The old Express backend ran a handful of one-time migrations at boot.
@@ -247,6 +269,12 @@ A Worker has no filesystem, so an uploaded file becomes an object in R2
 declares the `UPLOADS` binding and `worker/src/index.js` has both
 routes -- but the bucket itself has to exist before a deploy that uses
 it, the same one-time account-level setup the D1 database needed.
+
+**This is owed right now.** The frontend build already live on the site
+can add a Media entry (and so upload a file) from inside any Space, but
+the deployed Worker predates the upload routes, so that button currently
+404s. No schema change is involved -- the two commands below are the
+whole fix.
 
 Note before starting: enabling R2 on a Cloudflare account may ask for a
 payment method even though this app's usage sits far inside the free

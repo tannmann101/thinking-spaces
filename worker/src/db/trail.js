@@ -1,4 +1,11 @@
-// Ported from backend/src/db/queries/trail.js.
+// --- Trail --------------------------------------------------------
+// The history layer. Every entry snapshots the Skeleton's full state
+// at that moment (all four lanes' items + the articulation text)
+// rather than a diff -- simpler, and this app's data volumes make the
+// extra storage a non-issue. "auto" entries log themselves (see
+// skeleton.js's saveTextBlockWithPromotion); "manual" ones are the
+// person adding a narrative "why" directly. "review" is the Time arc's
+// third kind -- see review.js's getReviewDraft/createReview.
 //
 // NOTE on the trail.js <-> skeleton.js circular import: see the matching
 // note at the top of skeleton.js. Safe under the Workers runtime's ESM
@@ -8,6 +15,8 @@
 
 import { getSkeletonSnapshot } from './skeleton.js';
 
+// Exported (not just used internally) since dashboard.js's
+// getWeekCalendar also needs to parse a trail_entries row the same way.
 export function parseTrailRow(row) {
   return { ...row, skeleton_snapshot: JSON.parse(row.skeleton_snapshot) };
 }
@@ -41,17 +50,30 @@ export async function listTrailEntries(env, spaceId) {
   return results.map(parseTrailRow);
 }
 
-// For a manual entry, note *is* its own text, so its summary (the
-// truncated preview the Log page shows) is recomputed to match; an
-// auto/review entry's summary is left alone.
-// A Space's own full history -- its Trail entries and the activity
-// recorded against it, merged. See backend/src/db/queries/trail.js for
-// why this exists and why every row carries `source`.
+// A Space's own full history: its Trail entries *and* the activity
+// recorded against it, in one chronological list.
+//
+// listGlobalActivity (log.js) already merges Trail into the Log; this
+// is the missing mirror. It exists because Trail on its own was empty
+// on essentially every real Space -- an auto entry only ever wrote
+// itself on a Skeleton edit, so unless the person used the promotion
+// shorthand, a Space had no recorded history at all, while
+// activity_log had been quietly recording that Space's real events the
+// whole time.
+//
+// Every row carries `source`, because the two kinds are genuinely
+// different and the page must not pretend otherwise: a 'trail' row has
+// a Skeleton snapshot (so Rewind can reconstruct that moment) and an
+// editable note; an 'activity' row is a recorded fact with neither.
+// Merged in JS rather than SQL because a trail row needs its snapshot
+// parsed and an activity row has no snapshot column to select -- a
+// UNION would mean inventing null columns on both sides to line them
+// up, which reads worse than two small reads and a sort.
 export async function listSpaceHistory(env, spaceId) {
   const trail = (await listTrailEntries(env, spaceId)).map((entry) => ({ ...entry, source: 'trail' }));
 
   // The Space's own name is stripped from each summary -- see the
-  // matching comment in backend/src/db/queries/trail.js for why.
+  // comment above listSpaceHistory for why.
   const space = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(spaceId).first();
   const withoutSpaceName = (summary) => {
     if (!space?.title) return summary;
@@ -87,6 +109,14 @@ export async function listSpaceHistory(env, spaceId) {
   });
 }
 
+// Entries used to be write-once -- an auto entry that wrote itself
+// (e.g. "Promoted: 2 Premises") had no way to get a manual "why"
+// attached afterward, and a manual note had no way to fix a typo once
+// saved. This is the one function both go through. For a manual entry,
+// note *is* its own text, so its summary (the truncated preview the
+// Log page shows) is recomputed to match; an auto entry's summary is
+// left alone, since a note added here is a "why" layered on top of
+// what already wrote itself, not a replacement for it.
 export async function updateTrailEntry(env, id, note) {
   const existing = await env.DB.prepare(`SELECT * FROM trail_entries WHERE id = ?`).bind(id).first();
   if (!existing) return null;

@@ -1,6 +1,6 @@
 // Create or edit one Template. There's no live-cascading system to be
 // careful with here, because editing a Template only ever writes to the
-// templates table (see updateTemplate in backend/src/db/queries.js) --
+// templates table (see updateTemplate in worker/src/db/templates.js) --
 // applyTemplate only runs once, at the moment a Space is created from a
 // Template, and nothing ever reads template_id again after that. So
 // this editor can be as blunt as it likes: whatever is saved here only

@@ -1,14 +1,18 @@
 -- Thinking Spaces database schema, D1 edition.
 --
--- This is the *current, final* shape of every table -- unlike
--- backend/src/db/schema.sql (which only has the Pass 1 columns, with
--- the rest added by ensureColumn's runtime ALTER TABLEs in
--- backend/src/db/index.js), a D1 database starts fresh, so there's no
--- migration history to replay: every column the app currently uses is
--- just declared directly. See CLAUDE.md's "Data model, current state"
--- section for what each column means.
+-- The *current, final* shape of every table, declared directly: there
+-- is no incremental migration history to replay here, and no automatic
+-- migration step either, since a Worker has no boot to run one at. A
+-- later schema change means editing this file AND applying the matching
+-- ALTER by hand -- see DEPLOY.md's "Making schema changes later". See
+-- CLAUDE.md's "Data model, current state" for what each column means.
 --
--- Apply with: wrangler d1 execute thinking-spaces --remote --file=schema.sql
+-- Everything here is CREATE TABLE IF NOT EXISTS, so re-running it is
+-- safe and is how a new table reaches an existing database.
+--
+-- Apply locally with:  npm run setup        (from worker/)
+-- Apply to the deployed database with:
+--   wrangler d1 execute thinking-spaces --remote --file=schema.sql
 
 CREATE TABLE IF NOT EXISTS templates (
   id TEXT PRIMARY KEY,

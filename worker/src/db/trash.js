@@ -1,5 +1,17 @@
-// Ported from backend/src/db/queries/trash.js -- see that file for why
-// this is a snapshot table rather than a deleted_at column everywhere.
+// --- Trash ----------------------------------------------------------------
+// A delete stops being permanent. Before any delete path removes rows, it
+// snapshots them here; restoring puts them back exactly as they were.
+//
+// The alternative -- a `deleted_at` column on every table -- was
+// deliberately not taken: it would mean every read query in the app
+// filtering it forever, and one missed filter means deleted content
+// quietly reappearing. Snapshotting touches only the six delete paths,
+// and no existing read query changes at all.
+//
+// Nothing expires on its own. There is no background job in this app to
+// run an expiry in, and silently destroying something a second time is
+// exactly the behaviour this table exists to prevent -- so emptying the
+// trash stays a deliberate act.
 
 // rowid breaks the tie: deleted_at has only second granularity, so two
 // deletes in the same second would otherwise come back in whatever order
@@ -17,6 +29,9 @@ export async function getTrashEntry(env, id) {
   return { ...row, payload: JSON.parse(row.payload) };
 }
 
+// Called by a delete path *before* it deletes. `payload` maps a table
+// name to the rows being removed from it, in the order they'd need to be
+// put back (parents before children).
 export async function recordTrash(env, { kind, label, context = null, payload }) {
   const id = crypto.randomUUID();
   await env.DB.prepare(`INSERT INTO trash (id, kind, label, context, payload) VALUES (?, ?, ?, ?, ?)`)
@@ -25,10 +40,15 @@ export async function recordTrash(env, { kind, label, context = null, payload })
   return id;
 }
 
-// D1 has no synchronous transaction the way better-sqlite3 does, so the
-// re-inserts go through a batch -- which D1 applies atomically, giving
-// the same all-or-nothing guarantee the Node side gets from its
-// transaction wrapper.
+// Puts every snapshotted row back, then drops the trash entry. Rows are
+// re-inserted with their original ids, so anything that pointed at them
+// (a Reference, a support-point pointer, a block's workspaces array)
+// resolves again without any repair step.
+//
+// INSERT OR IGNORE rather than a plain INSERT: if some of the rows
+// already exist -- restoring twice from two browser tabs, say -- the
+// right outcome is "it's back", not a primary-key crash halfway through
+// leaving a half-restored Space behind.
 export async function restoreFromTrash(env, id) {
   const entry = await getTrashEntry(env, id);
   if (!entry) return null;

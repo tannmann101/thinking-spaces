@@ -20,7 +20,7 @@
 // on a Skeleton edit, so unless you worked through the promotion
 // shorthand there was nothing here at all, while the Space's real
 // activity was being recorded elsewhere the whole time. See
-// listSpaceHistory in backend/src/db/queries/trail.js.
+// listSpaceHistory in worker/src/db/trail.js.
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';

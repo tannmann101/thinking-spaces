@@ -1,11 +1,14 @@
-// Thinking Spaces API -- Cloudflare Worker + D1 port of the Express +
-// better-sqlite3 backend under backend/src/. Every route here mirrors
-// its Express counterpart in backend/src/routes/*.js exactly (same
-// path, same validation, same status codes) -- this file is the
-// equivalent of backend/src/index.js's app.use(...) wiring plus every
-// route handler, hand-rolled the same way gardners-hub's own Worker
-// router is, since a framework like Express isn't available inside a
-// Worker.
+// Thinking Spaces API -- a Cloudflare Worker on D1. This one file is
+// the whole router plus every route handler, hand-rolled the same way
+// gardners-hub's own Worker router is, since a framework like Express
+// isn't available inside a Worker. It runs both locally (wrangler dev,
+// port 8787 -- what Vite's /api proxy points at) and deployed, so
+// there is exactly one backend implementation to reason about.
+//
+// This began as a port of an Express + better-sqlite3 backend that
+// lived under backend/; that side was deleted once local development
+// moved here, so nothing has to be written twice any more. Its history
+// is in git if an old decision ever needs looking up.
 //
 // Same-origin only: this expects to sit behind the same Cloudflare
 // Access gate as the rest of thegardners.xyz (see worker/DEPLOY.md), so
@@ -284,8 +287,8 @@ function exportStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// A complete, downloadable copy of everything -- see
-// backend/src/db/queries/exportData.js for the reasoning. Sent as an
+// A complete, downloadable copy of everything -- see db/exportData.js
+// for the reasoning. Sent as an
 // attachment so the browser saves it rather than rendering it.
 async function handleExportJson(env) {
   const data = await getFullExport(env);
@@ -485,9 +488,9 @@ async function handleCreateTensionPair(request, env, id) {
 }
 
 // ---------- Link preview ----------
-// Mirrors backend/src/routes/linkPreview.js exactly -- fetches a URL
-// server-side and pulls a title/description/image out of it via the pure
-// functions in linkPreview.js.
+// Fetches a URL server-side (the browser can't: CORS blocks reading
+// another site's HTML) and pulls a title/description/image out of it via
+// the pure functions in linkPreview.js.
 async function handleLinkPreview(request) {
   const body = (await readJson(request)) || {};
   const { url } = body;
@@ -512,15 +515,14 @@ async function handleLinkPreview(request) {
 
 
 // ---------- Uploads ----------
-// The R2 counterpart to backend/src/routes/uploads.js. Same routes, same
-// request and response shapes, same rules (uploadRules.js is a verbatim
-// copy on both sides) -- so the frontend can't tell which backend it is
-// talking to, which is the whole point of the parallel port.
+// A Worker has no filesystem, so an uploaded file becomes an object in
+// the R2 bucket bound as env.UPLOADS rather than a file on disk, and
+// multipart is parsed natively via request.formData() rather than by
+// multer. uploadRules.js holds what counts as an acceptable upload.
 //
-// What differs is only where bytes live: a Worker has no filesystem, so
-// where the Node side writes into backend/data/uploads/, this puts an
-// object into the R2 bucket bound as env.UPLOADS. multer is gone with
-// it -- Workers parse multipart natively via request.formData().
+// env.UPLOADS is absent until the bucket has actually been created
+// against the account (see DEPLOY.md), so both routes answer a clear
+// 501 rather than failing obscurely when it isn't there yet.
 
 async function handleUpload(request, env) {
   if (!env.UPLOADS) return errorResponse('File storage is not configured on this deployment.', 501);

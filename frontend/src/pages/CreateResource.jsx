@@ -21,7 +21,7 @@
 // whether a given Space is a citable thing you sourced, or one the
 // app itself produced through Work/Synthesis.
 //
-// Resource Templates (see backend/src/db/queries/resourceTemplates.js)
+// Resource Templates (see worker/src/db/resourceTemplates.js)
 // replace the three descriptive facets below with a type-tailored set
 // of their own, once a chosen type tag matches one -- "What is this,
 // plainly" means something different for a Book than for a Riddle. The

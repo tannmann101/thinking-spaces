@@ -1,9 +1,42 @@
-// Ported from backend/src/db/queries/review.js.
+// --- Review -------------------------------------------------------
+// A Review is a third Trail entry kind, not a separate concept: a
+// deliberate, structured look-back at "what changed since last time,"
+// distinct from a manual entry's free-form "why" and an auto entry's
+// one-line structural note. It's still just a row in trail_entries --
+// same storage, same Rewind (its skeleton_snapshot is captured exactly
+// like every other entry's), same note-attaching path via
+// updateTrailEntry (trail.js) (a Review's own kind isn't 'manual', so
+// its auto-computed summary is left alone when a note gets attached,
+// same as an auto entry's already is). This is the Time arc's third
+// layer, reusing Reports' "diff what changed" idea but scoped to "since
+// the last Review" instead of "right now."
+//
+// getReviewDraft is read-only -- it lets the person see what a Review
+// would say *before* committing it to Trail permanently -- and
+// createReview writes exactly that same computed summary, so the
+// preview and the recorded entry can never disagree with each other.
 
 import { getSpaceById } from './spaces.js';
 import { listBlocksForSpace } from './blocks.js';
 import { logTrailEntry } from './trail.js';
 
+// --- Review -------------------------------------------------------
+// A Review is a third Trail entry kind, not a separate concept: a
+// deliberate, structured look-back at "what changed since last time,"
+// distinct from a manual entry's free-form "why" and an auto entry's
+// one-line structural note. It's still just a row in trail_entries --
+// same storage, same Rewind (its skeleton_snapshot is captured exactly
+// like every other entry's), same note-attaching path via
+// updateTrailEntry (trail.js) (a Review's own kind isn't 'manual', so
+// its auto-computed summary is left alone when a note gets attached,
+// same as an auto entry's already is). This is the Time arc's third
+// layer, reusing Reports' "diff what changed" idea but scoped to "since
+// the last Review" instead of "right now."
+//
+// getReviewDraft is read-only -- it lets the person see what a Review
+// would say *before* committing it to Trail permanently -- and
+// createReview writes exactly that same computed summary, so the
+// preview and the recorded entry can never disagree with each other.
 export async function getReviewDraft(env, spaceId) {
   const space = await getSpaceById(env, spaceId);
   if (!space) return null;

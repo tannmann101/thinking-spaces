@@ -2,7 +2,7 @@
 // Workspace and every Project inside those Spaces, as an interactive
 // node/link map -- "the Relational Map" from CLAUDE.md. Still pure,
 // stateless-in, live-data-out: no graph structure is stored anywhere,
-// this just draws whatever getGraphData() (backend/src/db/queries.js)
+// this just draws whatever getGraphData() (worker/src/db/blocks.js)
 // returns each time it's fetched, straight from the
 // blocks/workspaces/projects tables. Only the *positions* are local to
 // this component (a lightweight, hand-rolled force simulation, not a

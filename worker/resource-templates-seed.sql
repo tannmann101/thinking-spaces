@@ -1,6 +1,12 @@
--- Built-in Resource Templates seed data (D1). Generated from backend/src/db/seedResourceTemplates.js --
--- do not hand-edit; regenerate from that file if a Resource Template changes.
--- Apply with: wrangler d1 execute thinking-spaces --remote --file=resource-templates-seed.sql
+-- Built-in Resource Templates seed data (D1). This file is the source of
+-- truth for the 17 built-in Resource Templates, same reasoning as
+-- templates-seed.sql: a Worker has no boot hook to seed from. Add or
+-- change one by editing the INSERT below and re-running this file; an
+-- existing one is edited from the Resource Templates page in the app.
+--
+-- Apply locally with:  npm run setup        (from worker/)
+-- Apply to the deployed database with:
+--   wrangler d1 execute thinking-spaces --remote --file=resource-templates-seed.sql
 
 INSERT OR IGNORE INTO resource_templates (id, type, label, facets) VALUES ('resource-template-aphorism', 'aphorism', 'Aphorism', '[{"name":"The Saying","prompt":"What is the exact wording?"},{"name":"What It Means","prompt":"What is your own gloss on it?"},{"name":"When It Applies","prompt":"When have you actually reached for this?"}]');
 INSERT OR IGNORE INTO resource_templates (id, type, label, facets) VALUES ('resource-template-art-piece', 'art piece', 'Art Piece', '[{"name":"What It Depicts","prompt":"What is the subject or form of the piece?"},{"name":"Technique or Choices","prompt":"What formal choices stand out -- medium, composition, technique?"},{"name":"What It Evokes","prompt":"What does it actually make you feel or notice?"}]');

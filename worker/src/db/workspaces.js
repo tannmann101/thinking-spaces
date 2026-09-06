@@ -1,4 +1,11 @@
-// Ported from backend/src/db/queries/workspaces.js.
+// --- Workspaces ---------------------------------------------------------
+// A Workspace is a deliberately assembled, named environment inside one
+// Space, bundling whichever existing Tools (blocks) belong together for
+// focused engagement -- its own dedicated page (unlike a Category, which
+// is just a filter over the ordinary feed). Creating/renaming/deleting
+// one, and adding/removing a block from one, are all ordinary, always-
+// available actions -- no separate mode to switch into, same principle
+// as everything else in this app.
 
 import { logActivity } from './activityLog.js';
 import { createBlock, nextPosition } from './blocks.js';
@@ -16,9 +23,17 @@ export async function getWorkspaceById(env, id) {
 }
 
 // `kind` names one of the specialized environments defined in
-// frontend/src/registry/workspaceKinds.js; `starterBlocks` is what that
-// kind starts you with, created in this same request already carrying
-// the new Workspace's id. See the backend module for the full note.
+// frontend/src/registry/workspaceKinds.js -- the kinds themselves live
+// there, not here, because a kind carries page layout and framing copy
+// that a database row can't hold. This side only stores which one this
+// is. Null is a plain, unkinded Workspace, exactly what every Workspace
+// was before kinds existed.
+//
+// `starterBlocks` is what that kind starts you with. The frontend reads
+// them off the registry and passes them in, so they're created in the
+// same request as the Workspace itself and already carry its id in their
+// own properties.workspaces -- rather than the page having to create the
+// Workspace, then loop a second round of requests to fill it.
 export async function createWorkspace(env, { spaceId, name, kind = null, starterBlocks = [] }) {
   const id = crypto.randomUUID();
   await env.DB.prepare(`INSERT INTO workspaces (id, space_id, name, kind) VALUES (?, ?, ?, ?)`)
@@ -54,7 +69,8 @@ export async function updateWorkspace(env, id, { name }) {
 // Deleting a Workspace only ever removes the workspaces row itself --
 // any block that listed this id in its own properties.workspaces just
 // ends up with a stale id nothing resolves to, exactly how a removed
-// Category is handled.
+// Category is handled today. Nothing crashes; the frontend simply
+// doesn't find a matching Workspace to show a chip for anymore.
 export async function deleteWorkspace(env, id) {
   const existing = await getWorkspaceById(env, id);
   if (existing) {
@@ -78,8 +94,11 @@ export async function deleteWorkspace(env, id) {
   }
 }
 
-// Every Workspace across every Space -- backs the top-level Workspaces
-// page's directory. Ported from backend/src/db/queries/workspaces.js.
+// Every Workspace across every Space, for the top-level Workspaces page's
+// directory. Counts members with the same json_each membership test
+// updateBlockWorkspaces writes -- one query rather than one per
+// Workspace, the same approach listOverdueReviews already uses for its
+// own cross-Space read.
 export async function listAllWorkspaces(env) {
   const { results } = await env.DB.prepare(
     `SELECT workspaces.id,

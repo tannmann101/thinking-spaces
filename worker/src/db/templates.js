@@ -1,9 +1,10 @@
-// Ported from backend/src/db/queries/templates.js. The 6 built-in
-// Templates themselves aren't seeded by app code here (unlike the Node
-// backend's seedTemplates.js, called at startup) -- see
-// worker/templates-seed.sql, applied once via wrangler d1 execute
-// during deployment, same reasoning ensureTestSpaceExists moved out of
-// runtime code (see spaces.js).
+// The 6 built-in Templates themselves aren't seeded by app code: a
+// Worker has no boot hook to run a seeder in, and re-checking on every
+// request would mean real extra D1 queries forever for something that
+// only has to happen once. worker/templates-seed.sql declares them
+// instead, applied once (npm run setup locally, wrangler d1 execute
+// against the deployed database) -- same reasoning ensureTestSpaceExists
+// stayed out of runtime code (see spaces.js).
 
 import { logActivity } from './activityLog.js';
 import { createBlock } from './blocks.js';
@@ -26,6 +27,8 @@ export async function getTemplateById(env, id) {
   return parseTemplateRow(row);
 }
 
+// id is optional, same reasoning as createSpace (spaces.js): a fixed id
+// for the built-in Templates (see templates-seed.sql).
 export async function createTemplate(env, { id = crypto.randomUUID(), name, blockArrangement }) {
   await env.DB.prepare(`INSERT INTO templates (id, name, block_arrangement) VALUES (?, ?, ?)`)
     .bind(id, name, JSON.stringify(blockArrangement))
@@ -35,6 +38,10 @@ export async function createTemplate(env, { id = crypto.randomUUID(), name, bloc
   return { ...(await getTemplateById(env, id)), changeSummary: summary };
 }
 
+// Editing a Template only ever touches the templates table -- it never
+// reaches into any Space, because applyTemplate (below) only ever runs
+// once, at Space-creation time. There's no ongoing link for an edit to
+// travel through.
 export async function updateTemplate(env, id, { name, blockArrangement }) {
   await env.DB.prepare(`UPDATE templates SET name = ?, block_arrangement = ?, updated_at = datetime('now') WHERE id = ?`)
     .bind(name, JSON.stringify(blockArrangement), id)
@@ -62,7 +69,9 @@ export async function deleteTemplate(env, id) {
   }
 }
 
-// Applying a Template is a one-time copy, never a live link back to it.
+// Applying a Template is a one-time copy, per CLAUDE.md -- not a live
+// link back to the template. Each block spec in block_arrangement is
+// just the same shape createBlock already takes.
 export async function applyTemplate(env, spaceId, templateId) {
   const template = await getTemplateById(env, templateId);
   if (!template) return;

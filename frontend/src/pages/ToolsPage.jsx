@@ -42,7 +42,7 @@ function DemoBlock({ entry }) {
   // Merged onto the previous content, not replaced outright -- a real
   // Reference block's targetSpaceTitle is a display field the backend
   // injects at read time rather than something PATCHed back (see
-  // backend/src/db/queries/blocks.js), so a demo with no backend behind
+  // worker/src/db/blocks.js), so a demo with no backend behind
   // it needs to hang onto it itself across an edit instead of losing it.
   return (
     <Demo

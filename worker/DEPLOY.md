@@ -1,8 +1,9 @@
 # Deploying Thinking Spaces
 
-This is a Cloudflare Worker + D1 database that reimplements every route
-`backend/` (the Express + better-sqlite3 app used for local development)
-has. It's routed at `thinking.thegardners.xyz/api/*` -- Cloudflare
+This is the app's backend: a Cloudflare Worker on a D1 database. It's
+the same code locally and deployed -- `npm run dev` here runs it on
+port 8787, which is what Vite's `/api` proxy points at. Deployed, it's
+routed at `thinking.thegardners.xyz/api/*` -- Cloudflare
 intercepts those requests at the edge before they'd otherwise hit
 GitHub Pages, which serves the built frontend on the rest of that
 subdomain. Same split gardners-hub's own Worker already uses for the
@@ -41,16 +42,13 @@ Run these from the `worker/` directory, with Node.js installed locally.
    npx wrangler d1 execute thinking-spaces --remote --file=templates-seed.sql
    ```
 
-5. **Migrate the real, already-accumulated data.** This is a migration
-   of an app already in daily use, not a fresh install -- skipping this
-   step means starting the hosted version from an empty database.
-   From `backend/` on the machine that actually has
-   `backend/data/thinking-spaces.sqlite` (the personal laptop, via the
-   desktop launcher):
-   ```
-   node export-to-d1.mjs
-   ```
-   This writes `backend/data-export.sql`. Copy it into `worker/`, then:
+5. **Migrate the real, already-accumulated data.** *(Done once, in
+   September 2026 -- kept here as the record of how, not as a step to
+   repeat.)* This was a migration of an app already in daily use, not a
+   fresh install. A local `export-to-d1.mjs` script read the Express
+   backend's own SQLite file and wrote a `data-export.sql` of INSERTs;
+   both are gone now that there is no local SQLite database to read.
+   The applied command was:
    ```
    npx wrangler d1 execute thinking-spaces --remote --file=data-export.sql
    ```
@@ -100,20 +98,18 @@ Every push to `main` that touches `frontend/**` rebuilds and redeploys
 the static site automatically (see
 `.github/workflows/deploy-pages.yml`). The Worker itself has no
 auto-deploy set up -- a change to anything under `worker/src/` needs a
-manual `npx wrangler deploy` from this directory. `backend/` keeps
-being what local development actually runs; changes made there don't
-automatically apply here; see `CLAUDE.md`'s Hosting section for why
-the two are kept as separate, parallel implementations rather than one
-generating the other.
+manual `npx wrangler deploy` from this directory. That's the one thing
+to remember: the frontend ships itself, the backend doesn't. A merge
+that changes both leaves the live site calling routes the deployed
+Worker doesn't have yet until you deploy.
 
 ## Making schema changes later
 
 Edit `schema.sql`, then run the relevant `ALTER TABLE` (or a fresh
 `CREATE TABLE` + data migration) by hand against the `--remote`
-database with `wrangler d1 execute`, same as `backend/src/db/index.js`'s
-own `ensureColumn` migrations do for the Node side -- just applied once
-by hand here instead of automatically at every boot, since a Worker has
-no boot to run them at.
+database with `wrangler d1 execute`. There's no automatic migration
+step: a Worker has no boot to run one at, so a schema change is always
+something applied deliberately, before the deploy that needs it.
 
 ### Queued, not yet applied to the deployed database
 
@@ -232,10 +228,10 @@ than "No history yet."
 
 ## One migration the Worker can never run itself
 
-`backend/src/db/index.js` runs a handful of one-time migrations at boot.
+The old Express backend ran a handful of one-time migrations at boot.
 Most have no counterpart here, because a D1 database starts fresh on the
 current shapes and so never holds a legacy-shaped row (see `CLAUDE.md`'s
-Hosting section). `migrateSpaceStatuses()` is the exception: it maps the
+Hosting section). The status migration is the exception: it maps the
 two retired status values (`nascent`, `developing`) onto `active`, and
 the deployed database was populated *before* the status vocabulary
 changed, so it may still carry them. A Worker has no boot hook to run it
@@ -246,8 +242,7 @@ retired value, the UPDATE simply matches nothing.
 ## Adding the uploads bucket (one-time)
 
 File uploads are the one part of the app that needs storage beyond D1.
-A Worker has no filesystem, so where `backend/` writes into
-`backend/data/uploads/`, the deployed side puts objects into R2
+A Worker has no filesystem, so an uploaded file becomes an object in R2
 (Cloudflare's object storage). The code is in place -- `wrangler.toml`
 declares the `UPLOADS` binding and `worker/src/index.js` has both
 routes -- but the bucket itself has to exist before a deploy that uses
@@ -278,18 +273,15 @@ Until the bucket exists, the upload route answers `501 File storage is
 not configured on this deployment.` rather than failing obscurely --
 deploying the code before creating the bucket is untidy, not harmful.
 
-## How uploads differ between the two backends
+## Uploads in local development
 
-Only in where the bytes go. `backend/` writes to the local filesystem
-with multer; the Worker puts an object into R2 and parses the multipart
-form natively via `request.formData()`, no multer involved. Both routes
-take the same request and return the same JSON, so the frontend cannot
-tell which one it is talking to.
+`wrangler dev` gives the `UPLOADS` binding a local, emulated bucket
+under `.wrangler/`, so uploading a file works locally with nothing set
+up -- the same code path the deployed site uses, against local storage.
+Files put there stay there; they are not synced to the real bucket, and
+the real bucket is never touched from local development.
 
-The rules they share -- what file types are allowed, the 25 MB limit,
-and the generated UUID filename -- live in `uploadRules.js`, a verbatim
-copy in `backend/src/` and `worker/src/`, exactly like `linkPreview.js`.
-Copied rather than imported across the boundary because the two
-backends are deliberately parallel implementations; a rule that
-silently differed between them would mean a file the local app accepts
-being rejected by the live site, or the reverse.
+What counts as an acceptable upload -- the allowed file types, the 25 MB
+limit, the generated UUID filename -- lives in `src/uploadRules.js`,
+separate from the route that enforces it so the rules can be read and
+tested on their own.

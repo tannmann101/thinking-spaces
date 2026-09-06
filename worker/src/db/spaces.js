@@ -1,4 +1,14 @@
-// Ported from backend/src/db/queries/spaces.js.
+// --- Spaces ------------------------------------------------------------
+// A Space is one train of thought. This module owns creating them,
+// reading them back with their computed fields attached (the three
+// dimensions SpaceGlyph draws from, plus isOverdue and milestoneStats),
+// editing them, and deleting them into the trash along with everything
+// that lived inside.
+//
+// The computed fields are plain per-Space queries rather than one
+// batched aggregate: this app's tables are small enough (one person's
+// Spaces) that an extra indexed query per Space in a list isn't worth
+// the complexity of pre-aggregating.
 
 import { TEST_SPACE_ID, todayString } from './constants.js';
 import { logActivity } from './activityLog.js';
@@ -68,6 +78,11 @@ export async function listSpaces(env) {
   return Promise.all(results.map((row) => withComputedSpaceFields(env, row)));
 }
 
+// Reusable for "Resources" (tag: 'resource') and any future category --
+// tags are a plain JSON array on the Space, queried by membership here
+// rather than filtered ad hoc wherever a tag happens to be needed. The
+// Test Space is excluded, same reasoning as every other cross-Space
+// listing: it's scratch content, not a real Resource/category member.
 export async function listSpacesByTag(env, tag) {
   const { results } = await env.DB.prepare(
     `SELECT ${SPACE_COLUMNS} FROM spaces
@@ -86,6 +101,18 @@ export async function getSpaceById(env, id) {
   return withComputedSpaceFields(env, row);
 }
 
+// id is optional: pass one for a fixed, well-known Space (the Test
+// Space, and the other seeded demo Spaces in seedTestSpace.js). tags is
+// only really used by seed data (e.g. tagging the Resource demo Space
+// at creation) -- an ordinary new Space starts untagged and gets tagged
+// later through the same PATCH /spaces/:id every other edit uses.
+// categories can be set at creation too -- unlike tags, a guided
+// creation flow (Resource creation is the first to do this) may already
+// know exactly which facets this Space's content should be filed under
+// before any block exists yet. origin is the same idea for provenance:
+// CreateResource.jsx passes 'external', CreateSynthesis.jsx passes
+// 'internal', and an ordinary Space leaves it null (see the Resources/
+// Synthesis vocabulary entries in CLAUDE.md).
 export async function createSpace(
   env,
   { id = crypto.randomUUID(), title, templateId = null, status = 'active', tags = [], categories = [], origin = null, dueDate = null }
@@ -101,6 +128,18 @@ export async function createSpace(
   return { ...(await getSpaceById(env, id)), changeSummary: summary };
 }
 
+// A Space's title, status, tags, goal, categories, theme, and due
+// date are all edited through this one function. Any subset of fields
+// can be given; the rest keep their current value, same pattern as
+// updateTemplate (templates.js). categories are freely-named facets
+// specific to this Space's own topic (e.g. "Financial Impact") that its
+// own blocks get filed under -- not to be confused with tags, which
+// categorize the Space itself (e.g. "resource") among every other
+// Space. theme is the manual half of personalization -- any subset of
+// {accent, shape, density, typeface} overriding the look this kind of
+// Space would otherwise compute for itself; passing null clears it back
+// to that computed default. dueDate is a real target date for the Space
+// as a whole, distinct from a List item's own `reviewBy`.
 export async function updateSpace(env, id, { title, status, tags, goal, categories, theme, dueDate } = {}) {
   const existing = await env.DB.prepare(`SELECT * FROM spaces WHERE id = ?`).bind(id).first();
   if (!existing) return null;
@@ -123,7 +162,7 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
   // changeSummary (see changeSummary.js) is a lighter-weight cousin of
   // the logActivity entry below -- a short sentence attached to the
   // response so the toast (see frontend's Toast.jsx) can say what
-  // actually happened, not just "Saved". Mirrors backend/src/db/queries/
+  // actually happened, not just "Saved". See
   // spaces.js's updateSpace exactly.
   let changeSummary = null;
   if (status !== undefined && status !== existing.status) {
@@ -145,7 +184,6 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
         : `Due ${next.due_date} -- now shows on your Week digest`;
     }
     // Recorded as well as toasted -- see the matching comment in
-    // backend/src/db/queries/spaces.js.
     await logActivity(env, {
       spaceId: id,
       spaceTitle: next.title,
@@ -157,10 +195,26 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
   return changeSummary ? { ...result, changeSummary } : result;
 }
 
-// Blocks, Workspaces, and Trail entries are all deleted first since
-// each carries a foreign key to spaces(id) -- D1 (like the Node
-// backend) has no ON DELETE CASCADE on this schema, so this does it
-// explicitly. The Test Space is protected.
+// You could create a Space but never get rid of one -- the last "add
+// with no remove" gap. Blocks, Workspaces, and Trail entries are all
+// deleted first since each carries a foreign key to spaces(id) with
+// foreign_keys = ON (see db/index.js); there's no ON DELETE CASCADE on
+// the schema, so this does it explicitly, in the same spirit as
+// everything else in this file being plain and visible rather than
+// relying on database magic. The Test Space is protected -- it's a
+// fixed scratch area other code assumes exists (ensureTestSpaceExists
+// recreates it if missing, but there's no reason to make that path fire
+// by accident). A Reference block elsewhere that pointed at the deleted
+// Space is left as-is; it just renders its raw target id once the title
+// lookup can no longer resolve, the same graceful fallback a bad id
+// already gets.
+//
+// The Workspaces delete was missing for several passes (flagged twice
+// in CLAUDE.md's Open section, surfaced while testing Reports and again
+// while testing the queries.js split) -- any Space that ever had a
+// Workspace couldn't be deleted at all, since the DELETE FROM spaces
+// below would fail workspaces' own foreign key first. Caught for real
+// and fixed here once a test exercised exactly that case.
 export async function deleteSpace(env, id) {
   if (id === TEST_SPACE_ID) {
     throw new Error('The Test Space cannot be deleted');
@@ -193,6 +247,24 @@ export async function deleteSpace(env, id) {
   }
 }
 
+// Creation Mode's whole job is composing a Space from the same pieces
+// every other path already uses -- a Template's starting blocks
+// (applyTemplate, templates.js), any extra Tools chosen on top of it
+// (addBlockToSpace, blocks.js), a Reference block per Resource pulled
+// in (addBlockToSpace again, same as createRelationalSpace does for its
+// selections), and the Space's own tags/goal/categories
+// (createSpace/updateSpace above). Nothing here is new machinery --
+// this just does all of it in one request instead of asking the
+// frontend to sequence several.
+//
+// `workspaces` names Workspaces to assemble from the start (Creation
+// Mode's own "Workspaces" step). They're created before extraBlocks are
+// added specifically so a block can be filed into one immediately: a
+// block spec carrying `properties.workspaceNames` (draft-time names --
+// real ids don't exist yet when the frontend builds the request) gets
+// those names resolved against the freshly-created Workspaces here and
+// rewritten into `properties.workspaces` (real ids), the same field
+// BlockWorkspacePicker and the Workspace page both already read.
 export async function createSpaceWithSetup(
   env,
   { title, templateId = null, extraBlocks = [], resourceSpaceIds = [], tags = [], categories = [], workspaces = [], goal = null, origin = null }
@@ -227,16 +299,38 @@ export async function createSpaceWithSetup(
 }
 
 // Idempotent: creates the Test Space the first time this runs, does
-// nothing after that. On the Node backend this is called once at
-// startup (server.js); a Worker has no equivalent boot hook, so this is
-// instead applied once via wrangler d1 execute during deployment setup
-// (see worker/DEPLOY.md) rather than run on every request.
+// nothing after that. Nothing calls it at runtime -- a Worker has no
+// boot hook to run it in, and re-checking on every request would mean a
+// real extra D1 query forever for something that only has to happen
+// once. Kept (and tested) because it is the one definition of what the
+// Test Space is; a database that wants one gets it applied deliberately.
 export async function ensureTestSpaceExists(env) {
   const existing = await getSpaceById(env, TEST_SPACE_ID);
   if (existing) return existing;
   return createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space', status: 'active' });
 }
 
+// A "Relational Space" isn't a distinct schema -- CLAUDE.md is explicit
+// that it's just an ordinary Space whose content happens to reference
+// two or more other Spaces. This composes the same createSpace/
+// addBlockToSpace every other Space creation path uses: one Reference
+// block per selected Space, plus one blank Text block for your own
+// writing about the connection, seeded once at creation like any
+// Template would be. Lives here (moved from its original spot in the
+// old single-file queries.js, physically grouped with the Blocks
+// section) rather than in blocks.js, since creating a Relational Space
+// is conceptually a Space-creation function, same family as
+// createSpaceWithSetup above.
+//
+// Tagged 'relational' at creation, the same way a Resource gets tagged
+// 'resource' and a Synthesis gets tagged 'synthesis' -- surfaced from
+// the category-hygiene audit that a Relational Space had no persistent
+// signal at all once created (no origin, no tag), so it read as
+// completely indistinguishable from a Space built by hand the moment
+// you left the Graph page. The tag is an ordinary tag, not a protected
+// flag: it shows up as a chip wherever tags already render (the
+// Dashboard's Space list, the Space page's own TagEditor) and can be
+// removed like any other tag, same as everything else in this app.
 export async function createRelationalSpace(env, { title, spaceIds }) {
   const space = await createSpace(env, { title, tags: ['relational'] });
   await addBlockToSpace(env, space.id, { type: 'text', content: { tag: null, text: '' } });

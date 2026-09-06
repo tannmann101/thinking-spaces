@@ -1,8 +1,15 @@
-// Ported from backend/src/db/queries/dashboard.js.
+// --- Dashboard aggregations -------------------------------------------
+// Cross-Space surfacing features. The Test Space is excluded from all
+// three -- it's scratch content, not something worth being reminded to
+// review, reading about in a digest, or resurfaced as "maybe revisit
+// this."
 
 import { TEST_SPACE_ID, todayString } from './constants.js';
 import { parseTrailRow } from './trail.js';
 
+// Any List item anywhere with a reviewBy date in the past. Uses
+// SQLite's json_each to look inside every List block's items array
+// without pulling all of them into JS first.
 export async function listOverdueReviews(env) {
   const { results } = await env.DB.prepare(
     `SELECT spaces.id AS space_id, spaces.title AS space_title, blocks.id AS block_id, item.value AS item_json
@@ -25,6 +32,14 @@ export async function listOverdueReviews(env) {
   }));
 }
 
+// The Dashboard's Week calendar: one entry per day of the current
+// calendar week (Sunday through Saturday), each carrying whatever
+// actually happened that day (Trail entries -- what a flat "this week"
+// list used to show with no explanation of what "week" meant) and
+// whatever is due that day (a Space's own due_date, a Milestone's
+// targetDate). Answering "how does it know what this week is" is the
+// whole point -- a real calendar grid with day labels/dates makes that
+// visible for free, instead of it being a fact only the code knows.
 export async function getWeekCalendar(env) {
   const now = new Date();
   const startOfWeek = new Date(now);
@@ -143,6 +158,9 @@ export async function getWeekCalendar(env) {
   }));
 }
 
+// One suggestion for "maybe revisit this": the dormant/inactive Space
+// that's gone the longest without an update. Not random -- the most
+// neglected one is the one most likely to actually be forgotten.
 export async function suggestSpaceToResurface(env) {
   const row = await env.DB.prepare(
     `SELECT id, title, status, updated_at
@@ -156,6 +174,14 @@ export async function suggestSpaceToResurface(env) {
   return row || null;
 }
 
+// The count behind the sidebar's "needs attention" badge -- deliberately
+// narrow and already-actionable, not a raw activity count. Three
+// things: overdue List items (reviewBy), overdue Spaces (due_date),
+// and overdue Milestones (targetDate, not yet reached). Trail Review
+// staleness ("never reviewed"/"14+ days since last") is deliberately
+// left out -- it's true of nearly every Space nearly all the time (see
+// getTimeInsights), so counting it here would make the badge read as
+// permanently alarmed rather than a genuine signal worth glancing at.
 export async function getNeedsAttentionCount(env) {
   const overdueReviewItems = (await listOverdueReviews(env)).length;
 

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { renderExportMarkdown } from './exportFormat.js';
 
-// Mirrored verbatim from backend/test/exportFormat.test.js -- the module
-// under test is a verbatim copy too, since it touches no database.
+// exportFormat.js touches no database, so it is tested directly as a
+// pure function rather than through a route.
 function payload(overrides = {}) {
   const tables = {
     templates: [],

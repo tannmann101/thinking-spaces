@@ -1,4 +1,4 @@
-// Ported from backend/src/changeSummary.js -- pure JS, identical on
+// Pure JS, identical on
 // both sides, same reasoning linkPreview.js was ported verbatim.
 //
 // Pure functions that turn a "before" and "after" content change into a

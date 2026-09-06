@@ -1,4 +1,27 @@
-// Ported from backend/src/db/queries/reports.js.
+// --- Reports ----------------------------------------------------------
+// Every page in the app -- a Space, a Workspace, a single Tool/Work
+// item -- can produce a report: a structured snapshot of its current
+// state. Insights (insights.js) already draws trend-level aggregates
+// across every Space; a report is the other direction -- one Space/
+// Workspace/block's own state, detailed enough to hand to an external
+// Claude conversation that can give it closer attention than an in-app
+// view ever could. Purely computed on demand: no new table, nothing
+// stored or versioned, same "compute, don't persist" choice Insights
+// made.
+//
+// Every report shares one shape: { level, id, label, generatedAt,
+// sections: [{ heading, lines: [string] }] }. Keeping that shape
+// identical across all three levels is what lets renderReportText
+// (see ../../reportFormat.js) stay one small generic function instead
+// of three near-duplicates -- the same "structured data now, prose
+// rendered from it" split Insights' charts and this both use.
+//
+// A "Relational Space" and a "connection" don't get their own report
+// functions: a Relational Space is just an ordinary Space (see
+// spaces.js's createRelationalSpace), so getSpaceReport already covers
+// it, and a connection between two Spaces is just a Reference block, so
+// getBlockReport already covers that too, under "Content". No new
+// abstraction was needed for either.
 
 import { WORK_TYPES } from './work.js';
 import { getBlockById, listBlocksForSpace, listBacklinksForSpace } from './blocks.js';
@@ -189,6 +212,9 @@ export async function getBlockReport(env, blockId) {
   return { level: 'block', id: block.id, label: labelForBlock(block), generatedAt: new Date().toISOString(), sections };
 }
 
+// A Workspace's own report -- its identity plus every Tool currently
+// assembled into it, each summarized the same one-line way it would
+// appear in a list anywhere else in the app.
 export async function getWorkspaceReport(env, workspaceId) {
   const workspace = await getWorkspaceById(env, workspaceId);
   if (!workspace) return null;
@@ -202,7 +228,7 @@ export async function getWorkspaceReport(env, workspaceId) {
       lines: [
         `Space: ${space?.title || workspace.space_id}`,
         // The kind key, not a display label -- the labels live in the
-        // frontend registry, which the backend deliberately doesn't read.
+        // frontend registry, which this side deliberately doesn't read.
         ...(workspace.kind ? [`Kind: ${workspace.kind}`] : []),
         `Created: ${workspace.created_at}`,
       ],
@@ -216,6 +242,12 @@ export async function getWorkspaceReport(env, workspaceId) {
   return { level: 'workspace', id: workspace.id, label: workspace.name, generatedAt: new Date().toISOString(), sections };
 }
 
+// A Project's own report -- its identity plus every Milestone/Session
+// currently assigned to it, and the same reached/logged-minutes
+// progress readout ProjectPage.jsx itself computes and shows inline
+// (mirrored here rather than shared, since it's a few lines of
+// arithmetic over data this function already has, not worth a shared
+// helper for).
 export async function getProjectReport(env, projectId) {
   const project = await getProjectById(env, projectId);
   if (!project) return null;
@@ -269,6 +301,11 @@ export async function getProjectReport(env, projectId) {
   return { level: 'project', id: project.id, label: project.name, generatedAt: new Date().toISOString(), sections };
 }
 
+// A Space's own report -- the fullest of the three, since a Space is
+// where every other kind of state (its blocks, its Workspaces, its
+// Skeleton, its Trail, its relationships to other Spaces) actually
+// lives. Each section only appears once it has something to say --
+// a brand-new Space's report is still valid, just shorter.
 export async function getSpaceReport(env, spaceId) {
   const space = await getSpaceById(env, spaceId);
   if (!space) return null;

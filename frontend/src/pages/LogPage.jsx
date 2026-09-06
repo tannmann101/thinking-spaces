@@ -3,7 +3,7 @@
 // Space's status changing) merged with the Trail (the finer-grained
 // Skeleton history each Space already keeps). This is "everything",
 // read straight from listGlobalActivity/getActivityStats in
-// backend/src/db/queries.js -- nothing here is computed client-side.
+// worker/src/db/log.js -- nothing here is computed client-side.
 //
 // It deliberately does not log every keystroke-level content edit (a
 // List item's text, a checkbox toggle) -- that would bury the events

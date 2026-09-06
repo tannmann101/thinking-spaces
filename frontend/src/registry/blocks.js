@@ -73,7 +73,7 @@ import WordEvolutionBlock from '../blocks/WordEvolutionBlock.jsx';
 import ConceptMapBlock from '../blocks/ConceptMapBlock.jsx';
 import ModelBlock from '../blocks/ModelBlock.jsx';
 
-// Mirrors TEST_SPACE_ID in backend/src/db/queries.js -- the frontend
+// Mirrors TEST_SPACE_ID in worker/src/db/constants.js -- the frontend
 // and backend are separate bundles, so this can't be a shared import,
 // only a matching literal (same reasoning as SKELETON_LANE_LABELS in
 // skeleton.js mirroring the backend's SKELETON_LANES).
@@ -98,8 +98,7 @@ export const CONFIDENCE_LEVELS = ['questioned', 'tentative', 'moderate', 'solid'
 export const MEDIA_TYPES = ['image', 'link', 'document', 'audio', 'sketch'];
 
 // A self-contained SVG data URI so the Media demo renders with no
-// dependency on external network access -- same trick the seeded demo
-// data uses (see backend/src/db/seedTestSpace.js). Colored to match
+// dependency on external network access. Colored to match
 // the app's own dark palette/type system directly (rather than
 // inheriting index.css's variables, which an SVG data URI can't do)
 // so the demo doesn't read as an unstyled placeholder dropped into an
@@ -215,7 +214,7 @@ export const blockRegistry = {
   // list of discrete points, each either its own short claim or a live
   // link to another existing claim (another Work block, or a Skeleton
   // lane item) -- see WorkBlock.jsx for how a support point resolves.
-  // See backend/src/db/queries.js's WORK_TYPES, which must list every
+  // See worker/src/db/work.js's WORK_TYPES, which must list every
   // type registered here that Synthesis should be able to draw from.
   assessment: {
     label: 'Assessment',

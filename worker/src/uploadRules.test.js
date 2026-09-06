@@ -7,8 +7,8 @@ import {
   isValidStoredFilename,
 } from './uploadRules.js';
 
-// Mirrored verbatim from backend/test/uploadRules.test.js, since the module
-// itself is a verbatim copy on both sides -- if these ever diverge, a
+// The rules are a verbatim copy in frontend-facing terms too -- if the
+// two ever diverge, a
 // file the local app accepts could be rejected by the live site.
 
 describe('isAllowedFile', () => {

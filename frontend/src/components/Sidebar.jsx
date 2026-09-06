@@ -45,7 +45,7 @@ function Sidebar({ current }) {
   // deliberately narrow, already-actionable count (overdue List
   // reviewBy items, overdue Spaces, overdue Milestones), not a raw
   // activity count. See getNeedsAttentionCount in
-  // backend/src/db/queries/dashboard.js for what it excludes and why.
+  // worker/src/db/dashboard.js for what it excludes and why.
   useEffect(() => {
     // Promise.resolve(...) guards against a test file's own automocked
     // api.js, where an unconfigured getNotificationCount() returns

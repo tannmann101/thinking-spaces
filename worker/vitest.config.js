@@ -2,15 +2,12 @@ import { readFileSync } from 'node:fs';
 import { cloudflareTest } from '@cloudflare/vitest-plugin';
 import { defineConfig } from 'vitest/config';
 
-// Mirrors backend/vitest.config.js's own role: gives the test suite a
-// real database to run against, rather than a mocked D1 client. Here
-// that's an actual D1 instance inside the real Workers runtime (via
-// Miniflare, through the cloudflareTest Vite plugin), reading its
-// binding straight from wrangler.toml -- the same DB binding the real
-// deployed Worker uses -- so these tests exercise the real
-// env.DB.prepare()/.bind()/.all() calls worker/src/db/*.js actually
-// makes, the same rigor backend/'s own better-sqlite3-backed tests give
-// the Express version.
+// Gives the test suite a real database to run against, rather than a
+// mocked D1 client: an actual D1 instance inside the real Workers
+// runtime (via Miniflare, through the cloudflareTest Vite plugin),
+// reading its binding straight from wrangler.toml -- the same DB
+// binding the deployed Worker uses -- so these tests exercise the real
+// env.DB.prepare()/.bind()/.all() calls src/db/*.js actually makes.
 //
 // schema.sql has to be read here, in this file, not inside test/setup.js
 // -- this config file runs in plain Node (loaded by Vite), but a setup

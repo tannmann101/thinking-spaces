@@ -35,8 +35,8 @@ async function request(path, options) {
   }
   const body = await res.json();
   // PATCH and POST are the two verbs whose response can carry a
-  // changeSummary (see backend/src/changeSummary.js and the summary
-  // fields several backend/src/db/queries/*.js functions already
+  // changeSummary (see worker/src/changeSummary.js and the summary
+  // fields several worker/src/db/*.js functions already
   // attach) -- a short, content-aware sentence computed server-side
   // wherever it already knows both what happened and, for a few
   // particularly legible cases, what it implies elsewhere in the app (a
@@ -101,12 +101,12 @@ export const getTemplates = () => request('/templates');
 export const getBlocksForSpace = (spaceId) => request(`/spaces/${spaceId}/blocks`);
 export const getBacklinksForSpace = (spaceId) => request(`/spaces/${spaceId}/backlinks`);
 // A structured + prose snapshot of this Space's current state -- see
-// getSpaceReport in backend/src/db/queries.js. Fetched lazily, only
+// getSpaceReport in worker/src/db/reports.js. Fetched lazily, only
 // when a Report panel is actually opened (see ReportButton.jsx).
 export const getSpaceReport = (spaceId) => request(`/spaces/${spaceId}/report`);
 // A Review: what changed since the last one, previewable before it's
 // committed permanently to Trail -- see getReviewDraft/createReview in
-// backend/src/db/queries.js.
+// worker/src/db/review.js.
 export const getReviewDraft = (spaceId) => request(`/spaces/${spaceId}/reviews/draft`);
 export const createReview = (spaceId) => request(`/spaces/${spaceId}/reviews`, { method: 'POST' });
 export const updateBlockContent = (blockId, content) =>
@@ -156,7 +156,7 @@ export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 // The Dashboard's Week calendar: one entry per day of the current
 // calendar week (Sunday-Saturday), each carrying that day's Trail
 // activity and whatever is due that day (Space due dates, Milestone
-// target dates) -- see getWeekCalendar in backend/src/db/queries/dashboard.js.
+// target dates) -- see getWeekCalendar in worker/src/db/dashboard.js.
 export const getWeekCalendar = () => request('/dashboard/week');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
 // The sidebar's "needs attention" badge -- fetched on every page.
@@ -181,7 +181,7 @@ export const updateTemplate = (id, { name, blockArrangement }) =>
 export const deleteTemplate = (id) => request(`/templates/${id}`, { method: 'DELETE' });
 
 // Resource Template management -- a deliberately separate mechanism
-// from ordinary Templates above (see backend/src/db/schema.sql). Each
+// from ordinary Templates above (see worker/schema.sql). Each
 // replaces CreateResource.jsx's generic descriptive facets with a
 // type-tailored set of its own.
 export const getResourceTemplates = () => request('/resource-templates');
@@ -209,7 +209,7 @@ export const addBlockToSpace = (spaceId, { type, content, properties }) =>
   });
 export const deleteBlockApi = (blockId) => request(`/blocks/${blockId}`, { method: 'DELETE' });
 // A structured + prose snapshot of this one block's current state --
-// see getBlockReport in backend/src/db/queries.js. Works for every
+// see getBlockReport in worker/src/db/reports.js. Works for every
 // Block type, a Work item (e.g. a Hypothesis) included.
 export const getBlockReport = (blockId) => request(`/blocks/${blockId}/report`);
 // Which of the Space's own Categories a block belongs to (many-to-many).
@@ -246,7 +246,7 @@ export const moveBlockInSpace = (spaceId, blockId, direction) =>
   });
 
 // Workspaces: a deliberately assembled, named environment inside one
-// Space (see backend/src/db/queries.js, "--- Workspaces ---").
+// Space (see worker/src/db/workspaces.js).
 export const getWorkspacesForSpace = (spaceId) => request(`/spaces/${spaceId}/workspaces`);
 export const getWorkspace = (id) => request(`/workspaces/${id}`);
 // `kind` and `starterBlocks` come from registry/workspaceKinds.js -- the
@@ -281,11 +281,11 @@ export const renameWorkspace = (id, name) =>
   });
 export const deleteWorkspace = (id) => request(`/workspaces/${id}`, { method: 'DELETE' });
 // A structured + prose snapshot of this Workspace's current state --
-// see getWorkspaceReport in backend/src/db/queries.js.
+// see getWorkspaceReport in worker/src/db/reports.js.
 export const getWorkspaceReport = (workspaceId) => request(`/workspaces/${workspaceId}/report`);
 
 // Projects: a real, named piece of work you decided to take on, that a
-// Milestone or Session belongs to (see backend/src/db/queries/projects.js).
+// Milestone or Session belongs to (see worker/src/db/projects.js).
 // A Project is standalone -- it does not belong to a Space; the Spaces
 // it touches are derived from wherever its member entries live, which
 // is why creation posts to /projects rather than under a Space.
@@ -312,14 +312,14 @@ export const setProjectGoal = (id, goalId) =>
   });
 export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
 // A structured + prose snapshot of this Project's current state --
-// see getProjectReport in backend/src/db/queries.js.
+// see getProjectReport in worker/src/db/reports.js.
 export const getProjectReport = (projectId) => request(`/projects/${projectId}/report`);
 
 // Goals: a pursuit several Spaces can be working toward at once. In the
 // person's own words, "projects are personally initiated, goals are
 // revealed as relevant pursuits" -- so a Goal has no Milestones or
 // Sessions of its own, only reach (which Spaces work toward it, which
-// Projects serve it). See backend/src/db/queries/goals.js.
+// Projects serve it). See worker/src/db/goals.js.
 export const getGoals = () => request('/goals');
 export const getGoal = (id) => request(`/goals/${id}`);
 export const createGoal = (name, note = null) =>
@@ -343,7 +343,7 @@ export const setSpaceGoals = (spaceId, goalIds) =>
 
 // The Skeleton's alternate capture path: copy an already-written line
 // into a lane, leaving the Writing Surface untouched (see fileLineInLane
-// in backend/src/db/queries.js -- deliberately not a promotion).
+// in worker/src/db/skeleton.js -- deliberately not a promotion).
 export const fileLineInLane = (spaceId, laneKey, text) =>
   request(`/spaces/${spaceId}/skeleton/file`, {
     method: 'POST',

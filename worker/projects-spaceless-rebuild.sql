@@ -7,9 +7,8 @@
 -- inserting a standalone Project at all, so it could not simply be left
 -- in place and ignored the way `spaces.accent` was.
 --
--- The Node backend does this automatically at boot
--- (migrateProjectsSpaceless() in backend/src/db/queries/projects.js);
--- a Worker has no boot hook, so it runs by hand here once.
+-- A Worker has no boot hook to run a migration in, so this runs by hand
+-- once, before the deploy that expects the new shape.
 --
 -- NOT idempotent: run it only if `PRAGMA table_info(projects);` still
 -- shows a space_id column. See DEPLOY.md's checklist.

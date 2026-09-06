@@ -1,7 +1,31 @@
-// Ported from backend/src/db/queries/log.js.
+// --- The Log (global activity) -------------------------------------
+// A cross-Space feed combining every structural lifecycle event
+// (activity_log) with the finer-grained Skeleton history (trail_entries)
+// into one chronological list -- "everything", without maintaining two
+// separate places to look for it. Test Space activity never appears:
+// logActivity (activityLog.js) already refuses to log it, and the
+// trail_entries half of the union filters it out directly (trail_entries
+// has no such guard at write time, since Trail is scoped to whatever
+// Space it's viewed from and the Test Space legitimately uses it while
+// demoing Skeleton promotion).
+// block_id rides along so the Log can link a 'block_added' entry
+// straight to that block (see SpacePage's ?highlight= deep-linking) --
+// null for every other kind, including the whole trail_entries half of
+// the union, since a Trail entry is about the Skeleton as a whole, not
+// one block.
 
 import { TEST_SPACE_ID } from './constants.js';
 
+// --- The Log (global activity) -------------------------------------
+// A cross-Space feed combining every structural lifecycle event
+// (activity_log) with the finer-grained Skeleton history (trail_entries)
+// into one chronological list -- "everything", without maintaining two
+// separate places to look for it. Test Space activity never appears:
+// logActivity (activityLog.js) already refuses to log it, and the
+// trail_entries half of the union filters it out directly (trail_entries
+// has no such guard at write time, since Trail is scoped to whatever
+// Space it's viewed from and the Test Space legitimately uses it while
+// demoing Skeleton promotion).
 // block_id rides along so the Log can link a 'block_added' entry
 // straight to that block (see SpacePage's ?highlight= deep-linking) --
 // null for every other kind, including the whole trail_entries half of
@@ -29,6 +53,9 @@ export async function listGlobalActivity(env, limit = 300) {
   return results;
 }
 
+// A first taste of "trends" over the Log: how much has happened, how
+// much lately, and where. Deliberately simple -- a fuller trends view
+// can grow from here once there's more data to see real patterns in.
 export async function getActivityStats(env) {
   const activityTotal = await env.DB.prepare(`SELECT COUNT(*) AS count FROM activity_log`).first();
   const trailTotal = await env.DB.prepare(

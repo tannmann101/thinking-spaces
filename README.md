@@ -4,11 +4,11 @@ See `CLAUDE.md` for the full project brief, architecture, and roadmap.
 
 ## Status
 
-Pass 2 in progress: all five Block types (Text, List, Reference, Media,
-Comparison) and all four List-based Views (Timeline, Progress, Streak,
-Ledger) are implemented and demoed in the Test Space, along with a
-basic backlink lookup. No Templates yet, no Dev Mode, no cross-Space
-Graph view.
+Live at https://thinking.thegardners.xyz, gated behind the same
+Cloudflare Access PIN as the rest of that domain. The full app is
+built -- Spaces, Tools, Workspaces, Projects, Goals, Insights, Reports,
+Trail, search, export and trash. `CLAUDE.md` is the real record of what
+exists and why.
 
 ## Running it during development
 
@@ -24,12 +24,19 @@ a server window scrolled past).
 ### The manual way
 
 Run it on your own machine (a Windows 11 laptop) with two servers, in
-two terminals:
+two terminals. The first time only, create the local database:
 
 ```bash
-# Terminal 1 -- backend (Express + SQLite), http://localhost:3001
-cd backend
+cd worker
 npm install
+npm run setup   # tables + the built-in Templates, no Spaces
+```
+
+Then, every time:
+
+```bash
+# Terminal 1 -- the backend (Cloudflare Worker + D1), http://localhost:8787
+cd worker
 npm run dev
 
 # Terminal 2 -- frontend (Vite + React), http://localhost:5173
@@ -38,13 +45,20 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 on the laptop itself — it starts on the
+Open http://localhost:5173 on the laptop itself -- it starts on the
 Dashboard.
+
+This runs the *same* backend code the deployed site does, against a
+local database wrangler keeps under `worker/.wrangler/`. Nothing here
+touches the real deployed data; a local database starts empty apart
+from the built-in Templates.
 
 ### Also opening it on your phone
 
-Both servers already bind to all network interfaces, not just
-localhost, so a phone on the same Wi-Fi as the laptop can reach it too:
+The frontend server already binds to all network interfaces, not just
+localhost, so a phone on the same Wi-Fi as the laptop can reach it too.
+The Worker doesn't need to -- the phone only ever talks to the frontend,
+which proxies `/api/*` to the Worker on the laptop itself:
 
 1. On the laptop, run `ipconfig` in Command Prompt and find the
    **IPv4 Address** for the active network adapter (e.g. `192.168.1.23`).
@@ -54,19 +68,13 @@ localhost, so a phone on the same Wi-Fi as the laptop can reach it too:
 3. On the phone, connect to the same Wi-Fi and open
    `http://<that-IP>:5173` in Safari.
 
-The phone only ever talks to that one address -- the frontend server
-proxies `/api/*` calls to the backend internally on the laptop itself,
-so nothing extra needs to be reachable from the phone directly.
+### Deployment
 
-The SQLite database file is created automatically at
-`backend/data/thinking-spaces.sqlite` on first run, along with the Test
-Space and its demo content.
-
-### Eventual deployment
-
-This will eventually be hosted at thegardners.xyz alongside the
-person's other personal apps. That's a later step, once there's more
-of the app worth deploying -- not something to set up yet.
+The frontend deploys to GitHub Pages automatically on every push to
+`main` that touches `frontend/`. The backend is a Cloudflare Worker
+deployed by hand from `worker/` -- see `worker/DEPLOY.md`, which also
+carries the schema changes still queued against the deployed
+database.
 
 ### GitHub Codespaces (currently blocked)
 

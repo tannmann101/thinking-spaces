@@ -1,4 +1,14 @@
-// Ported from backend/src/db/queries/skeleton.js.
+// --- Skeleton ---------------------------------------------------------
+// "The Skeleton" isn't a new schema concept: it's four List blocks (the
+// lanes) plus one Text block (Current Best Articulation), distinguished
+// from any other block only by a marker in `properties`. This is the
+// one place that marker convention is defined.
+//
+// Evidence has no shorthand trigger in the Tools & Resources doc (only
+// Premises/Open Questions/Tensions do), and there's no "add an item"
+// UI yet for List blocks -- so the Evidence lane exists but currently
+// has no way to ever gain its first item. That's a known gap, not an
+// oversight.
 //
 // NOTE: every updateBlockContent call in this file passes
 // `{ logEdit: false }` -- each of these functions writes its own Trail
@@ -18,6 +28,17 @@ import { listBlocksForSpace, createBlock, updateBlockContent, getBlockById, next
 import { logTrailEntry } from './trail.js';
 import { TEST_SPACE_ID } from './constants.js';
 
+// --- Skeleton ---------------------------------------------------------
+// "The Skeleton" isn't a new schema concept: it's four List blocks (the
+// lanes) plus one Text block (Current Best Articulation), distinguished
+// from any other block only by a marker in `properties`. This is the
+// one place that marker convention is defined.
+//
+// Evidence has no shorthand trigger in the Tools & Resources doc (only
+// Premises/Open Questions/Tensions do), and there's no "add an item"
+// UI yet for List blocks -- so the Evidence lane exists but currently
+// has no way to ever gain its first item. That's a known gap, not an
+// oversight.
 export const SKELETON_LANES = [
   { key: 'premises', label: 'Premises', trigger: '=' },
   { key: 'evidence', label: 'Evidence', trigger: null },
@@ -31,7 +52,8 @@ async function findSkeletonLaneBlock(env, spaceId, laneKey) {
 }
 
 // Idempotent per Space: creates whichever of the four lanes and the
-// Current Best Articulation block don't already exist yet.
+// Current Best Articulation block don't already exist yet. Safe to
+// call every time something is about to be promoted into a Skeleton.
 export async function ensureSkeletonLanes(env, spaceId) {
   for (const lane of SKELETON_LANES) {
     if (await findSkeletonLaneBlock(env, spaceId, lane.key)) continue;
@@ -77,6 +99,15 @@ function extractPromotions(lines) {
   return { keptLines, promotions };
 }
 
+// Saves a Text block's new lines, but first pulls out any `=`/`?`/`!`
+// shorthand lines and appends them as new items (default confidence:
+// tentative) in the matching Skeleton lane -- "parsed ... promoted into
+// the Skeleton without leaving the surface." Promotion happens on save,
+// not per keystroke; the end state is the same, this is just simpler
+// and doesn't risk editing text out from under someone mid-keystroke.
+// Deliberately different from fileLineInLane below (the select-and-tap
+// capture path), which copies a line into a lane and leaves it in the
+// Writing Surface untouched -- shorthand is a promotion, this isn't.
 export async function saveTextBlockWithPromotion(env, blockId, newLines) {
   const block = await getBlockById(env, blockId);
   const { keptLines, promotions } = extractPromotions(newLines);
@@ -93,7 +124,7 @@ export async function saveTextBlockWithPromotion(env, blockId, newLines) {
   const updated = await updateBlockContent(env, blockId, { lines: keptLines }, { logEdit: false });
 
   // changeSummary surfaces the promotion (this app's own "invisible
-  // magic" -- see backend/src/db/queries/skeleton.js) as a toast, not
+  // magic") as a toast, not
   // just a Trail entry someone would have to navigate away to see.
   let changeSummary = null;
   if (promotions.length > 0) {
@@ -116,8 +147,10 @@ export async function saveTextBlockWithPromotion(env, blockId, newLines) {
 }
 
 // The Skeleton's alternate capture path: filing an already-written line
-// into a lane copies it as a new tentative item and leaves the Writing
-// Surface's own line untouched.
+// into a lane copies it in as a new tentative item and leaves the
+// Writing Surface's own line untouched -- "structuring something
+// already down," deliberately different from typed =/?/! shorthand
+// (saveTextBlockWithPromotion above), which promotes and removes.
 export async function fileLineInLane(env, spaceId, laneKey, text) {
   await ensureSkeletonLanes(env, spaceId);
   const lane = await findSkeletonLaneBlock(env, spaceId, laneKey);
@@ -128,6 +161,16 @@ export async function fileLineInLane(env, spaceId, laneKey, text) {
   return { ...updated, changeSummary: summary };
 }
 
+// A Tension is created explicitly by pairing two specific existing
+// statements -- from any of the three claim-bearing lanes, never the
+// Tensions lane itself -- and never inferred automatically. The pair
+// lives on the Tensions-lane item itself (statementA/statementB, each a
+// {blockId, itemId} pointer resolved live by the frontend against
+// already-fetched block data) rather than a separate table, so a
+// Tension stays an ordinary Tensions-lane item everywhere else in the
+// app -- confidence cycling, removal, and so on all keep working
+// unchanged; it just carries two extra pointers this one lane's items
+// uniquely use.
 export async function createTensionPair(env, spaceId, { label, statementA, statementB }) {
   await ensureSkeletonLanes(env, spaceId);
   const lane = await findSkeletonLaneBlock(env, spaceId, 'tensions');
@@ -139,8 +182,16 @@ export async function createTensionPair(env, spaceId, { label, statementA, state
 }
 
 // The Skeleton's current live state, shaped identically to a stored
-// Trail snapshot -- trail.js imports this to build a snapshot; it's
-// also how Rewind's "Now" column gets the live Skeleton state.
+// Trail snapshot (see trail.js's logTrailEntry) -- moved here from its
+// original spot physically grouped under "--- Trail ---" in the old
+// single-file queries.js, since reading the Skeleton is this module's
+// own concern, not Trail's. trail.js imports this to build a snapshot;
+// it's also how Rewind's "Now" column gets the live Skeleton state, in
+// the exact same shape a stored snapshot has, so both sides of a
+// Now-vs-As-of comparison render through one function instead of two
+// independent readings of the same data. Includes each lane's actual
+// laneLabel (not just its items), since a Space Type can relabel lanes
+// (e.g. Person-Reflection's "What I Understand" instead of "Premises").
 export async function getSkeletonSnapshot(env, spaceId) {
   const blocks = await listBlocksForSpace(env, spaceId);
   const lanes = {};

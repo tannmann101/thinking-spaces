@@ -1,5 +1,22 @@
-// Ported from backend/src/db/queries/search.js -- see that file for why
-// this is a plain LIKE rather than FTS5.
+// --- Search ---------------------------------------------------------------
+// Finding a thing you wrote, wherever you wrote it. Until now the
+// Dashboard could only search Space *titles*, so anything written inside
+// an entry was unfindable without remembering which Space it was in.
+//
+// Plain LIKE over the stored JSON, deliberately, not FTS5. FTS5 is
+// available in both better-sqlite3 and D1 (both were probed directly
+// before choosing), and it is the right answer at a hundred thousand
+// entries. At this app's real size it would mean a virtual table, sync
+// triggers and a rebuild path -- three things that can silently drift
+// out of step with the content they index -- to speed up a query that
+// already returns instantly. Boring wins here.
+//
+// The SQL matches the raw JSON, so a hit can land on a key name or on
+// plumbing (an id, a tag) rather than on prose. Rather than teach the
+// query about all 21 content shapes -- which would mean editing it every
+// time a Tool is added -- the rows come back wide and are then narrowed
+// in JS: readableText() below strips the plumbing, and a row whose only
+// match was plumbing is dropped before it is ever shown.
 
 import { TEST_SPACE_ID } from './constants.js';
 

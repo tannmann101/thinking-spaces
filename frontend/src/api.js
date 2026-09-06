@@ -207,6 +207,16 @@ export const addBlockToSpace = (spaceId, { type, content, properties }) =>
     method: 'POST',
     body: JSON.stringify({ type, content, properties }),
   });
+// Moving an entry to a different Space -- its own route rather than
+// another PATCH field, since the ways it can fail (no such Space, a
+// Skeleton section that must not leave) are specific enough to report
+// as themselves. See moveBlockToSpace in worker/src/db/blocks.js for
+// which of an entry's properties survive the move and why.
+export const moveBlockToSpace = (blockId, targetSpaceId) =>
+  request(`/blocks/${blockId}/move-to-space`, {
+    method: 'POST',
+    body: JSON.stringify({ targetSpaceId }),
+  });
 export const deleteBlockApi = (blockId) => request(`/blocks/${blockId}`, { method: 'DELETE' });
 // A structured + prose snapshot of this one block's current state --
 // see getBlockReport in worker/src/db/reports.js. Works for every

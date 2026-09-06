@@ -814,6 +814,26 @@ button.editable:disabled:hover {
   padding: 3px 8px;
   cursor: pointer;
 }
+/* The per-entry "Move to..." picker. A select rather than a button,
+   since it needs to name a destination, but styled to sit quietly in
+   the same row as Move up / Move down / Remove entry rather than
+   reading as a form field. */
+.block-move-select {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.3px;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.block-move-select:hover {
+  border-color: var(--maroon);
+  color: var(--ink);
+}
+
 .btn-ghost-small:hover:not(:disabled) {
   border-color: var(--maroon);
   color: var(--ink);

@@ -17,6 +17,8 @@ import {
   createWorkspace,
   getProjectsForSpace,
   getProjects,
+  getSpaces,
+  moveBlockToSpace,
   getGoals,
   setSpaceGoals,
   deleteSpace,
@@ -496,6 +498,42 @@ function WorkspaceList({ space, workspaces, onChanged }) {
 // project at a time. Scoped to just Milestone/Session blocks -- a
 // Project is specifically their dedicated concept, not a general one
 // every Tool joins the way a Workspace is.
+// Sending one entry to a different Space. Sits with the other per-entry
+// controls rather than in the row of chips above them, because it isn't
+// a property of the entry the way a Category or a Project is -- it's an
+// action that takes the entry off this page.
+//
+// Hidden for a Skeleton section: those four lanes plus the articulation
+// block *are* this Space's Skeleton, so one can't leave without putting
+// a hole in it. The backend refuses too (see moveBlockToSpace); this
+// just doesn't offer what would be turned down.
+function BlockSpaceMover({ block, spaces, currentSpaceId, onMoved }) {
+  if (block.properties?.skeletonLane) return null;
+  const elsewhere = spaces.filter((space) => space.id !== currentSpaceId);
+  if (elsewhere.length === 0) return null;
+
+  async function move(event) {
+    const targetSpaceId = event.target.value;
+    if (!targetSpaceId) return;
+    await moveBlockToSpace(block.id, targetSpaceId);
+    onMoved();
+  }
+
+  // Resets to the placeholder on every render, so it reads as an action
+  // you perform rather than a setting showing where the entry currently
+  // lives -- which is the page you're already on.
+  return (
+    <select className="block-move-select" value="" onChange={move} aria-label="Move this entry to another Space">
+      <option value="">Move to...</option>
+      {elsewhere.map((space) => (
+        <option key={space.id} value={space.id}>
+          {space.title}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function BlockProjectPicker({ block, allProjects, onChanged }) {
   if (!['milestone', 'session'].includes(block.type)) return null;
   const current = block.properties?.projectId || null;
@@ -628,6 +666,7 @@ function SpacePage() {
   // Every Project in the app -- what an entry's own Project picker
   // offers, since a Project is global now, not this Space's own.
   const [allProjects, setAllProjects] = useState([]);
+  const [allSpaces, setAllSpaces] = useState([]);
   const [backlinks, setBacklinks] = useState(null);
   const [trail, setTrail] = useState(null);
   const [error, setError] = useState(null);
@@ -706,6 +745,9 @@ function SpacePage() {
     // means no chips to toggle, never a broken Space page.
     getGoals().then(setGoals).catch(() => setGoals([]));
     getProjects().then(setAllProjects).catch(() => setAllProjects([]));
+    // For the per-entry "Move to..." picker. Failing quietly is fine:
+    // the picker simply doesn't render, and nothing else here needs it.
+    getSpaces().then(setAllSpaces).catch(() => setAllSpaces([]));
     refetchTrail();
   }, [id, refetchTrail]);
 
@@ -1099,6 +1141,12 @@ function SpacePage() {
                         >
                           Move down
                         </button>
+                        <BlockSpaceMover
+                          block={block}
+                          spaces={allSpaces}
+                          currentSpaceId={space.id}
+                          onMoved={refetchAll}
+                        />
                         <button
                           type="button"
                           className="btn-ghost-small"

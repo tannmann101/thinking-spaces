@@ -36,6 +36,7 @@ import {
   updateBlockWorkspaces,
   updateBlockProject,
   updateBlockTheme,
+  moveBlockToSpace,
   deleteBlock,
   moveBlockInSpace,
   getGraphData,
@@ -264,6 +265,22 @@ async function handlePatchBlock(request, env, id) {
   if (projectId !== undefined) updated = await updateBlockProject(env, id, projectId);
   if (theme !== undefined) updated = await updateBlockTheme(env, id, theme);
   return json(changeSummary ? { ...updated, changeSummary } : updated);
+}
+
+// Moving an entry to a different Space. Its own route rather than
+// another optional field on PATCH: the failure cases are specific and
+// worth reporting as themselves (no such Space, already there, a
+// Skeleton section that must not leave), where PATCH's other fields
+// either apply or don't.
+async function handleMoveBlockToSpace(request, env, id) {
+  const body = (await readJson(request)) || {};
+  const { targetSpaceId } = body;
+  if (!targetSpaceId) return errorResponse('targetSpaceId is required');
+  const result = await moveBlockToSpace(env, id, targetSpaceId);
+  if (result.error === 'not found') return errorResponse('Entry not found', 404);
+  if (result.error === 'target space not found') return errorResponse('Space not found', 404);
+  if (result.error) return errorResponse(result.error);
+  return json(result);
 }
 
 async function handleBlockReport(env, id) {
@@ -653,6 +670,9 @@ export default {
         await deleteBlock(env, m[1]);
         return json(null, 204);
       }
+
+      m = path.match(/^\/api\/blocks\/([\w-]+)\/move-to-space$/);
+      if (m && method === 'POST') return await handleMoveBlockToSpace(request, env, m[1]);
 
       m = path.match(/^\/api\/blocks\/([\w-]+)\/report$/);
       if (m && method === 'GET') return await handleBlockReport(env, m[1]);

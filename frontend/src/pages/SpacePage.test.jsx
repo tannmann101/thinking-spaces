@@ -61,6 +61,7 @@ beforeEach(() => {
   api.getWorkspacesForSpace.mockResolvedValue([]);
   api.getProjectsForSpace.mockResolvedValue([]);
   api.getProjects.mockResolvedValue([]);
+  api.getSpaces.mockResolvedValue([]);
   api.getGoals.mockResolvedValue([]);
   api.setSpaceGoals.mockResolvedValue({});
   api.getBacklinksForSpace.mockResolvedValue([]);
@@ -539,6 +540,60 @@ describe('SpacePage: Projects', () => {
     await screen.findByText('Ship it');
     await user.selectOptions(screen.getByLabelText('Project:'), 'pr-1');
     await waitFor(() => expect(api.updateBlockProject).toHaveBeenCalledWith('b1', 'pr-1'));
+  });
+});
+
+describe('SpacePage: moving an entry to another Space', () => {
+  const anEntry = [
+    { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'a thought', tag: null }] }, properties: {}, updated_at: 'v1' },
+  ];
+
+  it('offers every other Space, and not this one', async () => {
+    api.getBlocksForSpace.mockResolvedValue(anEntry);
+    api.getSpaces.mockResolvedValue([
+      { id: 'space-1', title: 'My Space' },
+      { id: 'space-2', title: 'Somewhere Else' },
+    ]);
+    renderPage();
+    await screen.findByText('My Space');
+    const mover = await screen.findByLabelText('Move this entry to another Space');
+    expect(within(mover).getByRole('option', { name: 'Somewhere Else' })).toBeInTheDocument();
+    expect(within(mover).queryByRole('option', { name: 'My Space' })).not.toBeInTheDocument();
+  });
+
+  it('moves the entry when a destination is picked', async () => {
+    const user = userEvent.setup();
+    api.getSpaces.mockResolvedValue([
+      { id: 'space-1', title: 'My Space' },
+      { id: 'space-2', title: 'Somewhere Else' },
+    ]);
+    api.getBlocksForSpace.mockResolvedValue(anEntry);
+    api.moveBlockToSpace.mockResolvedValue({});
+    renderPage();
+    await screen.findByText('My Space');
+    await user.selectOptions(await screen.findByLabelText('Move this entry to another Space'), 'space-2');
+    await waitFor(() => expect(api.moveBlockToSpace).toHaveBeenCalledWith('b1', 'space-2'));
+  });
+
+  it('does not offer to move a Skeleton section out of its Space', async () => {
+    api.getSpaces.mockResolvedValue([
+      { id: 'space-1', title: 'My Space' },
+      { id: 'space-2', title: 'Somewhere Else' },
+    ]);
+    api.getBlocksForSpace.mockResolvedValue([
+      { id: 'b1', type: 'list', content: { heading: 'Premises', items: [] }, properties: { skeletonLane: 'premises' }, updated_at: 'v1' },
+    ]);
+    renderPage();
+    await screen.findByText('My Space');
+    expect(screen.queryByLabelText('Move this entry to another Space')).not.toBeInTheDocument();
+  });
+
+  it('offers nothing when this is the only Space there is', async () => {
+    api.getBlocksForSpace.mockResolvedValue(anEntry);
+    api.getSpaces.mockResolvedValue([{ id: 'space-1', title: 'My Space' }]);
+    renderPage();
+    await screen.findByText('My Space');
+    expect(screen.queryByLabelText('Move this entry to another Space')).not.toBeInTheDocument();
   });
 });
 

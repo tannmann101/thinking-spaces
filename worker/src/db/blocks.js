@@ -321,6 +321,76 @@ export async function moveBlockInSpace(env, spaceId, blockId, direction) {
   await env.DB.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).bind(current.position, target.id).run();
 }
 
+// Moving an entry to a different Space. Until this existed an entry was
+// stuck wherever it was first written -- which made any "capture it now,
+// file it later" surface a one-way trap, and quietly broke the standing
+// rule that anything you can create you can also change.
+//
+// The careful part is which of `properties` survives the move, because
+// some of it is scoped to the Space the entry is leaving:
+//
+//   categories  cleared. These are names of the *source* Space's own
+//               Categories (see spaces.categories). The target Space has
+//               its own, unrelated set; carrying names across would file
+//               the entry under a Category that either doesn't exist
+//               there or, worse, exists there meaning something else.
+//   workspaces  cleared. These are ids of Workspaces that belong to the
+//               source Space (workspaces.space_id), so in the target they
+//               would resolve to nothing at all.
+//   projectId   kept. A Project deliberately belongs to no Space (see
+//               projects.js) -- its members live in whatever Spaces they
+//               were created in -- so a Milestone that moves house is
+//               still serving the same Project, and the Project's own
+//               page just starts listing it under a different Space.
+//   theme       kept. A per-entry look the person chose by hand; nothing
+//               about it refers to the Space.
+//
+// A Skeleton lane block is refused rather than moved: the four lanes plus
+// the articulation block *are* the source Space's Skeleton, identified by
+// their properties.skeletonLane marker, so moving one out would silently
+// leave that Space with a hole in a structure the promotion shorthand,
+// Trail snapshots and Rewind all read. Move the lines, not the lane.
+export async function moveBlockToSpace(env, id, targetSpaceId) {
+  const block = await getBlockById(env, id);
+  if (!block) return { error: 'not found' };
+  if (block.space_id === targetSpaceId) return { error: 'already there' };
+
+  const target = await env.DB.prepare(`SELECT id, title FROM spaces WHERE id = ?`).bind(targetSpaceId).first();
+  if (!target) return { error: 'target space not found' };
+  if (block.properties.skeletonLane) return { error: 'a Skeleton section cannot be moved out of its Space' };
+
+  const source = await env.DB.prepare(`SELECT title FROM spaces WHERE id = ?`).bind(block.space_id).first();
+  // Named with a leading underscore purely to say "deliberately
+  // dropped" -- the point of this destructure is what it leaves behind.
+  const { categories: _categories, workspaces: _workspaces, ...kept } = block.properties;
+  const position = await nextPosition(env, targetSpaceId);
+
+  await env.DB.prepare(
+    `UPDATE blocks SET space_id = ?, properties = ?, position = ?, updated_at = datetime('now') WHERE id = ?`
+  )
+    .bind(targetSpaceId, JSON.stringify(kept), position, id)
+    .run();
+
+  // Logged against both ends, since from either Space's own Trail this
+  // is a real change to what that Space holds -- and the source row is
+  // the only record left there that the entry was ever present.
+  const summary = `Moved a ${block.type} entry to "${target.title}"`;
+  await logActivity(env, {
+    spaceId: block.space_id,
+    spaceTitle: source?.title ?? null,
+    kind: 'block_removed',
+    summary: `Moved a ${block.type} entry out to "${target.title}"`,
+  });
+  await logActivity(env, {
+    spaceId: targetSpaceId,
+    spaceTitle: target.title,
+    blockId: id,
+    kind: 'block_added',
+    summary: `Moved a ${block.type} entry in from "${source?.title ?? block.space_id}"`,
+  });
+  return { ...(await getBlockById(env, id)), changeSummary: summary };
+}
+
 // First editable block content: replaces a block's whole content blob.
 // Whichever block-editing UI calls this is responsible for merging in
 // unchanged fields (e.g. keeping an existing tag when only text changes).

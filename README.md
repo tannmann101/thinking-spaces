@@ -82,11 +82,10 @@ which proxies `/api/*` to the Worker on the laptop itself:
 
 ### Deployment
 
-The frontend deploys to GitHub Pages automatically on every push to
-`main` that touches `frontend/`. The backend is a Cloudflare Worker
-deployed by hand from `worker/` -- see `worker/DEPLOY.md`, which also
-carries the schema changes still queued against the deployed
-database.
+Both halves deploy themselves on a push to `main`: the frontend to
+GitHub Pages, and the Worker to Cloudflare (after its test suite
+passes). A schema change is the one thing still applied by hand -- the
+Worker workflow refuses to ship ahead of one. See `worker/DEPLOY.md`.
 
 ### GitHub Codespaces (currently blocked)
 

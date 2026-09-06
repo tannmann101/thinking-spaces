@@ -77,7 +77,7 @@ function SpaceCard({ space, onDelete }) {
       {/* Managing the collection belongs on the index, not on the
           Dashboard's glance surface. Safe to offer here now that a
           delete goes to the trash rather than being permanent. */}
-      {!space.isTestSpace && (
+      {!space.isTestSpace && !space.isInbox && (
         <button type="button" className="btn-ghost-small" onClick={() => onDelete(space)}>
           Delete
         </button>

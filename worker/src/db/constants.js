@@ -13,6 +13,19 @@
 // it elsewhere.
 export const TEST_SPACE_ID = 'test-space';
 
+// Where a captured thought lands. Same fixed-id approach as the Test
+// Space above, and for the same reason -- no new column, one place the
+// id is written down, everything else asks "is this that Space?".
+//
+// It is an ordinary Space in every other respect: its entries are real
+// thinking, so it belongs in search, in the Spaces index, and in what
+// Insights counts. The only things special about it are that quick
+// capture appends here, that it cannot be deleted (you would lose the
+// destination, not just a Space), and that it is created on demand the
+// first time something is captured rather than seeded up front -- an
+// Inbox nobody has captured into yet has nothing to show.
+export const INBOX_SPACE_ID = 'inbox';
+
 // Today's date as 'YYYY-MM-DD', used wherever a date-only field (a
 // Space's due_date, a Milestone's targetDate) needs comparing against
 // "now" at day granularity.

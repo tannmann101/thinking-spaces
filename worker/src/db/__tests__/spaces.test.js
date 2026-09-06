@@ -9,6 +9,8 @@ import {
   deleteSpace,
   createSpaceWithSetup,
   ensureTestSpaceExists,
+  captureToInbox,
+  getInboxCount,
   createRelationalSpace,
   listResourcesIndex,
   listSynthesesIndex,
@@ -17,7 +19,7 @@ import { createWorkspace } from '../workspaces.js';
 import { createProject, getProjectById } from '../projects.js';
 import { addBlockToSpace, listBlocksForSpace } from '../blocks.js';
 import { createTemplate } from '../templates.js';
-import { TEST_SPACE_ID } from '../constants.js';
+import { TEST_SPACE_ID, INBOX_SPACE_ID } from '../constants.js';
 import { createBlock, updateBlockContent, updateBlockProject } from '../blocks.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
@@ -359,6 +361,46 @@ describe('createSpaceWithSetup', () => {
     const [block] = await listBlocksForSpace(env, space.id);
     expect(block.properties.categories).toEqual(['Cat']);
     expect(block.properties.workspaces).toBeUndefined();
+  });
+});
+
+describe('the Inbox', () => {
+  beforeEach(async () => {
+    await resetDb(env);
+  });
+
+  it('is created on demand by the first capture, not before', async () => {
+    expect(await getSpaceById(env, INBOX_SPACE_ID)).toBeNull();
+    await captureToInbox(env, 'a thought on the bus');
+    const inbox = await getSpaceById(env, INBOX_SPACE_ID);
+    expect(inbox.title).toBe('Inbox');
+  });
+
+  it('appends the whole thought as the entry, not as a title', async () => {
+    await captureToInbox(env, 'the thought itself');
+    const entries = await listBlocksForSpace(env, INBOX_SPACE_ID);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe('text');
+    // createBlock normalizes {text} into {lines}, same as anywhere else.
+    expect(entries[0].content.lines[0].text).toBe('the thought itself');
+  });
+
+  it('keeps appending to the same Inbox', async () => {
+    await captureToInbox(env, 'first');
+    await captureToInbox(env, 'second');
+    const spaces = await listSpaces(env);
+    expect(spaces.filter((space) => space.id === INBOX_SPACE_ID)).toHaveLength(1);
+    expect(await getInboxCount(env)).toBe(2);
+  });
+
+  it('counts zero before anything has been captured', async () => {
+    expect(await getInboxCount(env)).toBe(0);
+  });
+
+  it('cannot be deleted -- that would take the destination with it', async () => {
+    await captureToInbox(env, 'a thought');
+    await expect(deleteSpace(env, INBOX_SPACE_ID)).rejects.toThrow(/Inbox cannot be deleted/);
+    expect(await getSpaceById(env, INBOX_SPACE_ID)).not.toBeNull();
   });
 });
 

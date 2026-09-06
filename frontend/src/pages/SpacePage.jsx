@@ -1187,7 +1187,11 @@ function SpacePage() {
             </details>
           )}
 
-          {!space.isTestSpace && (
+          {/* Neither the Test Space nor the Inbox can be deleted -- the
+              backend refuses both, so neither is offered here. Deleting
+              the Inbox would take the capture destination with it, not
+              just a Space. */}
+          {!space.isTestSpace && !space.isInbox && (
             <p className="danger-zone">
               <button type="button" className="btn-danger" onClick={handleDeleteSpace}>
                 Delete this Space

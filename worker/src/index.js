@@ -24,7 +24,10 @@ import {
   deleteSpace,
   listResourcesIndex,
   listSynthesesIndex,
+  captureToInbox,
+  getInboxCount,
 } from './db/spaces.js';
+import { INBOX_SPACE_ID } from './db/constants.js';
 import {
   listBlocksForSpace,
   listBacklinksForSpace,
@@ -281,6 +284,16 @@ async function handleMoveBlockToSpace(request, env, id) {
   if (result.error === 'target space not found') return errorResponse('Space not found', 404);
   if (result.error) return errorResponse(result.error);
   return json(result);
+}
+
+// Quick capture. Deliberately returns without a redirect target beyond
+// the Inbox's own id: capturing should leave you where you are, since
+// the whole point is not to interrupt whatever you were doing.
+async function handleCapture(request, env) {
+  const body = (await readJson(request)) || {};
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) return errorResponse('text is required');
+  return json(await captureToInbox(env, text), 201);
 }
 
 async function handleBlockReport(env, id) {
@@ -827,7 +840,10 @@ export default {
 
       // Dashboard / cross-Space aggregations
       if (path === '/api/dashboard/overdue-reviews' && method === 'GET') return json(await listOverdueReviews(env));
-      if (path === '/api/notifications/count' && method === 'GET') return json({ count: await getNeedsAttentionCount(env) });
+      if (path === '/api/capture' && method === 'POST') return await handleCapture(request, env);
+      if (path === '/api/inbox' && method === 'GET') return json({ spaceId: INBOX_SPACE_ID, count: await getInboxCount(env) });
+      if (path === '/api/notifications/count' && method === 'GET')
+        return json({ count: await getNeedsAttentionCount(env), inbox: await getInboxCount(env) });
       if (path === '/api/dashboard/week' && method === 'GET') return json(await getWeekCalendar(env));
       if (path === '/api/dashboard/resurface' && method === 'GET') return json(await suggestSpaceToResurface(env));
       if (path === '/api/graph' && method === 'GET') return json(await getGraphData(env));

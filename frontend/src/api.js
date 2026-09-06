@@ -160,6 +160,12 @@ export const getOverdueReviews = () => request('/dashboard/overdue-reviews');
 export const getWeekCalendar = () => request('/dashboard/week');
 export const getResurfaceSuggestion = () => request('/dashboard/resurface');
 // The sidebar's "needs attention" badge -- fetched on every page.
+// A captured thought, appended to the Inbox as an entry. Deliberately
+// not createSpace: away from the desk the thought is the content, and
+// naming a Space for it is exactly the work you don't want to do at
+// that moment. See captureToInbox in worker/src/db/spaces.js.
+export const captureThought = (text) =>
+  request('/capture', { method: 'POST', body: JSON.stringify({ text }) });
 export const getNotificationCount = () => request('/notifications/count');
 // Everything InsightsPage.jsx needs in one call -- work mix, themes/
 // tensions, activity trend, and provenance/synthesis yield, all

@@ -165,6 +165,34 @@ describe('Sidebar: the Inbox link', () => {
   });
 });
 
+describe('Sidebar: the narrow-screen menu', () => {
+  // The toggle is display:none above 760px, which jsdom can't tell us
+  // (no layout), so these test the behaviour the CSS keys off rather
+  // than the visibility itself: does the toggle flip the attribute the
+  // media query reads.
+  it('starts collapsed', () => {
+    renderSidebar();
+    expect(document.querySelector('.sidebar')).toHaveAttribute('data-nav-open', 'false');
+  });
+
+  it('opens and closes on the toggle', async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole('button', { name: 'Show menu' }));
+    expect(document.querySelector('.sidebar')).toHaveAttribute('data-nav-open', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Hide menu' }));
+    expect(document.querySelector('.sidebar')).toHaveAttribute('data-nav-open', 'false');
+  });
+
+  // Quick capture stays in the bar itself at every width -- getting a
+  // thought in is the one thing worth a single tap on a phone.
+  it('leaves quick capture outside the collapsed menu', () => {
+    renderSidebar();
+    expect(screen.getByRole('button', { name: '+ Quick Capture' })).toBeInTheDocument();
+  });
+});
+
 describe('Sidebar: legend', () => {
   it('opens the legend on click, and closes it again', async () => {
     const user = userEvent.setup();

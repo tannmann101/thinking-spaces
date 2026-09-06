@@ -404,6 +404,18 @@ button.editable:disabled:hover {
   max-width: none;
 }
 
+/* Only shown on a narrow screen -- above 760px the sidebar is the whole
+   nav and there is nothing to toggle. */
+.sidebar-menu-toggle {
+  display: none;
+}
+
+/* Below 760px the sidebar becomes a compact top bar. It used to flatten
+   into a wrapped row of every link at once, which ate 381px of a 664px
+   phone viewport -- 57% of the screen was chrome before any content.
+   Now only the wordmark and quick capture stay in the bar; everything
+   else folds behind the toggle, because capturing a thought is the one
+   thing worth a single tap on a phone. */
 @media (max-width: 760px) {
   .app-shell {
     flex-direction: column;
@@ -411,12 +423,65 @@ button.editable:disabled:hover {
   .sidebar {
     width: auto;
     height: auto;
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 5;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg);
     border-right: none;
     border-bottom: 1px solid var(--border-soft);
+  }
+  .sidebar .wordmark {
+    flex: 1;
+    margin: 0;
+    font-size: var(--fs-lg);
+  }
+  .sidebar-menu-toggle {
+    display: block;
+    font-family: var(--mono);
+    font-size: var(--fs-md);
+    line-height: 1;
+    color: var(--ink-faint);
+    background: transparent;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .quick-capture-toggle,
+  .quick-capture-form {
+    margin: 0;
+    order: 2;
+  }
+  /* Everything past the bar itself is behind the toggle. Listed by
+     class rather than by position so adding something to the sidebar
+     later doesn't silently appear in the collapsed bar. */
+  .sidebar[data-nav-open='false'] .nav-links,
+  .sidebar[data-nav-open='false'] .sidebar-search,
+  .sidebar[data-nav-open='false'] .legend-trigger,
+  .sidebar[data-nav-open='false'] .inbox-link,
+  .sidebar[data-nav-open='false'] .needs-attention-badge {
+    display: none;
+  }
+  /* Everything revealed by the toggle stacks below the bar, in the same
+     order it has on the desktop rail. Without an explicit order the
+     secondary links (legend, trash, export) default to 0 and float up
+     *above* quick capture, which is exactly backwards. */
+  .sidebar[data-nav-open='true'] .sidebar-search,
+  .sidebar[data-nav-open='true'] .nav-links,
+  .sidebar[data-nav-open='true'] .inbox-link,
+  .sidebar[data-nav-open='true'] .needs-attention-badge,
+  .sidebar[data-nav-open='true'] .legend-trigger {
+    order: 3;
+    width: 100%;
+  }
+  .sidebar[data-nav-open='true'] .legend-trigger {
+    order: 4;
+    text-align: center;
   }
   .nav-links {
     flex-direction: row;

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- The app's own mark: a thought bubble, drawn in the same
+       matte-black / oxblood / gold palette index.css defines
+       (--bg #0b0a0a, --maroon-bright #c14a5d, --accent #c9973b).
+       Matches launcher/thinking-spaces.ico, which uses the same shape
+       for the Windows desktop shortcut. The smallest trailing dot is
+       gold, the colour the app reserves for a mark you added yourself. -->
+  <rect width="512" height="512" rx="96" fill="#0b0a0a"/>
+  <circle cx="230" cy="196" r="104" fill="none" stroke="#c14a5d" stroke-width="20"/>
+  <circle cx="330" cy="252" r="62" fill="none" stroke="#c14a5d" stroke-width="18"/>
+  <circle cx="196" cy="330" r="40" fill="none" stroke="#8a2c3b" stroke-width="16"/>
+  <circle cx="286" cy="382" r="22" fill="#c9973b"/>
+</svg>

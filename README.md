@@ -53,7 +53,19 @@ local database wrangler keeps under `worker/.wrangler/`. Nothing here
 touches the real deployed data; a local database starts empty apart
 from the built-in Templates.
 
-### Also opening it on your phone
+### On your phone
+
+The live site installs to a phone's home screen: open
+https://thinking.thegardners.xyz in Safari, tap Share, then **Add to
+Home Screen**. It opens without browser chrome, and quick capture is a
+tap away in the top bar -- type a thought, hit return, and it lands in
+your Inbox without taking you anywhere.
+
+One thing to expect the first time: an installed iOS web app may not
+share Safari's cookies, so the Cloudflare Access PIN will probably need
+entering once inside the installed app. Once, not per launch.
+
+### Opening the local dev server on your phone
 
 The frontend server already binds to all network interfaces, not just
 localhost, so a phone on the same Wi-Fi as the laptop can reach it too.

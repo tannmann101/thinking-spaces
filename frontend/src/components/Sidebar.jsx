@@ -41,6 +41,11 @@ function Sidebar({ current }) {
   const [showLegend, setShowLegend] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [searchDraft, setSearchDraft] = useState('');
+  // Only meaningful on a narrow screen, where the sidebar becomes a
+  // compact top bar and everything but the wordmark and quick capture
+  // folds behind a toggle. Above 760px the toggle is display:none and
+  // this is ignored -- the nav is always shown there.
+  const [navOpen, setNavOpen] = useState(false);
 
   // Fetched on every page, since the sidebar renders everywhere -- a
   // deliberately narrow, already-actionable count (overdue List
@@ -103,10 +108,23 @@ function Sidebar({ current }) {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" data-nav-open={navOpen ? 'true' : 'false'}>
       <Link to="/" className="wordmark">
         Thinking Spaces<span className="dot">.</span>
       </Link>
+
+      {/* Narrow screens only (display:none above 760px). Capture stays
+          in the bar itself, since getting a thought in is the one thing
+          worth a single tap; everything else is a tap further away. */}
+      <button
+        type="button"
+        className="sidebar-menu-toggle"
+        aria-expanded={navOpen}
+        aria-label={navOpen ? 'Hide menu' : 'Show menu'}
+        onClick={() => setNavOpen((open) => !open)}
+      >
+        {navOpen ? '\u2715' : '\u2630'}
+      </button>
 
       {capturing ? (
         <form className="quick-capture-form" onSubmit={submitCapture}>

@@ -33,7 +33,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Enough history to diff this merge against what main held
           # before it, for the schema check below.
@@ -58,9 +58,9 @@ jobs:
           fi
           echo "No schema change in this push -- safe to deploy code."
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: worker/package-lock.json
       - run: npm ci

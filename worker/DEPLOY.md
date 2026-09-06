@@ -94,14 +94,42 @@ Run these from the `worker/` directory, with Node.js installed locally.
 
 ## After that
 
-Every push to `main` that touches `frontend/**` rebuilds and redeploys
-the static site automatically (see
-`.github/workflows/deploy-pages.yml`). The Worker itself has no
-auto-deploy set up -- a change to anything under `worker/src/` needs a
-manual `npx wrangler deploy` from this directory. That's the one thing
-to remember: the frontend ships itself, the backend doesn't. A merge
-that changes both leaves the live site calling routes the deployed
-Worker doesn't have yet until you deploy.
+Both halves ship themselves on a push to `main`:
+
+- `frontend/**` rebuilds and republishes to GitHub Pages
+  (`.github/workflows/deploy-pages.yml`).
+- `worker/**` runs the Worker test suite and then `wrangler deploy`
+  (`.github/workflows/deploy-worker.yml`).
+
+This used to be one-sided -- the frontend shipped itself while the
+Worker waited to be deployed by hand -- and that broke the live site
+three times, each time because the deployed frontend was calling
+something the deployed Worker didn't have yet.
+
+**A schema change is still yours to apply.** The Worker workflow stops
+rather than deploying when a push touches `worker/schema.sql`, because
+shipping code that reads a column the deployed database doesn't have is
+worse than not shipping at all. When that happens: apply the migration
+by hand (below), then start the workflow yourself from the repo's
+**Actions** tab -> *Deploy Worker to Cloudflare* -> *Run workflow*,
+which skips the check.
+
+### One-time setup for the Worker workflow
+
+Two repository secrets, under **Settings -> Secrets and variables ->
+Actions**:
+
+- `CLOUDFLARE_API_TOKEN` -- a token with **Workers Scripts: Edit** on
+  this account. Same kind you made for the September migration; this one
+  needs no D1 or DNS permission, since the workflow only ever deploys
+  code.
+- `CLOUDFLARE_ACCOUNT_ID` -- the ID shown in the Cloudflare dashboard
+  URL, and in the sidebar of any of your Workers' pages.
+
+Until those exist the workflow will run and fail at the deploy step,
+which is loud and harmless. Create the R2 bucket before the first run
+(see "Adding the uploads bucket" below) -- `wrangler.toml` declares the
+binding, so the first deploy is the one that needs it to be there.
 
 ## Making schema changes later
 
@@ -270,11 +298,9 @@ declares the `UPLOADS` binding and `worker/src/index.js` has both
 routes -- but the bucket itself has to exist before a deploy that uses
 it, the same one-time account-level setup the D1 database needed.
 
-**This is owed right now.** The frontend build already live on the site
-can add a Media entry (and so upload a file) from inside any Space, but
-the deployed Worker predates the upload routes, so that button currently
-404s. No schema change is involved -- the two commands below are the
-whole fix.
+The bucket is a one-time account-level step, and it has to exist before
+the first deploy that uses the binding -- after that the workflow
+handles deploying, and you never touch this again.
 
 Note before starting: enabling R2 on a Cloudflare account may ask for a
 payment method even though this app's usage sits far inside the free
@@ -290,6 +316,9 @@ From `worker/`:
 npx wrangler r2 bucket create thinking-spaces-uploads
 npx wrangler deploy
 ```
+
+(That `wrangler deploy` is the one manual deploy you should need. Every
+later one happens on merge -- see "After that" above.)
 
 Then check it end to end on the live site: go to `+ New Resource`,
 choose **Upload a file**, pick a small PDF or `.txt`, and confirm the

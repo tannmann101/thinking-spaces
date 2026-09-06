@@ -1,0 +1,79 @@
+name: Deploy Worker to Cloudflare
+
+# The backend half of what deploy-pages.yml does for the frontend.
+#
+# Why this exists: the frontend ships itself on every merge, while the
+# Worker used to wait for someone to remember. That asymmetry broke the
+# live site three times -- a 20-commits-behind database, a 404 on file
+# uploads, and a silently failing quick capture -- each time because the
+# deployed frontend called something the deployed Worker didn't have.
+#
+# Deliberately runs `npx wrangler deploy` rather than a third-party
+# deploy action: nothing extra to trust or keep pinned, and it uses the
+# exact wrangler already in worker/package-lock.json, so CI and a local
+# `npm run deploy` can't drift onto different tooling.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deploys queue rather than cancel: interrupting one halfway is worse
+# than waiting for it, and the second will overwrite the first anyway.
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Enough history to diff this merge against what main held
+          # before it, for the schema check below.
+          fetch-depth: 2
+
+      # A schema change is never applied automatically, and code that
+      # reads a column the deployed database doesn't have yet is worse
+      # than no deploy at all -- so a push that touches schema.sql stops
+      # here instead of shipping ahead of its own migration. Apply the
+      # migration by hand (see worker/DEPLOY.md), then run this workflow
+      # from the Actions tab, which skips this check.
+      - name: Refuse to ship ahead of a schema change
+        if: github.event_name == 'push'
+        run: |
+          if ! git rev-parse --verify --quiet HEAD^ > /dev/null; then
+            echo "::error::Cannot determine what this push changed, so cannot rule out a schema change. Apply any migration by hand, then deploy from the Actions tab."
+            exit 1
+          fi
+          if git diff --name-only HEAD^ HEAD | grep -q '^worker/schema\.sql$'; then
+            echo "::error::worker/schema.sql changed in this push. Apply the migration to the deployed database first (see worker/DEPLOY.md), then run this workflow manually from the Actions tab."
+            exit 1
+          fi
+          echo "No schema change in this push -- safe to deploy code."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+        working-directory: worker
+
+      # The gate. These run against a real D1 and R2 inside the Workers
+      # runtime, so a green run here means the code the deploy is about
+      # to ship actually works.
+      - run: npm test
+        working-directory: worker
+
+      - run: npx wrangler deploy
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

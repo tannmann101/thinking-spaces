@@ -7,6 +7,7 @@ import {
 } from './workspaceKinds.js';
 import { blockRegistry } from './blocks.js';
 import { THEME_ACCENTS, THEME_SHAPES, THEME_DENSITIES, THEME_TYPEFACES } from '../theme/itemTheme.js';
+import { WORK_LABELS } from '../blocks/workLabels.js';
 
 const kinds = Object.entries(workspaceKindRegistry);
 
@@ -68,13 +69,17 @@ describe('workspaceKindRegistry: references resolve', () => {
   // bug in the kind rather than a deliberate arrangement.
   it('files every starter block into one of the kind own sections', () => {
     kinds.forEach(([key, kind]) => {
-      const sectioned = new Set(kind.sections.flatMap((section) => section.types));
-      (kind.starterBlocks || []).forEach((spec) => {
-        expect(
-          sectioned.has(spec.type),
-          `${key}: starter block "${spec.type}" belongs to no section, so it would land in "Also here"`
-        ).toBe(true);
-      });
+      // Asked through the real grouping function rather than by
+      // re-implementing its rule here -- a section matches an entry
+      // type, and for a Claim also its own `kind` label, and a test
+      // carrying its own copy of that would be free to drift from it.
+      const specs = (kind.starterBlocks || []).map((spec, index) => ({ ...spec, id: `starter-${index}` }));
+      const groups = groupBlocksByKindSection(kind, specs);
+      const alsoHere = groups.find((group) => group.name === 'Also here');
+      expect(
+        alsoHere?.blocks.map((block) => block.content?.kind || block.type) || [],
+        `${key}: starter blocks that belong to no section would land in "Also here"`
+      ).toEqual([]);
     });
   });
 
@@ -86,6 +91,15 @@ describe('workspaceKindRegistry: references resolve', () => {
     kinds.forEach(([key, kind]) => {
       const sectioned = new Set(kind.sections.flatMap((section) => section.types));
       kind.leadTools.forEach((type) => {
+        if (type === 'claim') {
+          // A Claim is sorted by its `kind` label, not by being a Claim,
+          // so what has to have a home is at least one kind of claim --
+          // an unlabelled one landing in "Also here" is the mechanism
+          // working, not a gap in the arrangement.
+          const namesAKindOfClaim = [...sectioned].some((name) => name in WORK_LABELS && name !== 'claim');
+          expect(namesAKindOfClaim, `${key}: leads with Claim but no section sorts one`).toBe(true);
+          return;
+        }
         expect(sectioned.has(type), `${key}: lead Tool "${type}" belongs to no section`).toBe(true);
       });
     });

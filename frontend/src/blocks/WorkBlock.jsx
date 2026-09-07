@@ -3,11 +3,11 @@
 // added later), not a generic Text block with a label. Every kind
 // shares one underlying shape ({statement, support, confidence}) so
 // Synthesis can treat them uniformly, but each kind still gets its own
-// registry entry, name, and catalog demo (see AssessmentBlock.jsx /
-// QuestionBlock.jsx, thin wrappers that just name the two text fields
-// for their own kind and pass everything else through here) -- the
-// same "shared skeleton, distinct surface" reasoning already used for
-// how a List's shape is inferred rather than duplicated per Tool.
+// registry entry. There used to be eleven of these Types, each with
+// its own two-line wrapper file naming its two field labels; there is
+// one Tool now (Claim, with an optional kind label), and the labels
+// live in workLabels.js so an entry written as one of the retired
+// Types still renders exactly as it always did.
 //
 // `support` was originally a single `rationale` prose blob; it's now a
 // list of discrete points, for "surgical" precision -- each point is
@@ -27,6 +27,7 @@
 import { useEffect, useState } from 'react';
 import { getBlocksForSpace, updateBlockContent, getWorkItems, getSkeletonClaims, getBlock } from '../api.js';
 import { CONFIDENCE_LEVELS } from '../registry/blocks.js';
+import { labelsFor } from './workLabels.js';
 
 // Mirrors worker/src/db/work.js's WORK_TYPES -- the frontend and
 // backend are separate bundles, so this can't be a shared import, only
@@ -308,7 +309,11 @@ function SupportItem({ item, ownSpaceId, spaceBlocks, crossSpaceBlocks, editable
 // catalog's own interactive demo (see ToolsPage.jsx's DemoBlock), same
 // pattern every other simple Block already follows (see
 // ReferenceBlock.jsx).
-function WorkBlock({ block, onSave, onBlocksChanged, statementLabel, supportLabel }) {
+function WorkBlock({ block, onSave, onBlocksChanged }) {
+  // Read from the block's own type rather than passed in by a
+  // per-type wrapper component -- see workLabels.js for why there
+  // are no longer eleven of those.
+  const { statement: statementLabel, support: supportLabel } = labelsFor(block.type);
   const editable = Boolean(block.id) || Boolean(onSave);
   const [content, setContent] = useState(block.content);
   const [spaceBlocks, setSpaceBlocks] = useState(null);

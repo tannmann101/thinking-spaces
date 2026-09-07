@@ -6,8 +6,10 @@ import * as api from '../api.js';
 
 vi.mock('../api.js');
 
+// WorkBlock reads its two field labels from the block's own type (see
+// blocks/workLabels.js), so a block under test needs a real one.
 function makeBlock(content, overrides = {}) {
-  return { id: 'work-1', space_id: 'space-1', content, ...overrides };
+  return { id: 'work-1', space_id: 'space-1', type: 'claim', content, ...overrides };
 }
 
 beforeEach(() => {
@@ -22,9 +24,9 @@ beforeEach(() => {
 });
 
 describe('WorkBlock: statement', () => {
-  it('shows a placeholder using statementLabel when there is no statement yet', () => {
-    render(<WorkBlock block={makeBlock({ support: [], confidence: 'tentative' })} statementLabel="Assessment" supportLabel="Rationale" />);
-    expect(screen.getByText('(add the assessment)')).toBeInTheDocument();
+  it('shows a placeholder naming the entry type when there is no statement yet', () => {
+    render(<WorkBlock block={makeBlock({ support: [], confidence: 'tentative' })} />);
+    expect(screen.getByText('(add the claim)')).toBeInTheDocument();
   });
 
   it('edits and saves the statement via updateBlockContent', async () => {
@@ -33,8 +35,6 @@ describe('WorkBlock: statement', () => {
     render(
       <WorkBlock
         block={makeBlock({ statement: 'Old statement', support: [], confidence: 'tentative' })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
         onBlocksChanged={onBlocksChanged}
       />
     );
@@ -50,7 +50,7 @@ describe('WorkBlock: statement', () => {
 
   it('is not editable when the block has no id and no onSave override', async () => {
     const user = userEvent.setup();
-    render(<WorkBlock block={makeBlock({ statement: 'Demo statement', support: [], confidence: 'tentative' }, { id: undefined })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ statement: 'Demo statement', support: [], confidence: 'tentative' }, { id: undefined })} />);
     await user.click(screen.getByText('Demo statement'));
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
@@ -61,8 +61,6 @@ describe('WorkBlock: statement', () => {
     render(
       <WorkBlock
         block={makeBlock({ statement: 'Demo statement', support: [], confidence: 'tentative' }, { id: undefined })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
         onSave={onSave}
       />
     );
@@ -80,8 +78,6 @@ describe('WorkBlock: statement', () => {
     render(
       <WorkBlock
         block={makeBlock({ statement: 'x', support: [], confidence: 'tentative' }, { id: undefined, space_id: undefined })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
         onSave={vi.fn()}
       />
     );
@@ -91,20 +87,20 @@ describe('WorkBlock: statement', () => {
 
 describe('WorkBlock: confidence', () => {
   it('defaults to tentative when unset', () => {
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
     expect(screen.getByText('tentative')).toBeInTheDocument();
   });
 
   it('cycles through the confidence levels in order on click', async () => {
     const user = userEvent.setup();
-    render(<WorkBlock block={makeBlock({ support: [], confidence: 'questioned' })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [], confidence: 'questioned' })} />);
     await user.click(screen.getByText('questioned'));
     await waitFor(() => expect(api.updateBlockContent).toHaveBeenCalledWith('work-1', expect.objectContaining({ confidence: 'tentative' })));
   });
 
   it('wraps from certain back to questioned', async () => {
     const user = userEvent.setup();
-    render(<WorkBlock block={makeBlock({ support: [], confidence: 'certain' })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [], confidence: 'certain' })} />);
     await user.click(screen.getByText('certain'));
     await waitFor(() => expect(api.updateBlockContent).toHaveBeenCalledWith('work-1', expect.objectContaining({ confidence: 'questioned' })));
   });
@@ -112,13 +108,13 @@ describe('WorkBlock: confidence', () => {
 
 describe('WorkBlock: support points', () => {
   it('shows "(nothing added yet)" for an empty support list', () => {
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
     expect(screen.getByText('(nothing added yet)')).toBeInTheDocument();
   });
 
   it('adds a free-text support point', async () => {
     const user = userEvent.setup();
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
     await user.type(screen.getByPlaceholderText('+ Add a point'), 'A new point');
     await user.click(screen.getByRole('button', { name: 'Add' }));
 
@@ -131,7 +127,7 @@ describe('WorkBlock: support points', () => {
   });
 
   it('disables Add until there is real text typed', () => {
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
   });
 
@@ -140,8 +136,6 @@ describe('WorkBlock: support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', text: 'Removable point' }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     await user.click(screen.getByTitle('Remove'));
@@ -153,8 +147,6 @@ describe('WorkBlock: support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', text: 'Original point' }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     await user.click(screen.getByText('Original point'));
@@ -180,8 +172,6 @@ describe('WorkBlock: linked support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', pointer: { blockId: 'other-block', itemId: null } }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     expect(await screen.findByText('The linked claim')).toBeInTheDocument();
@@ -199,8 +189,6 @@ describe('WorkBlock: linked support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', pointer: { blockId: 'lane-block', itemId: 'item-1' } }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     expect(await screen.findByText('A premise')).toBeInTheDocument();
@@ -211,8 +199,6 @@ describe('WorkBlock: linked support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', pointer: { blockId: 'gone', itemId: null } }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     expect(await screen.findByText('(linked claim removed)')).toBeInTheDocument();
@@ -223,7 +209,7 @@ describe('WorkBlock: linked support points', () => {
     api.getBlocksForSpace.mockResolvedValue([
       { id: 'other', type: 'question', content: { statement: 'An open question' }, properties: {} },
     ]);
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
 
     await user.click(screen.getByRole('button', { name: /Link a claim/ }));
     expect(await screen.findByText('An open question')).toBeInTheDocument();
@@ -244,7 +230,7 @@ describe('WorkBlock: linked support points', () => {
     api.getBlocksForSpace.mockResolvedValue([
       { id: 'work-1', type: 'assessment', content: { statement: 'Its own statement' }, properties: {} },
     ]);
-    render(<WorkBlock block={makeBlock({ support: [], statement: 'Its own statement' })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [], statement: 'Its own statement' })} />);
 
     await user.click(screen.getByRole('button', { name: /Link a claim/ }));
     await waitFor(() => expect(api.getBlocksForSpace).toHaveBeenCalled());
@@ -261,7 +247,7 @@ describe('WorkBlock: cross-Space linked support points', () => {
     api.getSkeletonClaims.mockResolvedValue([
       { spaceId: 'space-2', spaceTitle: 'Other Space', blockId: 'other-lane', itemId: 'item-9', text: 'Evidence elsewhere', laneLabel: 'Evidence' },
     ]);
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
 
     await user.click(screen.getByRole('button', { name: /Link a claim/ }));
     expect(await screen.findByText('A hypothesis elsewhere')).toBeInTheDocument();
@@ -283,7 +269,7 @@ describe('WorkBlock: cross-Space linked support points', () => {
     api.getWorkItems.mockResolvedValue([
       { id: 'own-block', type: 'assessment', content: { statement: 'Same-space item' }, space_id: 'space-1', space_title: 'This one' },
     ]);
-    render(<WorkBlock block={makeBlock({ support: [] })} statementLabel="Assessment" supportLabel="Rationale" />);
+    render(<WorkBlock block={makeBlock({ support: [] })} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Link a claim/ }));
     await waitFor(() => expect(api.getWorkItems).toHaveBeenCalled());
@@ -303,8 +289,6 @@ describe('WorkBlock: cross-Space linked support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', pointer: { spaceId: 'space-2', blockId: 'far-block', itemId: null } }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     expect(await screen.findByText('A claim from far away')).toBeInTheDocument();
@@ -317,10 +301,18 @@ describe('WorkBlock: cross-Space linked support points', () => {
     render(
       <WorkBlock
         block={makeBlock({ support: [{ id: 'sp-1', pointer: { spaceId: 'space-2', blockId: 'gone', itemId: null } }] })}
-        statementLabel="Assessment"
-        supportLabel="Rationale"
       />
     );
     expect(await screen.findByText('(linked claim removed)')).toBeInTheDocument();
+  });
+});
+
+// The reason the ten retired Work Types stay in the registry at all:
+// an entry written as one has to keep reading exactly as it did.
+describe('WorkBlock: retired Work Types', () => {
+  it('still labels a retired type with its own original wording', () => {
+    render(<WorkBlock block={makeBlock({ support: [], confidence: 'tentative' }, { type: 'formulation' })} />);
+    expect(screen.getByText('(add the formulation)')).toBeInTheDocument();
+    expect(screen.getByText('Grounds:')).toBeInTheDocument();
   });
 });

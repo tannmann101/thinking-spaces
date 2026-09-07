@@ -42,9 +42,12 @@ const checklist = (laneLabel, items) => ({
     items: items.map((text) => ({ id: crypto.randomUUID(), text, done: false })),
   },
 });
-const work = (type, statement) => ({
-  type,
-  content: { statement, support: [], confidence: 'tentative' },
+// A Claim seeded with the kind label this section is about. `kind` is
+// what a Workspace section sorts on now that Work is one Tool rather
+// than eleven -- see groupBlocksByKindSection below.
+const claim = (kind, statement) => ({
+  type: 'claim',
+  content: { statement, kind, support: [], confidence: 'tentative' },
 });
 
 export const workspaceKindRegistry = {
@@ -55,7 +58,7 @@ export const workspaceKindRegistry = {
     description:
       'Deep analytical reasoning: break something into its parts, follow what each implies, and test the chain for where it actually holds.',
     theme: { accent: 'maroon', shape: 'bracket', density: 'normal', typeface: 'body' },
-    leadTools: ['analysis', 'deduction', 'implication', 'objection', 'hypothesis', 'insight'],
+    leadTools: ['claim'],
     sections: [
       {
         name: 'What is in front of you',
@@ -75,8 +78,8 @@ export const workspaceKindRegistry = {
     ],
     starterBlocks: [
       writing(''),
-      work('analysis', ''),
-      work('objection', ''),
+      claim('analysis', ''),
+      claim('objection', ''),
     ],
   },
 
@@ -87,7 +90,7 @@ export const workspaceKindRegistry = {
     description:
       "Track how a word's sense moved over time, and what carried it — the history behind a term you keep using.",
     theme: { accent: 'indigo', shape: 'rule', density: 'normal', typeface: 'body' },
-    leadTools: ['wordEvolution', 'conceptMap', 'reference', 'definition'],
+    leadTools: ['wordEvolution', 'conceptMap', 'reference', 'claim'],
     sections: [
       {
         name: 'The word itself',
@@ -115,7 +118,7 @@ export const workspaceKindRegistry = {
     description:
       'Work out what somebody must be holding for their view to make sense — across metaphysics, ethics and epistemology.',
     theme: { accent: 'plum', shape: 'inset', density: 'roomy', typeface: 'body' },
-    leadTools: ['formulation', 'model', 'assessment', 'question'],
+    leadTools: ['claim', 'model'],
     sections: [
       {
         name: 'What was actually said or done',
@@ -136,9 +139,9 @@ export const workspaceKindRegistry = {
     ],
     starterBlocks: [
       writing(''),
-      work('formulation', 'Metaphysics — what they take reality to be'),
-      work('formulation', 'Ethics — what they take the good to be'),
-      work('formulation', 'Epistemology — what they take knowing to be'),
+      claim('formulation', 'Metaphysics — what they take reality to be'),
+      claim('formulation', 'Ethics — what they take the good to be'),
+      claim('formulation', 'Epistemology — what they take knowing to be'),
     ],
   },
 
@@ -149,7 +152,7 @@ export const workspaceKindRegistry = {
     description:
       'Critique, not accusation: state the position at its strongest first, then work out precisely where it gives way.',
     theme: { accent: 'clay', shape: 'slab', density: 'normal', typeface: 'body' },
-    leadTools: ['objection', 'assessment', 'hypothesis', 'question', 'deduction'],
+    leadTools: ['claim'],
     sections: [
       {
         name: 'The position, at its strongest',
@@ -170,8 +173,8 @@ export const workspaceKindRegistry = {
     ],
     starterBlocks: [
       writing('Steelman: state the position as its best defender would put it.'),
-      work('objection', ''),
-      work('assessment', ''),
+      claim('objection', ''),
+      claim('assessment', ''),
     ],
   },
 
@@ -182,7 +185,7 @@ export const workspaceKindRegistry = {
     description:
       'Name what a phenomenon actually is, read through a chosen lens, before trying to solve or judge it.',
     theme: { accent: 'rust', shape: 'tab', density: 'roomy', typeface: 'body' },
-    leadTools: ['formulation', 'question', 'conceptMap', 'definition'],
+    leadTools: ['claim', 'conceptMap'],
     sections: [
       {
         name: 'The phenomenon',
@@ -216,7 +219,7 @@ export const workspaceKindRegistry = {
         'Anthropology',
         'Epistemology',
       ]),
-      work('formulation', ''),
+      claim('formulation', ''),
     ],
   },
 
@@ -227,7 +230,7 @@ export const workspaceKindRegistry = {
     description:
       'Lay a worldview, a philosophy or a concept out as structure — the parts it is built from and how they hold each other up.',
     theme: { accent: 'indigo', shape: 'bracket', density: 'normal', typeface: 'body' },
-    leadTools: ['model', 'conceptMap', 'formulation', 'hypothesis'],
+    leadTools: ['model', 'conceptMap', 'claim'],
     sections: [
       {
         name: 'The model',
@@ -258,7 +261,7 @@ export const workspaceKindRegistry = {
     description:
       'Work a conception into clarity: what it includes, what it excludes, and what it keeps getting confused with.',
     theme: { accent: 'teal', shape: 'notch', density: 'roomy', typeface: 'body' },
-    leadTools: ['definition', 'conceptMap', 'comparison', 'formulation'],
+    leadTools: ['claim', 'conceptMap', 'comparison'],
     sections: [
       {
         name: 'Working definition',
@@ -277,7 +280,7 @@ export const workspaceKindRegistry = {
       },
     ],
     starterBlocks: [
-      work('definition', ''),
+      claim('definition', ''),
       checklist('Cases', ['Clearly inside:', 'Clearly outside:', 'On the edge:']),
     ],
   },
@@ -289,7 +292,7 @@ export const workspaceKindRegistry = {
     description:
       'Track a referent and everything that references it, so you can see where a misunderstanding is arising in the language rather than in the thing.',
     theme: { accent: 'indigo', shape: 'inset', density: 'normal', typeface: 'body' },
-    leadTools: ['conceptMap', 'wordEvolution', 'definition', 'comparison'],
+    leadTools: ['conceptMap', 'wordEvolution', 'claim', 'comparison'],
     sections: [
       {
         name: 'The referent and its renderings',
@@ -345,7 +348,15 @@ export function groupBlocksByKindSection(kind, blocks) {
   const groups = kind.sections.map((section) => {
     const members = blocks.filter((block) => {
       if (taken.has(block.id)) return false;
-      if (!section.types.includes(block.type)) return false;
+      // A section names the entry types it holds. Work entries are
+      // all one type now (Claim), so a Claim also matches on its own
+      // optional `kind` label -- which is what lets a kind still sort
+      // "what follows" from "what's still open" without needing
+      // eleven separate Work Types to tell them apart.
+      const matches =
+        section.types.includes(block.type) ||
+        (block.type === 'claim' && section.types.includes(block.content?.kind));
+      if (!matches) return false;
       taken.add(block.id);
       return true;
     });

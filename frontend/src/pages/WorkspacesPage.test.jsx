@@ -35,12 +35,12 @@ describe('WorkspacesPage: the catalog', () => {
     await waitFor(() => expect(document.querySelectorAll('.kind-card')).toHaveLength(WORKSPACE_KIND_ORDER.length));
   });
 
-  it('shows each kind sections and what it starts you with', async () => {
+  it('says what each kind starts you with', async () => {
     renderPage();
-    await screen.findByText('Etymology');
-    const card = [...document.querySelectorAll('.kind-card')].find((c) => c.textContent.includes('Etymology'));
-    expect(within(card).getByText('The word itself')).toBeInTheDocument();
-    expect(card.textContent).toContain('Word Evolution');
+    await waitFor(() => expect(document.querySelectorAll('.kind-card').length).toBeGreaterThan(0));
+    // A kind's sections are gone; what it hands you on day one is the
+    // remaining reason to pick one over another, so the card has to say.
+    expect(document.querySelectorAll('.kind-card-starters').length).toBe(WORKSPACE_KIND_ORDER.length);
   });
 
   it('carries each kind own theme on its card', async () => {

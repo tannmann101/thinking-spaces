@@ -26,7 +26,7 @@ import {
   getBlockReport,
 } from '../api.js';
 import { blockRegistry } from '../registry/blocks.js';
-import { getWorkspaceKind, groupBlocksByKindSection } from '../registry/workspaceKinds.js';
+import { getWorkspaceKind } from '../registry/workspaceKinds.js';
 import { resolveBlockTheme, themeAttributes } from '../theme/itemTheme.js';
 import { viewRegistry } from '../registry/views.js';
 import NewBlockForm from '../blocks/NewBlockForm.jsx';
@@ -191,17 +191,14 @@ function WorkspacePage() {
     (block) => !(block.properties?.workspaces || []).includes(workspaceId)
   );
 
-  // What kind of environment this is, if any. A kinded Workspace renders
-  // its own named sections with their framing prompts; an unkinded one
-  // keeps the plain flat feed every Workspace had before kinds existed.
+  // What kind of environment this is, if any -- its name, its look, what
+  // it started you with, and which Tools its picker leads with. Every
+  // Workspace reads as one feed; a kind no longer sorts entries into
+  // named sections (see registry/workspaceKinds.js for why).
   const kind = getWorkspaceKind(workspace?.kind);
   const visibleBlocks = memberBlocks.filter((block) => !focusedBlockId || block.id === focusedBlockId);
-  // Focus Mode shows exactly one block, so its sections would be noise --
-  // fall back to the flat feed for the duration.
-  const sectionGroups = focusedBlockId ? null : groupBlocksByKindSection(kind, visibleBlocks);
 
-  // One block's full row, shared by the flat feed and the sectioned one
-  // so the two can't drift apart on what a block actually renders.
+  // One block's full row.
   function renderBlock(block) {
     const entry = blockRegistry[block.type];
     // A Workspace is where a Tool gets its bespoke, more spacious
@@ -289,32 +286,12 @@ function WorkspacePage() {
             </>
           )}
 
-          {memberBlocks.length === 0 && !kind && (
+          {memberBlocks.length === 0 && (
             <p>Nothing assembled here yet — add a Tool below, or pull in one already on the Space.</p>
           )}
 
-          {/* A kinded Workspace renders its own named sections, each with
-              the question it exists to answer, so the environment itself
-              says what belongs where -- an empty section is kept and
-              framed rather than hidden, since the prompt is the point. */}
-          {sectionGroups ? (
-            <div className="workspace-sections">
-              {sectionGroups.map((section) => (
-                <section key={section.name} className="workspace-section-group">
-                  <h2 className="workspace-section-name">{section.name}</h2>
-                  <p className="workspace-section-prompt">{section.prompt}</p>
-                  {section.blocks.length === 0 ? (
-                    <p className="empty-note">Nothing here yet.</p>
-                  ) : (
-                    <div className="block-feed workspace-block-feed">{section.blocks.map(renderBlock)}</div>
-                  )}
-                </section>
-              ))}
-            </div>
-          ) : (
-            visibleBlocks.length > 0 && (
-              <div className="block-feed workspace-block-feed">{visibleBlocks.map(renderBlock)}</div>
-            )
+          {visibleBlocks.length > 0 && (
+            <div className="block-feed workspace-block-feed">{visibleBlocks.map(renderBlock)}</div>
           )}
 
           {!focusedBlockId && (

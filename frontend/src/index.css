@@ -3046,7 +3046,6 @@ label {
   font-size: var(--fs-base);
 }
 
-
 .workspace-name-row {
   display: flex;
   flex-wrap: wrap;
@@ -4107,17 +4106,6 @@ label {
   margin: var(--space-s-plus) 0 var(--space-2xs);
 }
 
-.kind-card-sections {
-  margin: 0;
-  padding-left: var(--space-l);
-  font-size: var(--fs-sm);
-  color: var(--ink-dim);
-}
-
-.kind-card-sections strong {
-  color: var(--ink);
-}
-
 .kind-card-starters {
   margin: 0 0 var(--space-s-plus);
   font-family: var(--mono);
@@ -4152,26 +4140,6 @@ label {
   .kind-grid {
     grid-template-columns: 1fr;
   }
-}
-
-/* A kinded Workspace's own sections. The prompt is the point -- an
-   empty section still frames what belongs in it -- so these read as
-   headed groups rather than as cards that vanish when unused. */
-.workspace-section-group {
-  margin-bottom: var(--space-2xl);
-}
-
-.workspace-section-name {
-  margin: 0 0 var(--space-2xs);
-  font-size: var(--fs-lg);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: var(--space-2xs);
-}
-
-.workspace-section-prompt {
-  margin: 0 0 var(--space-s-plus);
-  font-size: var(--fs-sm);
-  color: var(--ink-faint);
 }
 
 .workspace-kind-description {

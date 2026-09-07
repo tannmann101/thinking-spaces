@@ -45,15 +45,6 @@ function KindCard({ kind, spaces, onStart, starting }) {
       </h3>
       <p className="kind-card-description">{kind.description}</p>
 
-      <p className="kind-card-label">Sections</p>
-      <ul className="kind-card-sections">
-        {kind.sections.map((section) => (
-          <li key={section.name}>
-            <strong>{section.name}</strong> &mdash; {section.prompt}
-          </li>
-        ))}
-      </ul>
-
       <p className="kind-card-label">Starts you with</p>
       <p className="kind-card-starters">
         {kind.starterBlocks.length === 0 ? 'An empty environment.' : summarizeStarters(kind.starterBlocks)}

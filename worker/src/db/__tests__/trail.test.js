@@ -98,6 +98,21 @@ describe('trail.js', () => {
 });
 
 // The mirror of what listGlobalActivity already does for the Log.
+
+// A Space's own construction is hidden from its Trail (see
+// listSpaceHistory), and in a test every insert lands in the same
+// second -- so an entry that is meant to read as later work has to say
+// so. This pushes the creation rows back, which is what a real gap of
+// a few seconds does on its own.
+async function ageTheSpacesConstruction(env, spaceId) {
+  await env.DB.prepare(
+    `UPDATE activity_log SET created_at = datetime(created_at, '-1 hour')
+      WHERE space_id = ? AND kind = 'space_created'`
+  )
+    .bind(spaceId)
+    .run();
+}
+
 describe('listSpaceHistory', () => {
   let space;
 
@@ -107,15 +122,18 @@ describe('listSpaceHistory', () => {
   });
 
   it("returns a Space's activity alongside its Trail entries, oldest first", async () => {
+    await ageTheSpacesConstruction(env, space.id);
     await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
     await addManualTrailEntry(env, space.id, 'why this matters');
 
     const history = await listSpaceHistory(env, space.id);
-    expect(history.map((row) => row.source)).toEqual(['activity', 'activity', 'trail']);
+    // "Created this Space" is not in here -- see listSpaceHistory.
+    expect(history.map((row) => row.source)).toEqual(['activity', 'trail']);
     expect(history.at(-1).note).toBe('why this matters');
   });
 
   it('marks which rows can actually be rewound to', async () => {
+    await ageTheSpacesConstruction(env, space.id);
     await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
     await addManualTrailEntry(env, space.id, 'a note');
 
@@ -125,12 +143,28 @@ describe('listSpaceHistory', () => {
   });
 
   it("drops the Space's own name from summaries", async () => {
+    await ageTheSpacesConstruction(env, space.id);
     await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
     await updateSpace(env, space.id, { status: 'mature' });
 
     const summaries = (await listSpaceHistory(env, space.id)).map((row) => row.summary);
     expect(summaries).toContain('Added a text entry');
     expect(summaries).toContain('Status changed to mature');
+  });
+
+  // The complaint this answers: a brand-new templated Space's entire
+  // history was "Created this Space" plus one line per starter -- the
+  // record of building the page, not of thinking in it.
+  it("leaves out the Space's own creation and whatever it was created with", async () => {
+    await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    expect(await listSpaceHistory(env, space.id)).toEqual([]);
+  });
+
+  it('keeps an entry added later, which is real work', async () => {
+    await ageTheSpacesConstruction(env, space.id);
+    await addBlockToSpace(env, space.id, { type: 'text', content: { lines: [] } });
+    const history = await listSpaceHistory(env, space.id);
+    expect(history.map((row) => row.summary)).toEqual(['Added a text entry']);
   });
 
   it('returns an empty history for a Space that does not exist', async () => {

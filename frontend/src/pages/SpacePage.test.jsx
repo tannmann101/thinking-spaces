@@ -79,14 +79,27 @@ describe('SpacePage: loading and errors', () => {
   });
 });
 
+
+// The Details panel shows only the fields that hold something; an empty
+// one is opened from the "+ ..." row beside them. See AddDetail.
+async function revealDetail(user, label) {
+  await user.click(screen.getByRole('button', { name: `+ ${label}` }));
+}
+
 describe('SpacePage: details panel', () => {
-  it('groups the theme/due-date/tags/categories fields into one panel', async () => {
+  it('groups the fields into one panel, showing only what is set', async () => {
+    const user = userEvent.setup();
     renderPage();
     await screen.findByText('My Space');
     const panel = document.querySelector('.space-details-panel');
     expect(panel).toBeInTheDocument();
-    expect(panel.querySelector('.category-row')).toBeInTheDocument(); // SpaceThemePicker
+    // Nothing is set on this Space, so nothing but the add row shows.
+    expect(panel.querySelector('.due-date-row')).not.toBeInTheDocument();
+    expect(panel.querySelector('.add-detail-row')).toBeInTheDocument();
+
+    await revealDetail(user, 'a due date');
     expect(panel.querySelector('.due-date-row')).toBeInTheDocument();
+    await revealDetail(user, 'tags');
     expect(panel.querySelector('.tag-row')).toBeInTheDocument();
   });
 });
@@ -236,8 +249,10 @@ describe('SpacePage: identity fields', () => {
   });
 
   it('sets a due date', async () => {
+    const user = userEvent.setup();
     renderPage();
     await screen.findByText('My Space');
+    await revealDetail(user, 'a due date');
     const input = document.querySelector('.due-date-row input[type="date"]');
     fireEvent.change(input, { target: { value: '2026-12-25' } });
     await waitFor(() => expect(api.updateSpace).toHaveBeenCalledWith('space-1', { dueDate: '2026-12-25' }));
@@ -254,6 +269,8 @@ describe('SpacePage: tags', () => {
   it('adds a tag', async () => {
     const user = userEvent.setup();
     renderPage();
+    await screen.findByText('My Space');
+    await revealDetail(user, 'tags');
     await screen.findByText('My Space');
     await user.type(screen.getByPlaceholderText('+ tag'), 'resource{Enter}');
     await waitFor(() => expect(api.updateSpace).toHaveBeenCalledWith('space-1', { tags: ['resource'] }));
@@ -295,6 +312,8 @@ describe('SpacePage: Categories', () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('My Space');
+    await revealDetail(user, 'Categories');
+    await screen.findByText('My Space');
     await user.type(screen.getByPlaceholderText('+ category'), 'Risk{Enter}');
     await waitFor(() => expect(api.updateSpace).toHaveBeenCalledWith('space-1', { categories: ['Risk'] }));
   });
@@ -334,16 +353,19 @@ describe('SpacePage: block type filter', () => {
     expect(screen.queryByText('All types (1)')).not.toBeInTheDocument();
   });
 
-  it('filters blocks by type once more than one type exists, each tab showing its own count', async () => {
+  // The strip appears once some type actually holds more than one entry:
+  // with one of each, every tab reads (1) and sorts nothing.
+  it('filters blocks by type once some type holds more than one, each tab showing its count', async () => {
     const user = userEvent.setup();
     api.getBlocksForSpace.mockResolvedValue([
       { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'A text block', tag: null }] }, properties: {}, updated_at: 'v1' },
+      { id: 'b3', type: 'text', content: { lines: [{ id: 'l3', text: 'Another text block', tag: null }] }, properties: {}, updated_at: 'v1' },
       { id: 'b2', type: 'list', content: { items: [] }, properties: {}, updated_at: 'v1' },
     ]);
     renderPage();
     await screen.findByText('A text block');
-    expect(screen.getByText('All types (2)')).toBeInTheDocument();
-    expect(screen.getByText('Writing (1)')).toBeInTheDocument();
+    expect(screen.getByText('All types (3)')).toBeInTheDocument();
+    expect(screen.getByText('Writing (2)')).toBeInTheDocument();
     expect(screen.getByText('List (1)')).toBeInTheDocument();
 
     const listTab = [...document.querySelectorAll('.category-filter-tab')].find((el) => el.textContent.startsWith('List'));
@@ -407,23 +429,40 @@ describe('SpacePage: block feed actions', () => {
     expect(api.deleteBlockApi).not.toHaveBeenCalled();
   });
 
-  it('moves a block down, and disables Move up for the first block / Move down for the last', async () => {
-    const user = userEvent.setup();
+  // Move up / Move down are gone: reordering is a drag now, so what
+  // gets sent is the whole resulting order rather than one step.
+  it('reorders by dragging one entry onto another, sending the resulting order', async () => {
     api.getBlocksForSpace.mockResolvedValue([
       { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'First', tag: null }] }, properties: {}, updated_at: 'v1' },
       { id: 'b2', type: 'text', content: { lines: [{ id: 'l2', text: 'Second', tag: null }] }, properties: {}, updated_at: 'v1' },
     ]);
+    api.reorderBlocksInSpace.mockResolvedValue([]);
     renderPage();
     await screen.findByText('First');
 
-    const [firstMoveUp] = screen.getAllByRole('button', { name: 'Move up' });
-    const [, secondMoveDown] = screen.getAllByRole('button', { name: 'Move down' });
-    expect(firstMoveUp).toBeDisabled();
-    expect(secondMoveDown).toBeDisabled();
+    const rows = document.querySelectorAll('.block-row');
+    expect(rows[0].getAttribute('draggable')).toBe('true');
+    fireEvent.dragStart(rows[0]);
+    fireEvent.dragOver(rows[1]);
+    fireEvent.drop(rows[1]);
 
-    const [firstMoveDown] = screen.getAllByRole('button', { name: 'Move down' });
-    await user.click(firstMoveDown);
-    await waitFor(() => expect(api.moveBlockInSpace).toHaveBeenCalledWith('space-1', 'b1', 1));
+    await waitFor(() => expect(api.reorderBlocksInSpace).toHaveBeenCalledWith('space-1', ['b2', 'b1']));
+  });
+
+  it('does not offer dragging while a filter is hiding entries', async () => {
+    const user = userEvent.setup();
+    api.getBlocksForSpace.mockResolvedValue([
+      { id: 'b1', type: 'text', content: { lines: [{ id: 'l1', text: 'First', tag: null }] }, properties: {}, updated_at: 'v1' },
+      { id: 'b3', type: 'text', content: { lines: [{ id: 'l3', text: 'Third', tag: null }] }, properties: {}, updated_at: 'v1' },
+      { id: 'b2', type: 'list', content: { laneLabel: 'L', items: [] }, properties: {}, updated_at: 'v1' },
+    ]);
+    renderPage();
+    await screen.findByText('First');
+    // Dropping "here" would mean a position the screen isn't showing.
+    await user.click(screen.getByText('Writing (2)'));
+    await waitFor(() =>
+      expect(document.querySelector('.block-row').getAttribute('draggable')).toBe('false')
+    );
   });
 
   it('shows an unknown-type fallback for a Block type not in the registry', async () => {

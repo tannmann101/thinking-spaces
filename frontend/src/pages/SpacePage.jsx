@@ -7,7 +7,7 @@ import {
   getTrailEntries,
   addBlockToSpace,
   deleteBlockApi,
-  moveBlockInSpace,
+  reorderBlocksInSpace,
   updateSpace,
   updateBlockCategories,
   updateBlockWorkspaces,
@@ -34,6 +34,7 @@ import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import EntryMenu from '../components/EntryMenu.jsx';
 
 // Only renders when there's somewhere more specific to go back to than
 // the Dashboard -- arriving here via a Reference/backlink from another
@@ -510,6 +511,29 @@ function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
 // metadata. Computed once, from the Space as first loaded -- see the
 // initialization effect in SpacePage below for why it isn't recomputed
 // on every render.
+// The one row for adding a Details field that isn't set yet. Nothing is
+// hidden that holds anything -- this only offers what's currently empty,
+// and disappears once everything has been set.
+function AddDetail({ space, revealed, onReveal }) {
+  const missing = [
+    !space.theme && !revealed.has('theme') && ['theme', 'a look'],
+    !space.due_date && !revealed.has('due') && ['due', 'a due date'],
+    space.tags.length === 0 && !revealed.has('tags') && ['tags', 'tags'],
+    space.categories.length === 0 && !revealed.has('categories') && ['categories', 'Categories'],
+  ].filter(Boolean);
+  if (missing.length === 0) return null;
+
+  return (
+    <p className="add-detail-row">
+      {missing.map(([key, label]) => (
+        <button key={key} type="button" className="btn-ghost-small" onClick={() => onReveal(key)}>
+          + {label}
+        </button>
+      ))}
+    </p>
+  );
+}
+
 function spaceHasMetadata(space) {
   const isPromotable = space.origin === 'internal' && space.tags.includes('synthesis') && !space.tags.includes('resource');
   return Boolean(
@@ -564,6 +588,11 @@ function SpacePage() {
   // after) still had no way to say "just show me the Questions." Both
   // filters can be active together (AND, not either/or).
   const [activeType, setActiveType] = useState(null);
+  // Native HTML5 drag, same as a List's own items.
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  // Which empty Details fields have been opened by hand this visit.
+  const [revealed, setRevealed] = useState(new Set());
   // See spaceHasMetadata above. Initialized once, from the Space as
   // first loaded, not recomputed on every later render -- otherwise
   // React would fight a manual open/close toggle on the native
@@ -741,8 +770,12 @@ function SpacePage() {
     refetchAll();
   }
 
-  async function handleMoveBlock(blockId, direction) {
-    await moveBlockInSpace(id, blockId, direction);
+  async function handleReorder(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+    const order = blocks.map((block) => block.id);
+    const [moved] = order.splice(fromIndex, 1);
+    order.splice(toIndex, 0, moved);
+    await reorderBlocksInSpace(id, order);
     refetchAll();
   }
 
@@ -813,11 +846,18 @@ function SpacePage() {
               onToggle={(event) => setDetailsOpen(event.target.open)}
             >
               <summary>Details</summary>
-              <SpaceThemePicker space={space} onChanged={refetchAll} />
-              <DueDate space={space} onChanged={refetchAll} />
-              <TagEditor space={space} onChanged={refetchAll} />
+              {/* Only the fields that hold something, plus one quiet row
+                  for adding the rest. The panel opens as soon as *one*
+                  of these is set, and used to then show all four -- three
+                  of them empty rows with a label and nothing beside it. */}
+              {(space.theme || revealed.has('theme')) && <SpaceThemePicker space={space} onChanged={refetchAll} />}
+              {(space.due_date || revealed.has('due')) && <DueDate space={space} onChanged={refetchAll} />}
+              {(space.tags.length > 0 || revealed.has('tags')) && <TagEditor space={space} onChanged={refetchAll} />}
               <PromoteToResource space={space} onChanged={refetchAll} />
-              <CategoryManager space={space} onChanged={refetchAll} />
+              {(space.categories.length > 0 || revealed.has('categories')) && (
+                <CategoryManager space={space} onChanged={refetchAll} />
+              )}
+              <AddDetail space={space} revealed={revealed} onReveal={(key) => setRevealed(new Set([...revealed, key]))} />
             </details>
 
             {backlinks && backlinks.length > 0 && (
@@ -865,7 +905,9 @@ function SpacePage() {
               actually carries, so switching back to "All" always shows
               the same honest multi-category overlap. Only appears once
               the Space has defined at least one Category. */}
-          {blocks && space.categories.length > 0 && (
+          {/* Only once a Category is actually on an entry: a strip of
+              tabs all reading (0) filters to nothing at all. */}
+          {blocks && space.categories.some((c) => blocks.some((b) => (b.properties?.categories || []).includes(c))) && (
             <p className="category-filter-strip">
               <span
                 className={`category-filter-tab${activeCategory === null ? ' category-filter-tab-active' : ''}`}
@@ -893,7 +935,12 @@ function SpacePage() {
               pointless). Unlike Categories, every block always has
               exactly one type, so this only ever narrows, it never
               needs a "some blocks lack this facet" case. */}
-          {blocks && blocks.length > 0 && new Set(blocks.map((block) => block.type)).size > 1 && (
+          {/* Only once some type holds more than one entry. With four
+              entries of four types every tab reads (1), which sorts
+              nothing you couldn't already see. */}
+          {blocks && [...new Set(blocks.map((b) => b.type))].some(
+            (t) => blocks.filter((b) => b.type === t).length > 1
+          ) && (
             <p className="category-filter-strip">
               <span
                 className={`category-filter-tab${activeType === null ? ' category-filter-tab-active' : ''}`}
@@ -930,6 +977,10 @@ function SpacePage() {
                 </p>
               );
             }
+            // Dragging only makes sense against the whole feed: in a
+            // filtered view the entries between two rows are hidden, so
+            // "drop it here" would mean something the screen isn't showing.
+            const reorderable = activeCategory === null && activeType === null && visibleBlocks.length > 1;
             return (
               <div className="block-feed">
                 {visibleBlocks.map((block) => {
@@ -944,10 +995,32 @@ function SpacePage() {
                     // gaining an item via a different block's shorthand
                     // promotion) -- otherwise this component's own local
                     // edit state, set once at mount, would never notice.
+                    // Dragged to reorder, the same native HTML5 pattern a
+                    // List's own items already use -- Move up / Move down
+                    // buttons on every entry cost two of six controls
+                    // forever for something you do rarely. Only enabled
+                    // in the unfiltered feed: dragging within a filtered
+                    // view would reorder against positions you can't see.
                     <div
                       key={`${block.id}-${block.updated_at}`}
                       id={`block-${block.id}`}
-                      className="block-row"
+                      className={`block-row${dragOverIndex === index && draggedIndex !== index ? ' drag-over' : ''}`}
+                      draggable={reorderable}
+                      onDragStart={() => setDraggedIndex(index)}
+                      onDragOver={(event) => {
+                        if (draggedIndex === null) return;
+                        event.preventDefault();
+                        setDragOverIndex(index);
+                      }}
+                      onDrop={() => {
+                        if (draggedIndex !== null) handleReorder(draggedIndex, index);
+                        setDraggedIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIndex(null);
+                        setDragOverIndex(null);
+                      }}
                       data-family={entry?.family}
                       data-highlighted={highlightActive && block.id === flashId ? 'true' : undefined}
                       {...themeAttributes(resolveBlockTheme(block))}
@@ -980,8 +1053,8 @@ function SpacePage() {
                         spaceWorkspaces={workspaces || []}
                         onChanged={refetchAll}
                       />
-                      <div className="block-report-row">
-                        <ReportButton fetchReport={() => getBlockReport(block.id)} />{' '}
+                      <EntryMenu>
+                        <ReportButton fetchReport={() => getBlockReport(block.id)} />
                         <ThemePicker
                           item={block}
                           kind="block"
@@ -990,24 +1063,6 @@ function SpacePage() {
                             refetchAll();
                           }}
                         />
-                      </div>
-                      <div className="block-controls">
-                        <button
-                          type="button"
-                          className="btn-ghost-small"
-                          onClick={() => handleMoveBlock(block.id, -1)}
-                          disabled={index === 0}
-                        >
-                          Move up
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost-small"
-                          onClick={() => handleMoveBlock(block.id, 1)}
-                          disabled={index === blocks.length - 1}
-                        >
-                          Move down
-                        </button>
                         <BlockSpaceMover
                           block={block}
                           spaces={allSpaces}
@@ -1021,7 +1076,7 @@ function SpacePage() {
                         >
                           Remove entry
                         </button>
-                      </div>
+                      </EntryMenu>
                     </div>
                   );
                 })}

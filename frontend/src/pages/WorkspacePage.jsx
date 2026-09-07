@@ -36,6 +36,7 @@ import ReportButton from '../components/ReportButton.jsx';
 import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import EntryMenu from '../components/EntryMenu.jsx';
 
 function EditableWorkspaceName({ workspace, onChanged }) {
   const [editing, setEditing] = useState(false);
@@ -237,19 +238,15 @@ function WorkspacePage() {
           </div>
         )}
         {!focusedBlockId && (
-          <div className="block-report-row">
+          <EntryMenu>
             <ReportButton fetchReport={() => getBlockReport(block.id)} />
-          </div>
-        )}
-        {!focusedBlockId && (
-          <div className="block-controls">
             <button type="button" className="btn-ghost-small" onClick={() => handleRemoveFromWorkspace(block)}>
               Remove from Workspace
             </button>
             <button type="button" className="btn-ghost-small" onClick={() => handleDeleteBlock(block.id)}>
               Delete entry
             </button>
-          </div>
+          </EntryMenu>
         )}
       </div>
     );

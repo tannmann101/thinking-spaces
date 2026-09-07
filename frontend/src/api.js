@@ -46,7 +46,7 @@ async function request(path, options) {
   // an honest, non-misleading thing to say about any successful edit.
   // POST only announces when the backend actually has something to
   // report: unlike PATCH, not every POST is a "creation" worth
-  // announcing (moveBlockInSpace reorders, getLinkPreview only
+  // announcing (reorderBlocksInSpace reorders, getLinkPreview only
   // previews), so there's no safe generic fallback for it the way
   // "Saved" is for an edit.
   if (method === 'PATCH') onMutation?.(body?.changeSummary || 'Saved');
@@ -223,10 +223,11 @@ export const updateBlockTheme = (blockId, theme) =>
     method: 'PATCH',
     body: JSON.stringify({ theme }),
   });
-export const moveBlockInSpace = (spaceId, blockId, direction) =>
-  request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
+// The whole resulting order, not one step -- the feed is dragged.
+export const reorderBlocksInSpace = (spaceId, order) =>
+  request(`/spaces/${spaceId}/blocks/reorder`, {
     method: 'POST',
-    body: JSON.stringify({ direction }),
+    body: JSON.stringify({ order }),
   });
 
 // Workspaces: a deliberately assembled, named environment inside one

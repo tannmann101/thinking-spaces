@@ -40,7 +40,7 @@ import {
   updateBlockTheme,
   moveBlockToSpace,
   deleteBlock,
-  moveBlockInSpace,
+  reorderBlocksInSpace,
 } from './db/blocks.js';
 import {
   listWorkspacesForSpace,
@@ -210,11 +210,13 @@ async function handleAddBlock(request, env, spaceId) {
   return json(await addBlockToSpace(env, spaceId, { type, content, properties }), 201);
 }
 
-async function handleMoveBlock(request, env, spaceId, blockId) {
+// The feed is dragged rather than nudged a step at a time, so this
+// takes the whole resulting order instead of one id and a direction.
+async function handleReorderBlocks(request, env, spaceId) {
   const body = (await readJson(request)) || {};
-  const { direction } = body;
-  if (direction !== -1 && direction !== 1) return errorResponse('direction must be -1 or 1');
-  await moveBlockInSpace(env, spaceId, blockId, direction);
+  const { order } = body;
+  if (!Array.isArray(order)) return errorResponse('order must be an array of entry ids');
+  await reorderBlocksInSpace(env, spaceId, order);
   return json(await listBlocksForSpace(env, spaceId));
 }
 
@@ -540,8 +542,8 @@ export default {
       if (m && method === 'GET') return json(await listBlocksForSpace(env, m[1]));
       if (m && method === 'POST') return await handleAddBlock(request, env, m[1]);
 
-      m = path.match(/^\/api\/spaces\/([\w-]+)\/blocks\/([\w-]+)\/move$/);
-      if (m && method === 'POST') return await handleMoveBlock(request, env, m[1], m[2]);
+      m = path.match(/^\/api\/spaces\/([\w-]+)\/blocks\/reorder$/);
+      if (m && method === 'POST') return await handleReorderBlocks(request, env, m[1]);
 
       m = path.match(/^\/api\/blocks\/([\w-]+)$/);
       if (m && method === 'GET') {

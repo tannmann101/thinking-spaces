@@ -211,20 +211,30 @@ export async function deleteBlock(env, id) {
   }
 }
 
-// Reordering blocks on a live Space (distinct from ListBlock's own
-// item reordering, which stays inside one block's content): swaps two
-// blocks' `position` values directly rather than renumbering the
-// whole list, so it works regardless of what positions currently are.
-export async function moveBlockInSpace(env, spaceId, blockId, direction) {
+// Reordering a Space's entries. Takes the ids in the order they should
+// end up, rather than a direction and one id: the feed is dragged now,
+// so a move can be any distance, and a run of adjacent swaps to express
+// that would be both slow and briefly wrong at every intermediate step.
+//
+// Ids not belonging to this Space are ignored, and any entry the caller
+// left out keeps its place at the end -- a stale list from a page that
+// hasn't seen a just-added entry reorders what it knows about instead
+// of dropping the rest to position 0.
+//
+// One batch, so the feed is never half-reordered: D1 applies a batch
+// atomically.
+export async function reorderBlocksInSpace(env, spaceId, orderedIds) {
   const blocks = await listBlocksForSpace(env, spaceId);
-  const index = blocks.findIndex((block) => block.id === blockId);
-  const targetIndex = index + direction;
-  if (index === -1 || targetIndex < 0 || targetIndex >= blocks.length) return;
+  const known = new Set(blocks.map((block) => block.id));
+  const named = orderedIds.filter((id) => known.has(id));
+  const rest = blocks.map((block) => block.id).filter((id) => !named.includes(id));
+  const finalOrder = [...named, ...rest];
 
-  const current = blocks[index];
-  const target = blocks[targetIndex];
-  await env.DB.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).bind(target.position, current.id).run();
-  await env.DB.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).bind(current.position, target.id).run();
+  await env.DB.batch(
+    finalOrder.map((id, position) =>
+      env.DB.prepare(`UPDATE blocks SET position = ? WHERE id = ?`).bind(position, id)
+    )
+  );
 }
 
 // Moving an entry to a different Space. Until this existed an entry was
@@ -282,14 +292,19 @@ export async function moveBlockToSpace(env, id, targetSpaceId) {
   await logActivity(env, {
     spaceId: block.space_id,
     spaceTitle: source?.title ?? null,
-    kind: 'block_removed',
+    // Its own kinds rather than reusing added/removed: a move is not a
+    // creation or a deletion, it reads differently in the Log, and a
+    // Space's own Trail hides the entries it was *created* with (see
+    // listSpaceHistory) -- which would otherwise swallow an entry moved
+    // into a Space in the same second it was made.
+    kind: 'block_moved_out',
     summary: `Moved a ${block.type} entry out to "${target.title}"`,
   });
   await logActivity(env, {
     spaceId: targetSpaceId,
     spaceTitle: target.title,
     blockId: id,
-    kind: 'block_added',
+    kind: 'block_moved_in',
     summary: `Moved a ${block.type} entry in from "${source?.title ?? block.space_id}"`,
   });
   return { ...(await getBlockById(env, id)), changeSummary: summary };

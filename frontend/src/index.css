@@ -1567,28 +1567,96 @@ label {
      under the pointer as you move down a feed.
    Approaching with a mouse, or tabbing in from the keyboard, brings them
    fully back. */
-.block-report-row,
-.block-controls {
+/* Everything you can *do* to an entry, behind one control at its edge.
+   Two open rows of six buttons used to wrap content that is often a
+   single line; dimming them (below, still) made them recede without
+   making them fewer. See components/EntryMenu.jsx. */
+.entry-menu {
+  position: absolute;
+  top: var(--space-s);
+  right: var(--space-s);
   opacity: 0.45;
   transition: opacity var(--dur-fast) var(--ease-standard);
 }
 
-.block-row:hover .block-report-row,
-.block-row:hover .block-controls,
-.block-row:focus-within .block-report-row,
-.block-row:focus-within .block-controls {
+.block-row:hover .entry-menu,
+.block-row:focus-within .entry-menu,
+.entry-menu[open] {
   opacity: 1;
 }
 
-/* A coarse pointer never hovers, so there is nothing to reveal: show the
-   controls outright rather than leaving them permanently dimmed. */
+/* A coarse pointer never hovers, so there is nothing to reveal. */
 @media (hover: none) {
-  .block-report-row,
-  .block-controls {
+  .entry-menu {
     opacity: 1;
   }
 }
 
+.entry-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--control-min);
+  min-height: var(--control-min);
+  border-radius: var(--radius-sm);
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  cursor: pointer;
+  list-style: none;
+}
+.entry-menu-toggle::-webkit-details-marker {
+  display: none;
+}
+.entry-menu-toggle:hover {
+  color: var(--ink);
+  background: var(--level-field);
+}
+
+/* Right-aligned so it hangs off the toggle rather than off the page. */
+.entry-menu-items {
+  position: absolute;
+  top: calc(var(--control-min) + var(--space-2xs));
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+  min-width: 190px;
+  padding: var(--space-s);
+  background: var(--level-overlay);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  animation: surface-rise-in var(--dur-fast) var(--ease-decelerate);
+}
+
+/* The items come from four different components (a report button, the
+   theme picker, a Space <select>, a plain button), each with its own
+   intrinsic alignment -- left them reading as a ragged column. This
+   makes them one list regardless of what each one is made of. */
+.entry-menu-items > *,
+.entry-menu-items button,
+.entry-menu-items select,
+.entry-menu-items .report-button-wrap {
+  display: block;
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* The entry row is the positioning context for the menu above it. */
+.block-row {
+  position: relative;
+}
+
+/* Where a dragged entry would land. Same marker a List's own items use. */
+.block-row.drag-over {
+  border-color: var(--maroon);
+}
+
+/* Still used where entries are drafts rather than real rows -- the
+   Template editor and Creation Mode's own arrangement, neither of which
+   has a saved entry to open a menu on. */
 .block-controls {
   margin-top: var(--space-s);
   display: flex;

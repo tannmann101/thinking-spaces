@@ -45,9 +45,9 @@ function TemplatesPage() {
         </PageActions>
       </div>
       <p>
-        <Link to="/resource-templates">Manage Resource Templates</Link> — a separate set of
-        starting facets used specifically by <Link to="/resources/new">New Resource</Link>, one per
-        type of thing (Book, Poem, Debate, ...).
+        A Template is a starting arrangement of entries for a new Space. Creating a{' '}
+        <Link to="/resources/new">Resource</Link> instead asks its own questions, tailored to the
+        type of thing it is (Book, Poem, Debate, ...) — those live in the code, not here.
       </p>
 
       {error && <p>Could not load templates: {error}</p>}

@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS templates (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Retired, alongside `projects` and `goals` below. Declared so a fresh
+-- database matches the deployed one, and so nothing has to be dropped
+-- from a database holding real data; no code reads any of the three.
+-- Resource Templates live in frontend/src/registry/resourceTemplates.js.
 CREATE TABLE IF NOT EXISTS resource_templates (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL UNIQUE,

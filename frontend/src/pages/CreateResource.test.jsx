@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import CreateResource from './CreateResource.jsx';
 import * as api from '../api.js';
+import { resourceTemplates } from '../registry/resourceTemplates.js';
 
 vi.mock('../api.js');
 
@@ -24,7 +25,6 @@ function renderPage() {
 beforeEach(() => {
   vi.resetAllMocks();
   api.getSpaces.mockResolvedValue([]);
-  api.getResourceTemplateByType.mockResolvedValue(null);
 });
 
 describe('CreateResource: type tags', () => {
@@ -62,60 +62,50 @@ describe('CreateResource: type tags', () => {
 });
 
 describe('CreateResource: Resource Templates', () => {
-  it('replaces the generic facets with a matching template\'s own once its type is chosen', async () => {
+  // Driven by the real registry rather than a mocked lookup -- these
+  // are a plain data file now, so a test can use the actual Book
+  // template and can't drift from what the app really offers.
+  const book = resourceTemplates.book;
+
+  it("replaces the generic facets with a matching template's own once its type is chosen", async () => {
     const user = userEvent.setup();
-    api.getResourceTemplateByType.mockImplementation((type) =>
-      Promise.resolve(
-        type === 'book'
-          ? { id: 'rt-book', type: 'book', label: 'Book', facets: [{ name: 'Core Argument', prompt: 'What is it arguing?' }] }
-          : null
-      )
-    );
     renderPage();
     expect(screen.getByText('What It Is')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '+ book' }));
     expect(await screen.findByText(/template's own questions below/)).toBeInTheDocument();
-    expect(screen.getByText('Book')).toBeInTheDocument();
-    expect(screen.getByText('Core Argument')).toBeInTheDocument();
-    expect(screen.getByText('What is it arguing?')).toBeInTheDocument();
+    expect(screen.getByText(book.label)).toBeInTheDocument();
+    expect(screen.getByText(book.facets[0].name)).toBeInTheDocument();
+    expect(screen.getByText(book.facets[0].prompt)).toBeInTheDocument();
     expect(screen.queryByText('What It Is')).not.toBeInTheDocument();
   });
 
   it('falls back to the generic facets once the matching type tag is removed', async () => {
     const user = userEvent.setup();
-    api.getResourceTemplateByType.mockImplementation((type) =>
-      Promise.resolve(
-        type === 'book' ? { id: 'rt-book', type: 'book', label: 'Book', facets: [{ name: 'Core Argument', prompt: 'x' }] } : null
-      )
-    );
     renderPage();
     await user.click(screen.getByRole('button', { name: '+ book' }));
-    await screen.findByText('Core Argument');
+    await screen.findByText(book.facets[0].name);
 
     await user.click(screen.getByTitle('Remove'));
     await waitFor(() => expect(screen.getByText('What It Is')).toBeInTheDocument());
-    expect(screen.queryByText('Core Argument')).not.toBeInTheDocument();
+    expect(screen.queryByText(book.facets[0].name)).not.toBeInTheDocument();
   });
 
-  it('submits the template\'s own facet names as Categories, not the generic ones', async () => {
+  it("submits the template's own facet names as Categories, not the generic ones", async () => {
     const user = userEvent.setup();
-    api.getResourceTemplateByType.mockImplementation((type) =>
-      Promise.resolve(
-        type === 'book' ? { id: 'rt-book', type: 'book', label: 'Book', facets: [{ name: 'Core Argument', prompt: 'x' }] } : null
-      )
-    );
     api.createSpace.mockResolvedValue({ id: 'new-id' });
     renderPage();
     await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'My Book');
     await user.click(screen.getByRole('button', { name: '+ book' }));
-    await screen.findByText('Core Argument');
+    await screen.findByText(book.facets[0].name);
 
     await user.click(screen.getByRole('button', { name: 'Create Resource' }));
     await waitFor(() => expect(api.createSpace).toHaveBeenCalled());
     const payload = api.createSpace.mock.calls[0][0];
-    expect(payload.categories).toEqual(['Core Argument', 'Touches / Touched By']);
-    expect(payload.extraBlocks.find((b) => b.properties?.categories?.[0] === 'Core Argument')).toBeTruthy();
+    expect(payload.categories).toEqual([...book.facets.map((f) => f.name), 'Touches / Touched By']);
+    expect(
+      payload.extraBlocks.find((b) => b.properties?.categories?.[0] === book.facets[0].name)
+    ).toBeTruthy();
   });
 });
 
@@ -302,7 +292,10 @@ describe('CreateResource: submitting', () => {
     renderPage();
 
     await user.type(screen.getByPlaceholderText('What is this Resource called?'), 'My Book');
-    await user.click(screen.getByRole('button', { name: '+ book' }));
+    // A freely-typed type with no template of its own, so this stays a
+    // test of the *generic* four facets -- "book" has real questions of
+    // its own now, and the template path is covered separately above.
+    await user.type(screen.getByPlaceholderText('+ type'), 'gadget{Enter}');
     // Three textareas (What It Is / Affords / Offers) share this
     // placeholder -- the first is "What It Is".
     await user.type(screen.getAllByPlaceholderText('(optional — can be filled in later)')[0], 'A physical book');
@@ -316,7 +309,7 @@ describe('CreateResource: submitting', () => {
     await waitFor(() => expect(api.createSpace).toHaveBeenCalled());
     const payload = api.createSpace.mock.calls[0][0];
     expect(payload.title).toBe('My Book');
-    expect(payload.tags).toEqual(['resource', 'book']);
+    expect(payload.tags).toEqual(['resource', 'gadget']);
     expect(payload.origin).toBe('external');
     expect(payload.categories).toEqual(['What It Is', 'What It Affords', 'What It Offers', 'Touches / Touched By']);
     expect(payload.extraBlocks.find((b) => b.type === 'reference')).toMatchObject({

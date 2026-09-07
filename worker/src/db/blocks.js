@@ -92,100 +92,6 @@ export async function listBacklinksForSpace(env, spaceId) {
   }));
 }
 
-// The Graph view (Pass 5's "Map"): every Reference block across every
-// Space, as nodes (Spaces) and edges (References), plus every Workspace
-// and every Project as their own nodes connected to their parent Space
-// by a "contains" edge -- the Relational Map integration Workspaces
-// originally deferred, and Projects picked up in the same pass once an
-// outside-review audit found Projects had been left out of the Graph
-// entirely with no reason on record (unlike the Workspace precedent,
-// this wasn't a deliberate deferral, just an unflagged gap). Still a
-// plain query over existing tables -- CLAUDE.md is explicit that no
-// separate graph structure gets modeled or cached, so this always
-// reflects whatever the blocks/workspaces/projects tables currently
-// hold. The Test Space (and anything inside it) is left out for the
-// same reason it's left out of every other cross-Space view: it's
-// scratch content, not part of the real Map.
-export async function getGraphData(env) {
-  const spacesResult = await env.DB.prepare(`SELECT id, title, status FROM spaces WHERE id != ? ORDER BY title ASC`)
-    .bind(TEST_SPACE_ID)
-    .all();
-
-  const workspacesResult = await env.DB.prepare(
-    `SELECT workspaces.id, workspaces.space_id, workspaces.name
-     FROM workspaces
-     JOIN spaces ON spaces.id = workspaces.space_id
-     WHERE spaces.id != ?
-     ORDER BY workspaces.name ASC`
-  )
-    .bind(TEST_SPACE_ID)
-    .all();
-
-  // A Project has no Space of its own anymore (see projects.js), so its
-  // place on the map is derived from wherever its member entries live.
-  const projectPairsResult = await env.DB.prepare(
-    `SELECT DISTINCT projects.id AS project_id, projects.name AS name, blocks.space_id AS space_id
-       FROM projects
-       JOIN blocks ON json_extract(blocks.properties, '$.projectId') = projects.id
-       JOIN spaces ON spaces.id = blocks.space_id
-      WHERE spaces.id != ?
-      ORDER BY projects.name ASC`
-  )
-    .bind(TEST_SPACE_ID)
-    .all();
-
-  // One node per Project, anchored at the first Space its work appears
-  // in -- `primary_space_id` is a computed placement hint for the map,
-  // not a stored column.
-  const projects = [];
-  const seenProject = new Set();
-  projectPairsResult.results.forEach((row) => {
-    if (seenProject.has(row.project_id)) return;
-    seenProject.add(row.project_id);
-    projects.push({ id: row.project_id, name: row.name, primary_space_id: row.space_id });
-  });
-
-  const referenceRows = await env.DB.prepare(
-    `SELECT blocks.id AS block_id, blocks.space_id AS source_space_id, blocks.content AS content
-     FROM blocks
-     JOIN spaces ON spaces.id = blocks.space_id
-     WHERE blocks.type = 'reference' AND spaces.id != ?`
-  )
-    .bind(TEST_SPACE_ID)
-    .all();
-
-  const referenceEdges = referenceRows.results
-    .map((row) => {
-      const content = JSON.parse(row.content);
-      return {
-        kind: 'reference',
-        blockId: row.block_id,
-        sourceSpaceId: row.source_space_id,
-        targetSpaceId: content.target_space_id,
-        note: content.note ?? null,
-      };
-    })
-    .filter((edge) => edge.targetSpaceId && edge.targetSpaceId !== TEST_SPACE_ID);
-
-  const containmentEdges = workspacesResult.results.map((workspace) => ({
-    kind: 'contains',
-    spaceId: workspace.space_id,
-    workspaceId: workspace.id,
-  }));
-
-  const projectContainmentEdges = projectPairsResult.results.map((row) => ({
-    kind: 'contains-project',
-    spaceId: row.space_id,
-    projectId: row.project_id,
-  }));
-
-  return {
-    spaces: spacesResult.results,
-    workspaces: workspacesResult.results,
-    projects,
-    edges: [...referenceEdges, ...containmentEdges, ...projectContainmentEdges],
-  };
-}
 
 export async function getBlockById(env, id) {
   const row = await env.DB.prepare(
@@ -337,11 +243,9 @@ export async function moveBlockInSpace(env, spaceId, blockId, direction) {
 //   workspaces  cleared. These are ids of Workspaces that belong to the
 //               source Space (workspaces.space_id), so in the target they
 //               would resolve to nothing at all.
-//   projectId   kept. A Project deliberately belongs to no Space (see
-//               projects.js) -- its members live in whatever Spaces they
-//               were created in -- so a Milestone that moves house is
-//               still serving the same Project, and the Project's own
-//               page just starts listing it under a different Space.
+//   projectId   kept, though nothing reads it any more -- Projects were
+//               retired, and their leftover ids are carried rather than
+//               stripped so nothing is quietly destroyed on the way.
 //   theme       kept. A per-entry look the person chose by hand; nothing
 //               about it refers to the Space.
 //
@@ -470,30 +374,13 @@ export async function updateBlockWorkspaces(env, id, workspaceIds) {
   return getBlockById(env, id);
 }
 
-// Which Project (see projects.js) this block belongs to -- a single
-// nullable id, not an array, since a Milestone or Session most
-// naturally serves one project at a time (unlike a Tool, which can
-// usefully belong to several Workspaces). Pass null to clear it. Scoped
-// in practice to Milestone and Session (the two Time Types a "goal/
-// project" is really about), but nothing here enforces that -- same
-// "properties are just properties" looseness
-// updateBlockCategories/updateBlockWorkspaces already have.
-export async function updateBlockProject(env, id, projectId) {
-  const block = await getBlockById(env, id);
-  if (!block) return null;
-  const properties = { ...block.properties, projectId: projectId || null };
-  await env.DB.prepare(`UPDATE blocks SET properties = ?, updated_at = datetime('now') WHERE id = ?`)
-    .bind(JSON.stringify(properties), id)
-    .run();
-  return getBlockById(env, id);
-}
 
 // The manual half of this Tool's own look -- any subset of
 // {accent, shape, density, typeface} overriding the distinct default
 // its own type already computes (see frontend/src/theme/itemTheme.js).
 // Passing null clears the override entirely, putting the block back on
 // its type's default. Stored in `properties` alongside categories/
-// workspaces/projectId rather than as its own column, same reasoning
+// workspaces rather than as its own column, same reasoning
 // every other per-block attribute already follows: it's a property of
 // the block, not its content.
 export async function updateBlockTheme(env, id, theme) {

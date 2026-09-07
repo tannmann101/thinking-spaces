@@ -22,9 +22,9 @@ import { usePageTitle } from '../hooks/usePageTitle.js';
 // is the part that actually wants you today.
 const DASHBOARD_SPACE_LIMIT = 6;
 
-// Resources and Syntheses each have their own page now. The digests keep
-// the most recent few as a reminder that they exist, and hand off rather
-// than repeating the whole list in two places.
+// Resources and Syntheses are ordinary Spaces carrying a tag. The
+// digests keep the most recent few as a reminder that they exist and
+// hand off to the Spaces page, where each is a filter.
 const DIGEST_LIMIT = 4;
 
 // Every digest below renders as a native <details>, not a plain
@@ -298,7 +298,7 @@ function ResourcesDigest({ spaces }) {
           </li>
         ))}
       </ul>
-      <Link to="/resources" className="see-all-link">
+      <Link to="/spaces" className="see-all-link">
         See all {spaces.length}
       </Link>
     </details>
@@ -327,7 +327,7 @@ function SynthesesDigest({ spaces }) {
           </li>
         ))}
       </ul>
-      <Link to="/syntheses" className="see-all-link">
+      <Link to="/spaces" className="see-all-link">
         See all {spaces.length}
       </Link>
     </details>
@@ -375,17 +375,12 @@ function Dashboard() {
       <main className="app-content">
 
       <h1>Dashboard</h1>
-      {/* A coherence audit found six different pages answering "what's
-          going on" (this one, Insights, the Log, a Space's own Trail,
-          Review, and on-demand Reports) with no page ever saying how it
-          relates to the others -- that hierarchy only existed in
-          CLAUDE.md's own Roadmap prose. This line, and the matching ones
-          on Insights/the Log/Trail, are the fix: each names what it is
-          and points at its two nearest neighbors, in a closed loop
-          rather than every page just describing itself in isolation. */}
+      {/* Each of the places you can look back from says what it is and
+          points at its neighbours, rather than describing itself in
+          isolation -- see the matching lines on the Log and on Trail. */}
       <p>
-        Where you land — create Spaces, see what needs attention, and browse everything you've
-        built. For trends across all of it, see Insights; for the complete history, see the Log.
+        Where you land — create Spaces and see what needs attention. For every Space, see Spaces;
+        for the complete history, see the Log.
       </p>
 
       <PageActions>
@@ -399,17 +394,6 @@ function Dashboard() {
           + New Synthesis
         </Link>
       </PageActions>
-
-      {/* The one thing on this page meant to actually stand out --
-          "see trends/metrics/insights across Spaces" was the Dashboard's
-          founding idea, and this is the real version of it, not another
-          digest in the stack below. */}
-      <Link to="/insights" className="insights-banner">
-        <span className="insights-banner-title">Insights</span>
-        <span className="insights-banner-sub">
-          Aggregate trends across every Space — Work Types, themes, activity, provenance.
-        </span>
-      </Link>
 
       <OverdueReviews items={overdue} />
       <WeekCalendarDigest days={weekDays} onDataChanged={refetchWeek} />

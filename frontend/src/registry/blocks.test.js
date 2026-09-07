@@ -102,17 +102,11 @@ describe('viewRegistry', () => {
     // A self-consistency guard: if a demoBlock is edited without
     // keeping appliesTo's own matching logic in mind, the Tools catalog
     // would demo a View that claims not to apply to the very data it's
-    // demoing. Graph is excluded -- its appliesTo always returns false
-    // by design (see the comment in views.js), and it takes demoProps,
-    // not a demoBlock.
+    // demoing.
     Object.entries(viewRegistry).forEach(([key, entry]) => {
       if (!entry.demoBlock) return;
       expect(entry.appliesTo(entry.demoBlock), `${key}.appliesTo(${key}.demoBlock)`).toBe(true);
     });
-  });
-
-  it('Graph deliberately never applies to any single block', () => {
-    expect(viewRegistry.graph.appliesTo({})).toBe(false);
   });
 
   it('Timeline does not apply to a List with no dated items', () => {

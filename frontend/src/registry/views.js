@@ -11,11 +11,10 @@
 // That overlap is expected, not a bug: it's what "computed over shared
 // properties" means in practice.
 //
-// `worksWith` and `demoBlock`/`demoProps` exist purely for the Tools
-// catalog page (ToolsPage.jsx) -- see the matching comment in
-// registry/blocks.js. Every View here demos through a plain List
-// demoBlock except Graph, which takes {spaces, edges} directly rather
-// than a block, so it gets `demoProps` instead.
+// `worksWith` and `demoBlock` exist purely for the Tools catalog page
+// (ToolsPage.jsx) -- see the matching comment in registry/blocks.js.
+// Every View here demos over a plain List block, since that is what a
+// View is: a computed reading of one block's own items.
 //
 // `icon`, same reasoning as blockRegistry's own field: a small,
 // restrained per-Tool glyph so the Tools catalog doesn't read as one
@@ -25,7 +24,6 @@ import TimelineView from '../views/TimelineView.jsx';
 import ProgressView from '../views/ProgressView.jsx';
 import StreakView from '../views/StreakView.jsx';
 import LedgerView from '../views/LedgerView.jsx';
-import GraphView from '../views/GraphView.jsx';
 
 function isListBlock(block) {
   return block.type === 'list' && Array.isArray(block.content.items);
@@ -105,36 +103,6 @@ export const viewRegistry = {
           { id: 'demo-2', text: 'Spent on research', number: -20 },
         ],
       },
-    },
-  },
-  // Unlike every View above, Graph isn't computed over one block -- it's
-  // computed over every Reference block across every Space (CLAUDE.md's
-  // "Relational Map"), so it has no single block to attach to and
-  // appliesTo always returns false. It renders on its own page
-  // (GraphPage.jsx, at /graph) instead of inline in a Space's block
-  // feed. It's listed here anyway so this file stays the one place
-  // every View is documented.
-  graph: {
-    label: 'Graph',
-    description: 'Every Reference block, every Workspace, and every Project across every Space, as nodes and edges.',
-    icon: '◈',
-    appliesTo: () => false,
-    component: GraphView,
-    worksWith: ['reference'],
-    demoProps: {
-      spaces: [
-        { id: 'demo-a', title: 'Space A' },
-        { id: 'demo-b', title: 'Space B' },
-        { id: 'demo-c', title: 'Space C' },
-      ],
-      workspaces: [{ id: 'demo-workspace', space_id: 'demo-a', name: 'Demo Workspace' }],
-      projects: [{ id: 'demo-project', space_id: 'demo-b', name: 'Demo Project' }],
-      edges: [
-        { kind: 'reference', blockId: 'demo-edge-1', sourceSpaceId: 'demo-a', targetSpaceId: 'demo-b' },
-        { kind: 'reference', blockId: 'demo-edge-2', sourceSpaceId: 'demo-b', targetSpaceId: 'demo-c' },
-        { kind: 'contains', spaceId: 'demo-a', workspaceId: 'demo-workspace' },
-        { kind: 'contains-project', spaceId: 'demo-b', projectId: 'demo-project' },
-      ],
     },
   },
 };

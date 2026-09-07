@@ -145,7 +145,7 @@ export const blockRegistry = {
     icon: '→',
     component: ReferenceBlock,
     workshopComponent: ReferenceWorkshop,
-    worksWith: ['comparison', 'graph'],
+    worksWith: ['comparison'],
     // Points at the real Test Space so clicking the demo is harmless
     // (and even a little useful) rather than a dead link.
     demoBlock: {

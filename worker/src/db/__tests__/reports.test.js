@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
-import { getBlockReport, getWorkspaceReport, getProjectReport, getSpaceReport } from '../reports.js';
+import { getBlockReport, getWorkspaceReport, getSpaceReport } from '../reports.js';
 import { createSpace } from '../spaces.js';
-import { createBlock, addBlockToSpace, updateBlockCategories, updateBlockWorkspaces, updateBlockProject } from '../blocks.js';
+import { createBlock, addBlockToSpace, updateBlockCategories, updateBlockWorkspaces } from '../blocks.js';
 import { createWorkspace } from '../workspaces.js';
-import { createProject } from '../projects.js';
 import { logTrailEntry } from '../trail.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
@@ -67,15 +66,6 @@ describe('getBlockReport', () => {
     const report = await getBlockReport(env, filed.id);
     const membership = report.sections.find((s) => s.heading === 'Membership');
     expect(membership.lines).toEqual(['Categories: Risk', 'Workspaces: WS']);
-  });
-
-  it('includes a Project membership line for a Milestone/Session assigned to one', async () => {
-    const project = await createProject(env, { name: 'Ship it' });
-    const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
-    await updateBlockProject(env, block.id, project.id);
-    const report = await getBlockReport(env, block.id);
-    const membership = report.sections.find((s) => s.heading === 'Membership');
-    expect(membership.lines).toEqual(['Project: Ship it']);
   });
 
   it('includes a "Used in Synthesis" membership line for a Work item referenced by a Source Material block\'s sourceItemIds, across every Space it feeds', async () => {
@@ -147,42 +137,6 @@ describe('getWorkspaceReport', () => {
   });
 });
 
-describe('getProjectReport', () => {
-  let space;
-  beforeEach(async () => {
-    await resetDb(env);
-    space = await createSpace(env, { title: 'A Space' });
-  });
-
-  it('returns null for a nonexistent Project', async () => {
-    expect(await getProjectReport(env, 'nonexistent')).toBeNull();
-  });
-
-  it('lists only the Milestones/Sessions assigned to this Project, with a reached/logged-minutes readout', async () => {
-    const project = await createProject(env, { name: 'Ship it' });
-    const milestone = await createBlock(env, {
-      spaceId: space.id,
-      type: 'milestone',
-      content: { label: 'Ship it', targetDate: null, reached: true, reachedAt: '2024-01-01', note: null },
-    });
-    await updateBlockProject(env, milestone.id, project.id);
-    const session = await createBlock(env, {
-      spaceId: space.id,
-      type: 'session',
-      content: { label: 'Drafting', startedAt: null, endedAt: null, durationMinutes: 30, note: null },
-    });
-    await updateBlockProject(env, session.id, project.id);
-    await createBlock(env, { spaceId: space.id, type: 'milestone', content: { reached: false } }); // not assigned
-
-    const report = await getProjectReport(env, project.id);
-    expect(report.label).toBe('Ship it');
-    const assigned = report.sections.find((s) => s.heading.startsWith('Assigned'));
-    expect(assigned.heading).toBe('Assigned Milestones & Sessions (2)');
-    expect(assigned.lines).toContain('Milestones: 1 of 1 reached');
-    expect(assigned.lines).toContain('Sessions: 30 min logged across 1');
-  });
-});
-
 describe('getSpaceReport', () => {
   beforeEach(async () => {
     await resetDb(env);
@@ -208,24 +162,6 @@ describe('getSpaceReport', () => {
     expect(identity).toContain('Tags: resource');
     expect(identity).toContain('Categories: Risk');
     expect(identity).toContain('Provenance: external');
-  });
-
-  it('counts block types and lists Workspaces and Projects in Structure', async () => {
-    const space = await createSpace(env, { title: 'Structured' });
-    await createBlock(env, { spaceId: space.id, type: 'text', content: {} });
-    await createBlock(env, { spaceId: space.id, type: 'text', content: {} });
-    await createWorkspace(env, { spaceId: space.id, name: 'My Workspace' });
-    // A Project reaches a Space through its entries, not ownership.
-    const project = await createProject(env, { name: 'My Project' });
-    const milestone = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
-    await updateBlockProject(env, milestone.id, project.id);
-
-    const report = await getSpaceReport(env, space.id);
-    const structure = report.sections.find((s) => s.heading.startsWith('Structure'));
-    expect(structure.heading).toBe('Structure (3 entries)');
-    expect(structure.lines).toContain('2 text');
-    expect(structure.lines).toContain('Workspaces: My Workspace');
-    expect(structure.lines).toContain('Projects: My Project');
   });
 
   it('includes a Work section only when Work items exist, with confidence breakdown', async () => {

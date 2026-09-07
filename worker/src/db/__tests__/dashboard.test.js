@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
 import { listOverdueReviews, getWeekCalendar, suggestSpaceToResurface, getNeedsAttentionCount } from '../dashboard.js';
 import { createSpace, updateSpace } from '../spaces.js';
-import { createBlock, updateBlockProject } from '../blocks.js';
-import { createProject } from '../projects.js';
+import { createBlock } from '../blocks.js';
 import { logTrailEntry } from '../trail.js';
 import { TEST_SPACE_ID, todayString } from '../constants.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
@@ -114,24 +113,10 @@ describe('getWeekCalendar', () => {
         reached: false,
         spaceId: space.id,
         spaceTitle: 'Has a Milestone',
-        projectName: null,
       },
     ]);
   });
 
-  it('resolves a Milestone\'s Project name when it belongs to one', async () => {
-    const space = await createSpace(env, { title: 'Has a Project' });
-    const project = await createProject(env, { name: 'Ship the redesign' });
-    const block = await createBlock(env, {
-      spaceId: space.id,
-      type: 'milestone',
-      content: { label: 'Ship it', targetDate: todayString(), reached: false, reachedAt: null, note: '' },
-    });
-    await updateBlockProject(env, block.id, project.id);
-    const days = await getWeekCalendar(env);
-    const today = days.find((d) => d.isToday);
-    expect(today.milestones[0].projectName).toBe('Ship the redesign');
-  });
 
   it('places a completed Session on the day it ended, and a running one on the day it started', async () => {
     const space = await createSpace(env, { title: 'Has Sessions' });

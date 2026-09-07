@@ -11,16 +11,11 @@ import {
   updateSpace,
   updateBlockCategories,
   updateBlockWorkspaces,
-  updateBlockProject,
   updateBlockTheme,
   getWorkspacesForSpace,
   createWorkspace,
-  getProjectsForSpace,
-  getProjects,
   getSpaces,
   moveBlockToSpace,
-  getGoals,
-  setSpaceGoals,
   deleteSpace,
   getSpaceReport,
   getBlockReport,
@@ -284,71 +279,6 @@ function CategoryManager({ space, onChanged }) {
   );
 }
 
-// Which Goals this Space is working toward.
-//
-// This replaced a single free-text "Working toward" line, which could
-// only ever hold one thing and could never be shared with another
-// Space. A Goal is a real, separate row (see GoalsPage.jsx), so the
-// same pursuit can be named once and worked toward from several
-// Spaces at once. Membership is a plain chip toggle, the same
-// many-to-many shape Categories and tags already use.
-function WorkingToward({ space, goals, onChanged }) {
-  const selected = space.goalIds || [];
-
-  async function toggle(goalId) {
-    const next = selected.includes(goalId)
-      ? selected.filter((id) => id !== goalId)
-      : [...selected, goalId];
-    await setSpaceGoals(space.id, next);
-    onChanged();
-  }
-
-  return (
-    <p className="working-toward">
-      Working toward:{' '}
-      {goals.length === 0 ? (
-        <>
-          <span className="empty-note">no Goals defined yet</span>{' '}
-          <Link to="/goals">Name one</Link>
-        </>
-      ) : (
-        <>
-          {goals.map((goal) => (
-            <button
-              key={goal.id}
-              type="button"
-              className={selected.includes(goal.id) ? 'chip chip-on' : 'chip'}
-              onClick={() => toggle(goal.id)}
-            >
-              {goal.name}
-            </button>
-          ))}{' '}
-          <Link to="/goals">Manage Goals</Link>
-        </>
-      )}
-    </p>
-  );
-}
-
-// Which Projects this Space is contributing work to -- derived from
-// its own Milestones and Sessions, never stored, so there is nothing
-// to set here. A Project is created and managed on its own page (see
-// ProjectsPage.jsx); an entry joins one through the picker on that
-// entry itself, which is what makes this line true.
-function ProjectsHere({ projects }) {
-  if (!projects || projects.length === 0) return null;
-  return (
-    <p className="working-toward">
-      Work here feeds:{' '}
-      {projects.map((project, index) => (
-        <span key={project.id}>
-          {index > 0 && ', '}
-          <Link to={`/projects/${project.id}`}>{project.name}</Link>
-        </span>
-      ))}
-    </p>
-  );
-}
 
 // A real target date for the Space as a whole -- distinct from a List
 // item's own `reviewBy` (which means "come back and reconsider this,"
@@ -492,15 +422,15 @@ function WorkspaceList({ space, workspaces, onChanged }) {
   );
 }
 
-// Which Project (if any) a Milestone/Session belongs to -- a single
-// value, not a many-to-many toggle like BlockWorkspacePicker below,
-// since a checkpoint or a timed sitting most naturally serves one
-// project at a time. Scoped to just Milestone/Session blocks -- a
-// Project is specifically their dedicated concept, not a general one
-// every Tool joins the way a Workspace is.
+
+// once the Space has at least one Workspace, same zero-state reasoning
+// as BlockCategoryPicker. Membership is stored as Workspace ids (see
+// updateBlockWorkspaces), so this resolves each id against the Space's
+// current Workspace list -- a since-deleted Workspace's id just quietly
+// stops resolving to a chip, same as a removed Category would.
 // Sending one entry to a different Space. Sits with the other per-entry
 // controls rather than in the row of chips above them, because it isn't
-// a property of the entry the way a Category or a Project is -- it's an
+// a property of the entry the way a Category is -- it's an
 // action that takes the entry off this page.
 //
 // Hidden for a Skeleton section: those four lanes plus the articulation
@@ -534,50 +464,8 @@ function BlockSpaceMover({ block, spaces, currentSpaceId, onMoved }) {
   );
 }
 
-function BlockProjectPicker({ block, allProjects, onChanged }) {
-  if (!['milestone', 'session'].includes(block.type)) return null;
-  const current = block.properties?.projectId || null;
-
-  async function select(event) {
-    await updateBlockProject(block.id, event.target.value || null);
-    onChanged();
-  }
-
-  // Every Project is offered, not just ones this Space already feeds --
-  // assigning an entry here is precisely how a Space comes to feed a
-  // Project at all, so filtering to "Projects already here" would make
-  // the first assignment impossible.
-  if (allProjects.length === 0) {
-    return (
-      <p className="block-workspace-row">
-        <Link to="/projects">Start a Project</Link> to give this a home.
-      </p>
-    );
-  }
-
-  return (
-    <p className="block-workspace-row">
-      <label>
-        Project:{' '}
-        <select value={current || ''} onChange={select}>
-          <option value="">(none)</option>
-          {allProjects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
-      </label>
-    </p>
-  );
-}
-
 // Which Workspaces this one block has been assembled into. Only shows
-// once the Space has at least one Workspace, same zero-state reasoning
-// as BlockCategoryPicker. Membership is stored as Workspace ids (see
-// updateBlockWorkspaces), so this resolves each id against the Space's
-// current Workspace list -- a since-deleted Workspace's id just quietly
-// stops resolving to a chip, same as a removed Category would.
+// once the Space actually has a Workspace to join.
 function BlockWorkspacePicker({ block, spaceWorkspaces, onChanged }) {
   if (spaceWorkspaces.length === 0) return null;
   const current = block.properties?.workspaces || [];
@@ -661,11 +549,6 @@ function SpacePage() {
   usePageTitle(space?.title);
   const [blocks, setBlocks] = useState(null);
   const [workspaces, setWorkspaces] = useState(null);
-  const [projects, setProjects] = useState(null);
-  const [goals, setGoals] = useState([]);
-  // Every Project in the app -- what an entry's own Project picker
-  // offers, since a Project is global now, not this Space's own.
-  const [allProjects, setAllProjects] = useState([]);
   const [allSpaces, setAllSpaces] = useState([]);
   const [backlinks, setBacklinks] = useState(null);
   const [trail, setTrail] = useState(null);
@@ -687,7 +570,7 @@ function SpacePage() {
   // <details> below every time anything else on the page changed.
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsInitialized = useRef(false);
-  // Same pattern, for the Organize (Workspaces+Projects) and Trail
+  // Same pattern, for the Workspaces and Trail
   // panels the coherence audit added -- see spaceHasOrganization/
   // spaceHasHistory above.
   const [organizeOpen, setOrganizeOpen] = useState(false);
@@ -740,11 +623,6 @@ function SpacePage() {
     getSpace(id).then(setSpace).catch((err) => setError(err.message));
     getBlocksForSpace(id).then(setBlocks).catch((err) => setError(err.message));
     getWorkspacesForSpace(id).then(setWorkspaces).catch((err) => setError(err.message));
-    getProjectsForSpace(id).then(setProjects).catch((err) => setError(err.message));
-    // Goals are global, not per-Space -- a failure to load them just
-    // means no chips to toggle, never a broken Space page.
-    getGoals().then(setGoals).catch(() => setGoals([]));
-    getProjects().then(setAllProjects).catch(() => setAllProjects([]));
     // For the per-entry "Move to..." picker. Failing quietly is fine:
     // the picker simply doesn't render, and nothing else here needs it.
     getSpaces().then(setAllSpaces).catch(() => setAllSpaces([]));
@@ -786,11 +664,11 @@ function SpacePage() {
   }, [space]);
 
   useEffect(() => {
-    if (workspaces && projects && !organizeInitialized.current) {
+    if (workspaces && !organizeInitialized.current) {
       organizeInitialized.current = true;
       setOrganizeOpen(spaceHasOrganization(workspaces));
     }
-  }, [workspaces, projects]);
+  }, [workspaces]);
 
   useEffect(() => {
     if (trail && !trailInitialized.current) {
@@ -936,8 +814,6 @@ function SpacePage() {
             >
               <summary>Details</summary>
               <SpaceThemePicker space={space} onChanged={refetchAll} />
-              <WorkingToward space={space} goals={goals} onChanged={refetchAll} />
-              <ProjectsHere projects={projects} />
               <DueDate space={space} onChanged={refetchAll} />
               <TagEditor space={space} onChanged={refetchAll} />
               <PromoteToResource space={space} onChanged={refetchAll} />
@@ -956,16 +832,12 @@ function SpacePage() {
                 ))}
               </p>
             )}
-
           </div>
 
           {/* Workspaces: the assembled environments inside this Space.
-              This panel was called "Organize" while it also held
-              Projects; now that a Project belongs to no Space and lives
-              on its own page, the panel holds exactly one thing and is
-              named for it. Adaptive density is unchanged -- a Space
-              that has never created a Workspace starts collapsed
-              rather than showing a full, empty boxed section. */}
+              Adaptive density -- a Space that has never created a
+              Workspace starts collapsed rather than showing a full,
+              empty boxed section. */}
           {workspaces && (
             <details
               className="space-collapsible-panel space-organize-panel"
@@ -1106,11 +978,6 @@ function SpacePage() {
                       <BlockWorkspacePicker
                         block={block}
                         spaceWorkspaces={workspaces || []}
-                        onChanged={refetchAll}
-                      />
-                      <BlockProjectPicker
-                        block={block}
-                        allProjects={allProjects}
                         onChanged={refetchAll}
                       />
                       <div className="block-report-row">

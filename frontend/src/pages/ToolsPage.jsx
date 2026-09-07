@@ -75,9 +75,7 @@ function ToolCard({ entry, kind, type }) {
         <p className="tool-works-with">Works with: {entry.worksWith.map(labelFor).join(', ')}</p>
       )}
       <div className="tool-demo">
-        {entry.demoProps ? (
-          <Demo {...entry.demoProps} />
-        ) : entry.demoBlock ? (
+        {entry.demoBlock ? (
           <DemoBlock entry={entry} />
         ) : (
           <p className="tool-no-demo">(no demo available)</p>

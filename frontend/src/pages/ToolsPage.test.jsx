@@ -23,9 +23,12 @@ function renderPage() {
 }
 
 describe('ToolsPage', () => {
-  it('renders every registered Block and View as its own Tool card', () => {
+  it('renders every offered Block and View as its own Tool card', () => {
     renderPage();
-    for (const entry of Object.values(blockRegistry)) {
+    // A retired Work Type is deliberately absent from the catalog: it
+    // still renders entries already written as one, but you can no
+    // longer add one. See blocks/workLabels.js.
+    for (const entry of Object.values(blockRegistry).filter((e) => !e.retired)) {
       expect(screen.getByRole('heading', { name: entry.label, level: 4 })).toBeInTheDocument();
     }
     for (const entry of Object.values(viewRegistry)) {
@@ -42,12 +45,15 @@ describe('ToolsPage', () => {
 
   it('shows a "works with" line for a Tool that declares one', () => {
     renderPage();
-    const entryWithWorksWith = Object.values(blockRegistry).find((e) => e.worksWith?.length > 0);
-    expect(entryWithWorksWith).toBeTruthy();
-    const expectedLabels = entryWithWorksWith.worksWith
+    const entry = Object.values(blockRegistry).find((e) => !e.retired && e.worksWith?.length > 0);
+    expect(entry).toBeTruthy();
+    const expectedLabels = entry.worksWith
       .map((k) => blockRegistry[k]?.label || viewRegistry[k]?.label || k)
       .join(', ');
-    expect(screen.getByText(`Works with: ${expectedLabels}`)).toBeInTheDocument();
+    // Scoped to this Tool's own card: two Tools can name the same single
+    // partner, so a bare getByText on the line is ambiguous.
+    const card = screen.getByRole('heading', { name: entry.label, level: 4 }).closest('.tool-card');
+    expect(within(card).getByText(`Works with: ${expectedLabels}`)).toBeInTheDocument();
   });
 });
 

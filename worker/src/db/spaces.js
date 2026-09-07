@@ -52,7 +52,7 @@ async function getMilestoneStats(env, spaceId) {
 }
 
 const SPACE_COLUMNS =
-  'id, title, status, template_id, tags, goal, goal_ids, categories, theme, origin, due_date, created_at, updated_at';
+  'id, title, status, template_id, tags, categories, theme, origin, due_date, created_at, updated_at';
 
 async function withComputedSpaceFields(env, space) {
   if (!space) return space;
@@ -64,7 +64,6 @@ async function withComputedSpaceFields(env, space) {
     // per-kind defaults are a rendering concern, so only the override
     // is ever stored.
     theme: space.theme ? JSON.parse(space.theme) : null,
-    goalIds: JSON.parse(space.goal_ids || '[]'),
     isTestSpace: space.id === TEST_SPACE_ID,
     // Both of these exist so the frontend never offers a delete the
     // backend is going to refuse -- same reasoning as hiding the
@@ -132,7 +131,7 @@ export async function createSpace(
   return { ...(await getSpaceById(env, id)), changeSummary: summary };
 }
 
-// A Space's title, status, tags, goal, categories, theme, and due
+// A Space's title, status, tags, categories, theme, and due
 // date are all edited through this one function. Any subset of fields
 // can be given; the rest keep their current value, same pattern as
 // updateTemplate (templates.js). categories are freely-named facets
@@ -144,7 +143,7 @@ export async function createSpace(
 // Space would otherwise compute for itself; passing null clears it back
 // to that computed default. dueDate is a real target date for the Space
 // as a whole, distinct from a List item's own `reviewBy`.
-export async function updateSpace(env, id, { title, status, tags, goal, categories, theme, dueDate } = {}) {
+export async function updateSpace(env, id, { title, status, tags, categories, theme, dueDate } = {}) {
   const existing = await env.DB.prepare(`SELECT * FROM spaces WHERE id = ?`).bind(id).first();
   if (!existing) return null;
 
@@ -152,16 +151,15 @@ export async function updateSpace(env, id, { title, status, tags, goal, categori
     title: title !== undefined ? title : existing.title,
     status: status !== undefined ? status : existing.status,
     tags: tags !== undefined ? JSON.stringify(tags) : existing.tags,
-    goal: goal !== undefined ? goal : existing.goal,
     categories: categories !== undefined ? JSON.stringify(categories) : existing.categories,
     theme: theme !== undefined ? (theme ? JSON.stringify(theme) : null) : existing.theme,
     due_date: dueDate !== undefined ? dueDate : existing.due_date,
   };
   await env.DB.prepare(
-    `UPDATE spaces SET title = ?, status = ?, tags = ?, goal = ?, categories = ?, theme = ?, due_date = ?, updated_at = datetime('now')
+    `UPDATE spaces SET title = ?, status = ?, tags = ?, categories = ?, theme = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
   )
-    .bind(next.title, next.status, next.tags, next.goal, next.categories, next.theme, next.due_date, id)
+    .bind(next.title, next.status, next.tags, next.categories, next.theme, next.due_date, id)
     .run();
   // changeSummary (see changeSummary.js) is a lighter-weight cousin of
   // the logActivity entry below -- a short sentence attached to the
@@ -238,9 +236,6 @@ export async function deleteSpace(env, id) {
     payload.spaces = (await env.DB.prepare(`SELECT * FROM spaces WHERE id = ?`).bind(id).all()).results;
     payload.blocks = (await env.DB.prepare(`SELECT * FROM blocks WHERE space_id = ?`).bind(id).all()).results;
     payload.workspaces = (await env.DB.prepare(`SELECT * FROM workspaces WHERE space_id = ?`).bind(id).all()).results;
-    // Projects are deliberately not captured: a Project no longer
-    // belongs to a Space (see projects.js), so deleting one Space must
-    // never take a Project other Spaces also feed with it.
     payload.trail_entries = (await env.DB.prepare(`SELECT * FROM trail_entries WHERE space_id = ?`).bind(id).all()).results;
     await recordTrash(env, { kind: 'space', label: existing.title, context: null, payload });
   }
@@ -263,7 +258,7 @@ export async function deleteSpace(env, id) {
 // (applyTemplate, templates.js), any extra Tools chosen on top of it
 // (addBlockToSpace, blocks.js), a Reference block per Resource pulled
 // in (addBlockToSpace again, same as createRelationalSpace does for its
-// selections), and the Space's own tags/goal/categories
+// selections), and the Space's own tags/categories
 // (createSpace/updateSpace above). Nothing here is new machinery --
 // this just does all of it in one request instead of asking the
 // frontend to sequence several.
@@ -278,7 +273,7 @@ export async function deleteSpace(env, id) {
 // BlockWorkspacePicker and the Workspace page both already read.
 export async function createSpaceWithSetup(
   env,
-  { title, templateId = null, extraBlocks = [], resourceSpaceIds = [], tags = [], categories = [], workspaces = [], goal = null, origin = null }
+  { title, templateId = null, extraBlocks = [], resourceSpaceIds = [], tags = [], categories = [], workspaces = [], origin = null }
 ) {
   const space = await createSpace(env, { title, templateId, tags, categories, origin });
   if (templateId) {
@@ -302,9 +297,6 @@ export async function createSpaceWithSetup(
       type: 'reference',
       content: { target_space_id: targetSpaceId, note: null },
     });
-  }
-  if (goal) {
-    await updateSpace(env, space.id, { goal });
   }
   return { ...(await getSpaceById(env, space.id)), changeSummary: space.changeSummary };
 }

@@ -34,29 +34,23 @@ describe('Sidebar', () => {
 
   it('renders all five top-level nav links to their correct routes', () => {
     renderSidebar();
-    expect(screen.getByRole('link', { name: 'Insights' })).toHaveAttribute('href', '/insights');
+    expect(screen.getByRole('link', { name: 'Spaces' })).toHaveAttribute('href', '/spaces');
+    expect(screen.getByRole('link', { name: 'Workspaces' })).toHaveAttribute('href', '/workspaces');
     expect(screen.getByRole('link', { name: 'Tools' })).toHaveAttribute('href', '/tools');
-    expect(screen.getByRole('link', { name: 'Manage Templates' })).toHaveAttribute('href', '/templates');
-    expect(screen.getByRole('link', { name: 'View the Map' })).toHaveAttribute('href', '/graph');
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute('href', '/templates');
     expect(screen.getByRole('link', { name: 'Log' })).toHaveAttribute('href', '/log');
-  });
-
-  it('reaches Projects and Goals, the two top-level pages that hold no Space', () => {
-    renderSidebar();
-    expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('href', '/projects');
-    expect(screen.getByRole('link', { name: 'Goals' })).toHaveAttribute('href', '/goals');
   });
 
   it('marks the current page\'s nav link, and no other, as current', () => {
     renderSidebar('tools');
     expect(screen.getByRole('link', { name: 'Tools' })).toHaveClass('nav-link-current');
-    expect(screen.getByRole('link', { name: 'Insights' })).not.toHaveClass('nav-link-current');
+    expect(screen.getByRole('link', { name: 'Spaces' })).not.toHaveClass('nav-link-current');
     expect(screen.getByRole('link', { name: 'Log' })).not.toHaveClass('nav-link-current');
   });
 
   it('marks no nav link as current when on a non-top-level page (e.g. a Space)', () => {
     renderSidebar(undefined);
-    ['Insights', 'Tools', 'Manage Templates', 'View the Map', 'Log'].forEach((name) => {
+    ['Spaces', 'Workspaces', 'Tools', 'Templates', 'Log'].forEach((name) => {
       expect(screen.getByRole('link', { name })).not.toHaveClass('nav-link-current');
     });
   });

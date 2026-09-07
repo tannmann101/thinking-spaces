@@ -24,11 +24,6 @@ describe('searchEverything', async () => {
     expect(results.spaces.map((s) => s.title)).toEqual(['Systems Thinking']);
   });
 
-  it('finds a Space by what it is working toward', async () => {
-    await updateSpace(env, space.id, { goal: 'Understand feedback loops' });
-    expect((await searchEverything(env, 'feedback')).spaces).toHaveLength(1);
-  });
-
   it('finds a phrase written inside an entry -- the whole point', async () => {
     await createBlock(env, {
       spaceId: space.id,

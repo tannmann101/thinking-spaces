@@ -856,9 +856,6 @@ button.editable:disabled:hover {
   margin-left: var(--space-xs-plus);
 }
 
-
-
-
 .resource-type-suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -1738,19 +1735,6 @@ label {
    Map's <main> just uses .app-content-wide (see above) to drop the
    ordinary reading-width cap and let the canvas fill the remaining
    space directly. */
-
-.graph-svg {
-  border: 1px solid var(--border-soft);
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  max-width: 100%;
-  height: auto;
-  /* Dragging a node or panning the background shouldn't select the
-     page's text, and pinch/scroll gestures on a trackpad should zoom
-     the graph, not the page underneath it. */
-  user-select: none;
-  touch-action: none;
-}
 
 /* ---------- Text block ---------- */
 
@@ -3062,48 +3046,6 @@ label {
   font-size: var(--fs-base);
 }
 
-/* A Project reuses every other Workspace-card rule above (same grid,
-   same padding, same hover-brightens-the-border behavior) -- it only
-   overrides the accent color, from Work's maroon to the Time family's
-   own gold, the same "General neutral / Work maroon / Time gold"
-   convention .block-row[data-family] already established. This is
-   deliberately the one and only place Project gets a visual identity
-   of its own rather than reading as an unlabeled Workspace twin. */
-/* A Project carries the Time family's own gold, since a Project is what
-   Milestones and Sessions belong to. On the Space page it sits on top of
-   .workspace-card (which supplies the box); on the Projects index it
-   stands alone, so it carries the card chrome itself. */
-.project-card {
-  padding: var(--space-s-plus) var(--space-m);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border-left: 3px solid var(--accent);
-}
-.project-card:hover {
-  border-color: var(--accent);
-}
-
-/* A Goal is the pursuit a Project serves -- amber rather than gold, the
-   same family one step lighter, so the two read as related without
-   reading as the same thing. */
-.goal-card {
-  padding: var(--space-s-plus) var(--space-m);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border-left: 3px solid var(--theme-accent-amber);
-}
-
-/* Which Space a group of a Project's entries actually lives in. */
-.project-space-heading {
-  font-family: var(--mono);
-  font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-dim);
-  margin: var(--space-l) 0 var(--space-xs-plus);
-}
 
 .workspace-name-row {
   display: flex;
@@ -3448,174 +3390,10 @@ label {
   color: var(--ink-faint);
 }
 
-/* ---------- Insights ---------- */
-
-/* The Dashboard's one deliberately-loud entry point -- everything else
-   on this page (digests, the Space list) reads as calm/utilitarian on
-   purpose; this is the exception, since the person asked for Insights
-   to be made prominent as the app's founding reason for existing. */
-.insights-banner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin: var(--space-xs) 0 var(--space-xl);
-  padding: var(--space-l) var(--space-xl);
-  border-radius: 4px; /* a touch softer than --radius-md -- the one deliberately loud element on the Dashboard */
-  border: 1px solid var(--maroon);
-  background: linear-gradient(120deg, var(--maroon-wash), var(--surface));
-  text-decoration: none;
-}
-.insights-banner:hover {
-  border-color: var(--maroon-bright);
-  background: linear-gradient(120deg, var(--maroon-wash), var(--surface-2));
-}
-.insights-banner-title {
-  font-family: var(--display);
-  font-size: var(--fs-3xl);
-  font-weight: 600;
-  color: var(--maroon-bright);
-}
-.insights-banner-sub {
-  font-family: var(--body);
-  font-size: var(--fs-md);
-  color: var(--ink-dim);
-}
-
-.insights-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xl);
-  margin-top: var(--space-l);
-}
-
-.insight-section {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-md);
-  padding: var(--space-l) var(--space-xl);
-}
-.insight-section h2 {
-  font-family: var(--display);
-  font-size: var(--fs-xl);
-  margin: 0 0 var(--space-xs);
-}
-.insight-section-sub {
-  font-family: var(--body);
-  font-size: var(--fs-md);
-  color: var(--ink-dim);
-  margin: 0 0 var(--space-l);
-}
-.insight-section h3 {
-  font-size: var(--fs-sm);
-  font-family: var(--mono);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--ink-dim);
-  font-weight: 500;
-  margin: 0 0 var(--space-s-plus);
-}
-
-.insight-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2xl);
-}
-/* A section with more than one row of columns (Time is the first) --
-   each .insight-columns is its own grid, so two in a row need their
-   own separation rather than sitting flush against each other. */
-.insight-columns + .insight-columns {
-  margin-top: var(--space-xl);
-}
-@media (max-width: 700px) {
-  .insight-columns {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* The muted "nothing here yet" line. .insight-empty is kept as an alias
-   of .empty-note rather than renamed across 11 Insights call sites --
-   one declaration, so the two can no longer drift apart. */
-.insight-empty,
+/* The muted "nothing here yet" line, shared by every empty state. */
 .empty-note {
   font-size: var(--fs-sm);
   color: var(--ink-faint);
-}
-
-/* The one computed sentence per section naming what's actually notable
-   in its own numbers -- "interpretive framing" on top of the raw bars/
-   counts below it, not a replacement for them. --accent (not the
-   maroon the bars/counts use) marks it as an added reading, the same
-   "sits on top of, never replaces the base" role that color already
-   plays for Visual Identity's manual accent layer. */
-.insight-reading {
-  font-family: var(--body);
-  font-size: var(--fs-md);
-  color: var(--ink);
-  background: var(--surface-2);
-  border-left: 3px solid var(--accent);
-  padding: var(--space-s-plus) var(--space-m);
-  border-radius: var(--radius-sm);
-  margin: 0 0 var(--space-l);
-}
-
-.insight-bar-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s-plus);
-  margin-bottom: var(--space-s);
-}
-.insight-bar-label {
-  flex: none;
-  width: 100px;
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.insight-bar-track {
-  flex: 1;
-  margin-bottom: 0;
-}
-.insight-bar-count {
-  flex: none;
-  font-family: var(--mono);
-  font-size: var(--fs-sm);
-  color: var(--ink-faint);
-  width: 22px;
-  text-align: right;
-}
-
-.insight-plain-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: var(--fs-md);
-}
-.insight-plain-list li {
-  padding: var(--space-xs-plus) 0;
-  border-bottom: 1px solid var(--border-soft);
-}
-.insight-plain-list li:last-child {
-  border-bottom: none;
-}
-.insight-detail {
-  color: var(--ink-faint);
-}
-
-.insight-funnel {
-  font-family: var(--body);
-  font-size: var(--fs-md);
-  color: var(--ink-dim);
-  margin: 0 0 var(--space-s);
-}
-.insight-funnel-number {
-  font-family: var(--display);
-  font-size: var(--fs-2xl);
-  font-weight: 600;
-  color: var(--ink);
-  margin-right: var(--space-xs-plus);
 }
 
 /* ---------- Milestone (a "Time"-family Block) ---------- */
@@ -4369,7 +4147,6 @@ label {
   font-size: var(--fs-2xs);
   color: var(--ink-faint);
 }
-
 
 @media (max-width: 760px) {
   .kind-grid {

@@ -29,6 +29,14 @@ const SORTS = [
   { key: 'unresolved', label: 'Most unresolved' },
 ];
 
+// A Resource and a Synthesis are Spaces carrying a tag, so "which kind"
+// is a filter over one collection rather than a page of its own.
+const KINDS = [
+  { key: 'all', label: 'All' },
+  { key: 'resource', label: 'Resources' },
+  { key: 'synthesis', label: 'Syntheses' },
+];
+
 function sortSpaces(spaces, sort) {
   const copy = [...spaces];
   if (sort === 'title') return copy.sort((a, b) => a.title.localeCompare(b.title));
@@ -93,6 +101,10 @@ function SpacesPage() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('recent');
+  // Resources and Syntheses used to be two more top-level pages, which
+  // meant three destinations for one collection -- both are ordinary
+  // Spaces carrying a tag. They are a filter here instead.
+  const [kind, setKind] = useState('all');
 
   function refetch() {
     getSpaces()
@@ -115,12 +127,14 @@ function SpacesPage() {
   const matching = useMemo(() => {
     if (!spaces) return [];
     const term = search.trim().toLowerCase();
-    if (!term) return spaces;
-    return spaces.filter(
-      (space) =>
-        space.title.toLowerCase().includes(term) || (space.goal || '').toLowerCase().includes(term)
-    );
-  }, [spaces, search]);
+    return spaces.filter((space) => {
+      if (kind !== 'all' && !(space.tags || []).includes(kind)) return false;
+      return !term || space.title.toLowerCase().includes(term);
+    });
+  }, [spaces, search, kind]);
+
+  const countOf = (tag) =>
+    !spaces ? 0 : tag === 'all' ? spaces.length : spaces.filter((s) => (s.tags || []).includes(tag)).length;
 
   // Grouped by status so the shape of the whole collection reads at a
   // glance. Statuses come from the glyph's own list, in its own order, so
@@ -158,11 +172,23 @@ function SpacesPage() {
 
         {spaces && (
           <>
+            <p className="category-filter-strip">
+              {KINDS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={`category-filter-tab${kind === option.key ? ' category-filter-tab-active' : ''}`}
+                  onClick={() => setKind(option.key)}
+                >
+                  {option.label} ({countOf(option.key)})
+                </button>
+              ))}
+            </p>
             <p className="space-search-row">
               <input
                 type="search"
                 value={search}
-                placeholder="Filter by title or what it's working toward"
+                placeholder="Filter by title"
                 aria-label="Filter Spaces"
                 className="space-search-input"
                 onChange={(event) => setSearch(event.target.value)}

@@ -70,19 +70,6 @@ describe('SpacesPage', () => {
     expect(meta).toContain('1/4 milestones');
   });
 
-  it('filters on title and on what a Space is working toward', async () => {
-    const user = userEvent.setup();
-    api.getSpaces.mockResolvedValue([
-      space({ title: 'Alpha' }),
-      space({ id: 's2', title: 'Beta', goal: 'understand feedback' }),
-    ]);
-    renderPage();
-    await screen.findByRole('link', { name: 'Alpha' });
-    await user.type(screen.getByLabelText('Filter Spaces'), 'feedback');
-    await waitFor(() => expect(screen.queryByRole('link', { name: 'Alpha' })).not.toBeInTheDocument());
-    expect(screen.getByRole('link', { name: 'Beta' })).toBeInTheDocument();
-  });
-
   it('reorders on the chosen sort', async () => {
     const user = userEvent.setup();
     api.getSpaces.mockResolvedValue([

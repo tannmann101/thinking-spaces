@@ -108,7 +108,7 @@ describe('CreateSpace: Tools step', () => {
 describe('CreateSpace: Resources step', () => {
   it('shows an empty-state message when there are no Resources yet', async () => {
     renderPage();
-    expect(await screen.findByText('No Resources yet -- tag a Space "resource" to have it show up here.')).toBeInTheDocument();
+    expect(await screen.findByText('No Resources yet — tag a Space "resource" to have it show up here.')).toBeInTheDocument();
   });
 
   it('lists existing Resources as checkboxes and tracks selection', async () => {

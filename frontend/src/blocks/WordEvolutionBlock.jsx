@@ -73,7 +73,7 @@ function WordEvolutionBlock({ block, onSave, onBlocksChanged }) {
               setEditingTerm(true);
             }}
           >
-            {term || '(name the word -- click to set it)'}
+            {term || '(name the word — click to set it)'}
           </span>
         )}
       </p>
@@ -99,7 +99,7 @@ function WordEvolutionBlock({ block, onSave, onBlocksChanged }) {
               <EditableText
                 value={entry.note}
                 editable={editable}
-                placeholder="(what moved it -- click to add)"
+                placeholder="(what moved it — click to add)"
                 className="word-evolution-note"
                 onSave={(value) => persist({ senses: updateRow(senses, entry.id, { note: value }) })}
               />

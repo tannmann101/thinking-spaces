@@ -137,7 +137,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
       setLinkPreview(await getLinkPreview(url));
     } catch (err) {
       setLinkPreview(null);
-      setMediaError(`Could not preview that link (${err.message}) -- it can still be added.`);
+      setMediaError(`Could not preview that link (${err.message}) — it can still be added.`);
     } finally {
       setBusy('');
     }
@@ -258,7 +258,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
       // content shape. Now an unhandled type is refused loudly instead.
       if (blockRegistry[type]?.family !== 'work') {
         throw new Error(
-          `No starter content defined for entry type "${type}" -- add a branch in NewBlockForm.handleSubmit.`
+          `No starter content defined for entry type "${type}" — add a branch in NewBlockForm.handleSubmit.`
         );
       }
       onAdd({ type, content: { statement: text.trim(), support: [], confidence: 'tentative' }, properties });
@@ -481,7 +481,7 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
               : type === 'wordEvolution'
               ? 'The word or term (can be left blank)'
               : type === 'conceptMap'
-              ? 'The referent -- what is actually being referred to (can be left blank)'
+              ? 'The referent — what is actually being referred to (can be left blank)'
               : type === 'model'
               ? 'What is being modeled (can be left blank)'
               : `${workTypeStarterPrompt(type)} (can be left blank)`

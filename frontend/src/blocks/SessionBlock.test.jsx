@@ -59,7 +59,7 @@ describe('SessionBlock: running', () => {
         block={makeBlock({ label: '', startedAt: '2024-06-01T10:00:00.000Z', endedAt: null, durationMinutes: null, note: '' })}
       />
     );
-    expect(screen.getByText('Running -- 20m elapsed')).toBeInTheDocument();
+    expect(screen.getByText('Running — 20m elapsed')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '■ Stop' })).toBeInTheDocument();
   });
 
@@ -71,7 +71,7 @@ describe('SessionBlock: running', () => {
         block={makeBlock({ label: '', startedAt: '2024-06-01T10:00:00.000Z', endedAt: null, durationMinutes: null, note: '' }, { id: undefined })}
       />
     );
-    expect(screen.getByText('Running -- 5m elapsed')).toBeInTheDocument();
+    expect(screen.getByText('Running — 5m elapsed')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '■ Stop' })).not.toBeInTheDocument();
   });
 

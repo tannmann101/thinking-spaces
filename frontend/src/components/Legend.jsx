@@ -24,11 +24,11 @@ const GLYPH_ROWS = [
   },
   {
     space: { id: 'legend-2', status: 'active', relationDensity: 4, openTensionCount: 0, milestoneStats: { reached: 0, total: 0 } },
-    text: 'Branches are References -- how many other Spaces this one connects to.',
+    text: 'Branches are References — how many other Spaces this one connects to.',
   },
   {
     space: { id: 'legend-3', status: 'active', relationDensity: 2, openTensionCount: 2, milestoneStats: { reached: 0, total: 0 } },
-    text: 'A crack through the trunk means open Tensions -- more segments, more of them.',
+    text: 'A crack through the trunk means open Tensions — more segments, more of them.',
   },
   {
     space: { id: 'legend-4', status: 'active', relationDensity: 2, openTensionCount: 0, isOverdue: true, milestoneStats: { reached: 0, total: 0 } },
@@ -47,7 +47,7 @@ const GLYPH_ROWS = [
       milestoneStats: { reached: 0, total: 0 },
       theme: { accent: 'teal' },
     },
-    text: 'The color is yours -- whatever you themed this Space to (see "Look" on any Space page). The shape stays computed, so personalizing never hides what the glyph is reporting.',
+    text: 'The color is yours — whatever you themed this Space to (see "Look" on any Space page). The shape stays computed, so personalizing never hides what the glyph is reporting.',
   },
 ];
 
@@ -58,22 +58,22 @@ const FAMILY_ROWS = [
   {
     accent: defaultBlockTheme('text').accent,
     label: 'General',
-    text: 'Everyday building blocks -- Writing, List, Reference, Media, Comparison.',
+    text: 'Everyday building blocks — Writing, List, Reference, Media, Comparison.',
   },
   {
     accent: defaultBlockTheme('assessment').accent,
     label: 'Work',
-    text: 'The individual acts of thinking -- Assessment, Question, Hypothesis, and the rest.',
+    text: 'The individual acts of thinking — Assessment, Question, Hypothesis, and the rest.',
   },
   {
     accent: defaultBlockTheme('milestone').accent,
     label: 'Time',
-    text: 'Due dates, Milestones, Sessions -- anything to do with when.',
+    text: 'Due dates, Milestones, Sessions — anything to do with when.',
   },
   {
     accent: defaultBlockTheme('conceptMap').accent,
     label: 'Mapping',
-    text: 'Structure and relation rather than a single claim -- Word Evolution, Concept Map, Model.',
+    text: 'Structure and relation rather than a single claim — Word Evolution, Concept Map, Model.',
   },
 ];
 
@@ -93,7 +93,7 @@ function Legend({ onClose }) {
         <section>
           <h3>The glyph next to a Space's title</h3>
           <p className="legend-intro">
-            Computed live from that Space's own data, every time -- never decorative.
+            Computed live from that Space's own data, every time — never decorative.
           </p>
           <ul className="legend-glyph-rows">
             {GLYPH_ROWS.map((row, index) => (
@@ -108,8 +108,8 @@ function Legend({ onClose }) {
         <section>
           <h3>Tool colors</h3>
           <p className="legend-intro">
-            Every Tool type has its own distinct default look -- color, shape,
-            density and typeface -- so two entries never look alike just
+            Every Tool type has its own distinct default look — color, shape,
+            density and typeface — so two entries never look alike just
             because you wrote them both. These four are the broad families
             those defaults sit in. Any single Space or Tool can be re-themed by
             hand from its own &ldquo;Theme&rdquo; control.
@@ -118,12 +118,12 @@ function Legend({ onClose }) {
             {FAMILY_ROWS.map((row) => (
               <li key={row.label}>
                 <span className="legend-swatch" style={{ background: `var(--theme-accent-${row.accent})` }} />
-                <strong>{row.label}</strong> -- {row.text}
+                <strong>{row.label}</strong> — {row.text}
               </li>
             ))}
           </ul>
           <p className="legend-intro">
-            Every Tool also carries its own icon -- see the full glossary on the{' '}
+            Every Tool also carries its own icon — see the full glossary on the{' '}
             <Link to="/tools" onClick={onClose}>
               Tools catalog
             </Link>

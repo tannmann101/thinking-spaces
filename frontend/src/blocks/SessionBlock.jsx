@@ -105,7 +105,7 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
               setEditingLabel(true);
             }}
           >
-            {label || '(untitled session -- click to name it)'}
+            {label || '(untitled session — click to name it)'}
           </span>
         )}
       </p>
@@ -117,7 +117,7 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
         )}
         {isRunning && (
           <>
-            <span className="session-elapsed">Running -- {formatDuration(liveElapsedMinutes) || '0m'} elapsed</span>
+            <span className="session-elapsed">Running — {formatDuration(liveElapsedMinutes) || '0m'} elapsed</span>
             {editable && (
               <button type="button" className="btn-ghost-small" onClick={stop}>
                 ■ Stop
@@ -127,7 +127,7 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
         )}
         {endedAt && (
           <span className="session-completed">
-            {formatDuration(durationMinutes)} -- {new Date(startedAt).toLocaleString()} to{' '}
+            {formatDuration(durationMinutes)} — {new Date(startedAt).toLocaleString()} to{' '}
             {new Date(endedAt).toLocaleString()}
           </span>
         )}

@@ -125,7 +125,7 @@ function ProjectProgress({ memberBlocks }) {
   return (
     <p className="workspace-subtitle">
       {milestones.length > 0 && <>{reached} of {milestones.length} Milestone{milestones.length === 1 ? '' : 's'} reached</>}
-      {milestones.length > 0 && sessions.length > 0 && ' -- '}
+      {milestones.length > 0 && sessions.length > 0 && ' — '}
       {sessions.length > 0 && (
         <>
           {totalMinutes} min logged across {sessions.length} Session{sessions.length === 1 ? '' : 's'}

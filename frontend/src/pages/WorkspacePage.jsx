@@ -290,7 +290,7 @@ function WorkspacePage() {
           )}
 
           {memberBlocks.length === 0 && !kind && (
-            <p>Nothing assembled here yet -- add a Tool below, or pull in one already on the Space.</p>
+            <p>Nothing assembled here yet — add a Tool below, or pull in one already on the Space.</p>
           )}
 
           {/* A kinded Workspace renders its own named sections, each with

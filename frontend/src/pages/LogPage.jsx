@@ -93,7 +93,7 @@ function LogPage() {
           and newest in one place," but the feed below has always shown
           newest first. */}
       <p>
-        The complete structural record across every Space, newest first -- every Tool and Space
+        The complete structural record across every Space, newest first — every Tool and Space
         created or removed, merged with each Space's own Trail. For trends distilled from all of
         it, see Insights; for one Space's own narrative, see its Trail.
       </p>

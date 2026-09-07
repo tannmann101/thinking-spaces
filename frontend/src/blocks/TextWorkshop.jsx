@@ -155,7 +155,7 @@ function TextWorkshop({ block, onBlocksChanged, focused = false, onFocus }) {
                 type="button"
                 className={`text-workshop-tag-glyph${line.tag ? ` text-workshop-tag-glyph-${line.tag}` : ''}`}
                 onClick={() => setTagPopoverId(tagPopoverId === line.id ? null : line.id)}
-                title={line.tag || 'No attribution tag -- click to set one'}
+                title={line.tag || 'No attribution tag — click to set one'}
               >
                 {line.tag ? line.tag[0].toUpperCase() : '·'}
               </button>

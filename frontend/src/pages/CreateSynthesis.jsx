@@ -167,13 +167,13 @@ function CreateSynthesis() {
       <main className="app-content">
       <h1>New Synthesis</h1>
       <p>
-        Compile a few existing Work items -- Assessments, Questions, and the rest of the Work
-        catalog, from any Space -- into a new, more polished piece: an essay, a definition, a
+        Compile a few existing Work items — Assessments, Questions, and the rest of the Work
+        catalog, from any Space — into a new, more polished piece: an essay, a definition, a
         story, a plain writing entry.
       </p>
       <p className="mono-caption">
         Once it feels settled, a Synthesis can be promoted to Resource status right from its own
-        Space page -- worth knowing going in, even though it's not something you'd do here at
+        Space page — worth knowing going in, even though it's not something you'd do here at
         creation.
       </p>
 
@@ -192,7 +192,7 @@ function CreateSynthesis() {
         </div>
 
         <h2>Kind</h2>
-        <p>Optional -- helps sub-type this Synthesis alongside every other one.</p>
+        <p>Optional — helps sub-type this Synthesis alongside every other one.</p>
         <p className="resource-type-suggestions">
           {SYNTHESIS_KIND_SUGGESTIONS.map((suggestion) => (
             <button
@@ -234,12 +234,12 @@ function CreateSynthesis() {
         <h2>{SOURCE_MATERIAL}</h2>
         <p>
           Which existing Work items should this draw from? Their text is copied in to start
-          from, under a real &ldquo;{SOURCE_MATERIAL}&rdquo; Category on the new Space -- so it
+          from, under a real &ldquo;{SOURCE_MATERIAL}&rdquo; Category on the new Space — so it
           reads as a labeled section to draft alongside, not an unmarked block.
         </p>
         {workItems === null && <p>Loading...</p>}
         {workItems && workItems.length === 0 && (
-          <p>No Work items exist yet -- create an Assessment, Question, or another Work Type in a Space first.</p>
+          <p>No Work items exist yet — create an Assessment, Question, or another Work Type in a Space first.</p>
         )}
         {workItems && workItems.length > 0 && (
           <p className="synthesis-picker-toolbar">

@@ -82,12 +82,6 @@ export async function getWeekCalendar(env) {
     (dueSpacesByDay[row.due_date] ||= []).push({ spaceId: row.id, spaceTitle: row.title });
   }
 
-  // Every Project name, looked up once rather than per-row -- both
-  // Milestones and Sessions below resolve their own properties.projectId
-  // against this same map.
-  const projectRows = await env.DB.prepare(`SELECT id, name FROM projects`).all();
-  const projectNames = Object.fromEntries(projectRows.results.map((row) => [row.id, row.name]));
-
   const milestoneRows = await env.DB.prepare(
     `SELECT blocks.id AS block_id, blocks.content AS content, blocks.properties AS properties, spaces.id AS space_id, spaces.title AS space_title
      FROM blocks JOIN spaces ON spaces.id = blocks.space_id
@@ -110,7 +104,6 @@ export async function getWeekCalendar(env) {
         reached: milestone.reached,
         spaceId: row.space_id,
         spaceTitle: row.space_title,
-        projectName: properties.projectId ? projectNames[properties.projectId] || null : null,
       });
     }
   }
@@ -142,7 +135,6 @@ export async function getWeekCalendar(env) {
         isRunning,
         spaceId: row.space_id,
         spaceTitle: row.space_title,
-        projectName: properties.projectId ? projectNames[properties.projectId] || null : null,
       });
     }
   }

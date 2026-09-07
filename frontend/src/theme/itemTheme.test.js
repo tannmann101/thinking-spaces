@@ -39,7 +39,12 @@ describe('itemTheme: distinct defaults', () => {
   });
 
   it('never gives two Block types the same accent-and-shape pairing', () => {
-    const pairs = Object.keys(blockRegistry).map((type) => {
+    // Only the Tools you can actually still add: a retired Work Type
+    // deliberately keeps the look it always had, which is allowed to
+    // collide with whatever replaced it (Claim inherited Assessment's).
+    const pairs = Object.keys(blockRegistry)
+      .filter((type) => !blockRegistry[type].retired)
+      .map((type) => {
       const theme = defaultBlockTheme(type);
       return `${theme.accent}/${theme.shape}`;
     });

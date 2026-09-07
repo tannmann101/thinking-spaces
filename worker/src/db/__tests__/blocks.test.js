@@ -3,7 +3,6 @@ import { env } from 'cloudflare:workers';
 import {
   listBlocksForSpace,
   listBacklinksForSpace,
-  getGraphData,
   getBlockById,
   getBlockByIdWithSpaceTitle,
   countBlocksForSpace,
@@ -17,12 +16,10 @@ import {
   updateBlockContent,
   updateBlockCategories,
   updateBlockWorkspaces,
-  updateBlockProject,
   updateBlockTheme,
 } from '../blocks.js';
 import { createSpace } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
-import { createProject } from '../projects.js';
 import { listSpaceHistory } from '../trail.js';
 import { TEST_SPACE_ID } from '../constants.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
@@ -148,61 +145,6 @@ describe('blocks.js', () => {
     });
   });
 
-  describe('getGraphData', () => {
-    it('includes reference edges and excludes the Test Space', async () => {
-      await createSpace(env, { id: TEST_SPACE_ID, title: 'Test Space' });
-      const target = await createSpace(env, { title: 'Target' });
-      await addBlockToSpace(env, space.id, { type: 'reference', content: { target_space_id: target.id } });
-      await addBlockToSpace(env, TEST_SPACE_ID, { type: 'reference', content: { target_space_id: target.id } });
-
-      const graph = await getGraphData(env);
-      expect(graph.spaces.map((s) => s.id)).not.toContain(TEST_SPACE_ID);
-      const referenceEdges = graph.edges.filter((e) => e.kind === 'reference');
-      expect(referenceEdges).toHaveLength(1);
-      expect(referenceEdges[0]).toMatchObject({ sourceSpaceId: space.id, targetSpaceId: target.id });
-    });
-
-    it('includes one contains edge per Workspace', async () => {
-      const workspace = await createWorkspace(env, { spaceId: space.id, name: 'A Workspace' });
-      const graph = await getGraphData(env);
-      const containEdges = graph.edges.filter((e) => e.kind === 'contains');
-      expect(containEdges).toEqual([{ kind: 'contains', spaceId: space.id, workspaceId: workspace.id }]);
-    });
-
-    // A Project's place on the map is derived from where its member
-    // entries live, so it only appears once something is assigned to it.
-    it('includes one contains-project edge per Space a Project has work in', async () => {
-      const project = await createProject(env, { name: 'A Project' });
-      const block = await addBlockToSpace(env, space.id, { type: 'milestone', content: {} });
-      await updateBlockProject(env, block.id, project.id);
-
-      const graph = await getGraphData(env);
-      expect(graph.projects).toEqual([{ id: project.id, name: 'A Project', primary_space_id: space.id }]);
-      const projectEdges = graph.edges.filter((e) => e.kind === 'contains-project');
-      expect(projectEdges).toEqual([{ kind: 'contains-project', spaceId: space.id, projectId: project.id }]);
-    });
-
-    it('leaves a Project with no entries yet off the map entirely', async () => {
-      await createProject(env, { name: 'Not started' });
-      const graph = await getGraphData(env);
-      expect(graph.projects).toEqual([]);
-      expect(graph.edges.filter((e) => e.kind === 'contains-project')).toEqual([]);
-    });
-
-    it('still includes a reference edge whose target Space was since deleted', async () => {
-      // CLAUDE.md is explicit that a dangling Reference is "left as-is"
-      // rather than cleaned up -- the frontend falls back to showing
-      // the raw target id once the title lookup can't resolve it. This
-      // pins that same "don't silently drop it" behavior at the Graph
-      // data layer.
-      await addBlockToSpace(env, space.id, { type: 'reference', content: { target_space_id: 'deleted-space' } });
-      const graph = await getGraphData(env);
-      const referenceEdges = graph.edges.filter((e) => e.kind === 'reference');
-      expect(referenceEdges).toHaveLength(1);
-      expect(referenceEdges[0].targetSpaceId).toBe('deleted-space');
-    });
-  });
-
   describe('countBlocksForSpace', () => {
     it('counts all blocks, or only a given type', async () => {
       await addBlockToSpace(env, space.id, { type: 'text', content: {} });
@@ -244,11 +186,9 @@ describe('blocks.js', () => {
     it('clears the Space-scoped properties and keeps the ones that travel', async () => {
       const other = await createSpace(env, { title: 'Somewhere Else' });
       const workspace = await createWorkspace(env, { spaceId: space.id, name: 'A Workspace' });
-      const project = await createProject(env, { name: 'A Project' });
       const block = await addBlockToSpace(env, space.id, { type: 'milestone', content: { label: 'Ship it' } });
       await updateBlockCategories(env, block.id, ['Risk']);
       await updateBlockWorkspaces(env, block.id, [workspace.id]);
-      await updateBlockProject(env, block.id, project.id);
       await updateBlockTheme(env, block.id, { accent: 'moss' });
 
       const moved = await moveBlockToSpace(env, block.id, other.id);
@@ -256,9 +196,7 @@ describe('blocks.js', () => {
       // belong to the source Space. Neither means anything here.
       expect(moved.properties.categories).toBeUndefined();
       expect(moved.properties.workspaces).toBeUndefined();
-      // A Project belongs to no Space, and a hand-picked look is the
-      // person's, not the Space's.
-      expect(moved.properties.projectId).toBe(project.id);
+      // A hand-picked look is the person's, not the Space's.
       expect(moved.properties.theme).toEqual({ accent: 'moss' });
     });
 
@@ -365,31 +303,10 @@ describe('blocks.js', () => {
     });
   });
 
-  describe('updateBlockProject', () => {
-    it('sets a single Project id, independently of other properties', async () => {
-      const project = await createProject(env, { name: 'Ship it' });
-      const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {}, properties: { categories: ['X'] } });
-      const updated = await updateBlockProject(env, block.id, project.id);
-      expect(updated.properties.projectId).toBe(project.id);
-      expect(updated.properties.categories).toEqual(['X']);
-    });
-
-    it('clears the Project id when passed null', async () => {
-      const project = await createProject(env, { name: 'Ship it' });
-      const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {}, properties: {} });
-      await updateBlockProject(env, block.id, project.id);
-      const cleared = await updateBlockProject(env, block.id, null);
-      expect(cleared.properties.projectId).toBeNull();
-    });
-
-    it('returns null for a nonexistent block rather than throwing', async () => {
-      expect(await updateBlockProject(env, 'nonexistent', 'some-id')).toBeNull();
-    });
-  });
 });
 
-// See the comment on getGraphData in ../blocks.js for why these
-// exist -- Trail was empty on essentially every real Space.
+// Trail used to be empty on essentially every real Space -- see
+// listSpaceHistory in ../trail.js.
 describe('recording ordinary work', () => {
   let space;
 

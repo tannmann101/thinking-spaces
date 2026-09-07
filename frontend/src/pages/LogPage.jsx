@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { getActivity } from '../api.js';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import { toLocalDate, formatDayLabel, formatTimeOfDay } from '../lib/formatTime.js';
 
 const KIND_LABELS = {
   space_created: 'Space',
@@ -40,21 +41,18 @@ const KIND_LABELS = {
   trail_review: 'Review',
 };
 
-function toLocalDate(isoLikeString) {
-  return new Date(isoLikeString.replace(' ', 'T') + 'Z');
-}
-
+// The two most recent days are the ones you're actually reading, and
+// naming them is more use than repeating their date. Anything older
+// still gets its full date, since by then that *is* how you'd find it.
 function formatDayHeading(isoLikeString) {
+  const named = formatDayLabel(isoLikeString);
+  if (named === 'Today' || named === 'Yesterday') return named;
   return toLocalDate(isoLikeString).toLocaleDateString(undefined, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-}
-
-function formatTime(isoLikeString) {
-  return toLocalDate(isoLikeString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 // A day-key for grouping -- the calendar day this entry's timestamp
@@ -170,7 +168,7 @@ function LogPage() {
                             {entry.event_count > 1 && (
                               <span className="log-event-count"> &times;{entry.event_count}</span>
                             )}
-                            <span className="log-timestamp">{formatTime(entry.created_at)}</span>
+                            <span className="log-timestamp">{formatTimeOfDay(entry.created_at)}</span>
                           </li>
                         ))}
                       </ul>

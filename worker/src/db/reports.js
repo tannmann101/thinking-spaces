@@ -1,13 +1,10 @@
 // --- Reports ----------------------------------------------------------
 // Every page in the app -- a Space, a Workspace, a single Tool/Work
 // item -- can produce a report: a structured snapshot of its current
-// state. Insights (insights.js) already draws trend-level aggregates
-// across every Space; a report is the other direction -- one Space/
-// Workspace/block's own state, detailed enough to hand to an external
-// Claude conversation that can give it closer attention than an in-app
-// view ever could. Purely computed on demand: no new table, nothing
-// stored or versioned, same "compute, don't persist" choice Insights
-// made.
+// state -- detailed enough to hand to an external Claude conversation
+// that can give it closer attention than an in-app view ever could.
+// Purely computed on demand: no new table, nothing stored or
+// versioned.
 //
 // Every report shares one shape: { level, id, label, generatedAt,
 // sections: [{ heading, lines: [string] }] }. Keeping that shape
@@ -26,9 +23,7 @@
 import { WORK_TYPES } from './work.js';
 import { getBlockById, listBlocksForSpace, listBacklinksForSpace } from './blocks.js';
 import { getWorkspaceById, listWorkspacesForSpace } from './workspaces.js';
-import { getProjectById, listProjectsForSpace } from './projects.js';
 import { getSpaceById } from './spaces.js';
-import { getGoalById } from './goals.js';
 import { listTrailEntries } from './trail.js';
 import { getSkeletonSnapshot } from './skeleton.js';
 
@@ -180,12 +175,10 @@ export async function getBlockReport(env, blockId) {
     workspaceNames = results.map((row) => row.name);
   }
 
-  const project = block.properties?.projectId ? await getProjectById(env, block.properties.projectId) : null;
 
   const membershipLines = [
     ...((block.properties?.categories || []).length > 0 ? [`Categories: ${block.properties.categories.join(', ')}`] : []),
     ...(workspaceNames.length > 0 ? [`Workspaces: ${workspaceNames.join(', ')}`] : []),
-    ...(project ? [`Project: ${project.name}`] : []),
     ...(block.properties?.skeletonLane ? [`Skeleton section: ${block.properties.skeletonLane}`] : []),
     ...(block.properties?.skeletonRole ? [`Skeleton role: ${block.properties.skeletonRole}`] : []),
     ...(usedInSyntheses.length > 0
@@ -242,64 +235,6 @@ export async function getWorkspaceReport(env, workspaceId) {
   return { level: 'workspace', id: workspace.id, label: workspace.name, generatedAt: new Date().toISOString(), sections };
 }
 
-// A Project's own report -- its identity plus every Milestone/Session
-// currently assigned to it, and the same reached/logged-minutes
-// progress readout ProjectPage.jsx itself computes and shows inline
-// (mirrored here rather than shared, since it's a few lines of
-// arithmetic over data this function already has, not worth a shared
-// helper for).
-export async function getProjectReport(env, projectId) {
-  const project = await getProjectById(env, projectId);
-  if (!project) return null;
-
-  // A Project's work can live in any number of Spaces, so its members
-  // are gathered by projectId across every Space rather than read out
-  // of one Space's own feed.
-  const memberRows = (
-    await env.DB.prepare(
-      `SELECT blocks.id AS block_id, spaces.title AS space_title
-         FROM blocks
-         JOIN spaces ON spaces.id = blocks.space_id
-        WHERE json_extract(blocks.properties, '$.projectId') = ?
-        ORDER BY spaces.title ASC, blocks.position ASC`
-    )
-      .bind(projectId)
-      .all()
-  ).results;
-  const memberBlocks = [];
-  for (const row of memberRows) {
-    memberBlocks.push({ ...(await getBlockById(env, row.block_id)), spaceTitle: row.space_title });
-  }
-  const spaceTitles = [...new Set(memberRows.map((row) => row.space_title))];
-
-  const milestones = memberBlocks.filter((block) => block.type === 'milestone');
-  const sessions = memberBlocks.filter((block) => block.type === 'session');
-  const reached = milestones.filter((block) => block.content.reached).length;
-  const totalMinutes = sessions.reduce((sum, block) => sum + (block.content.durationMinutes || 0), 0);
-
-  const goal = project.goal_id ? await getGoalById(env, project.goal_id) : null;
-
-  const sections = [
-    {
-      heading: 'Identity',
-      lines: [
-        ...(goal ? [`Goal: ${goal.name}`] : []),
-        ...(spaceTitles.length > 0 ? [`Spaces: ${spaceTitles.join(', ')}`] : ['Spaces: none yet']),
-        `Created: ${project.created_at}`,
-      ],
-    },
-    {
-      heading: `Assigned Milestones & Sessions (${memberBlocks.length})`,
-      lines: [
-        ...(milestones.length > 0 ? [`Milestones: ${reached} of ${milestones.length} reached`] : []),
-        ...(sessions.length > 0 ? [`Sessions: ${totalMinutes} min logged across ${sessions.length}`] : []),
-        ...memberBlocks.map((block) => `${block.type}: ${labelForBlock(block)} (in ${block.spaceTitle})`),
-      ],
-    },
-  ];
-
-  return { level: 'project', id: project.id, label: project.name, generatedAt: new Date().toISOString(), sections };
-}
 
 // A Space's own report -- the fullest of the three, since a Space is
 // where every other kind of state (its blocks, its Workspaces, its
@@ -311,7 +246,6 @@ export async function getSpaceReport(env, spaceId) {
   if (!space) return null;
   const blocks = await listBlocksForSpace(env, spaceId);
   const workspaces = await listWorkspacesForSpace(env, spaceId);
-  const projects = await listProjectsForSpace(env, spaceId);
   const backlinks = await listBacklinksForSpace(env, spaceId);
   const trail = await listTrailEntries(env, spaceId);
   const skeleton = await getSkeletonSnapshot(env, spaceId);
@@ -334,7 +268,6 @@ export async function getSpaceReport(env, spaceId) {
       lines: [
         `Status: ${space.status}`,
         `Due date: ${space.due_date || '(not set)'}${space.isOverdue ? ' (overdue)' : ''}`,
-        `Goal: ${space.goal || '(not set)'}`,
         `Tags: ${space.tags.length > 0 ? space.tags.join(', ') : '(none)'}`,
         `Categories: ${space.categories.length > 0 ? space.categories.join(', ') : '(none)'}`,
         `Provenance: ${space.origin || '(not marked)'}`,
@@ -347,7 +280,6 @@ export async function getSpaceReport(env, spaceId) {
       lines: [
         ...Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`),
         ...(workspaces.length > 0 ? [`Workspaces: ${workspaces.map((workspace) => workspace.name).join(', ')}`] : []),
-        ...(projects.length > 0 ? [`Projects: ${projects.map((project) => project.name).join(', ')}`] : []),
       ],
     },
   ];

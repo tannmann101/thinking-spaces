@@ -61,19 +61,18 @@ import {
   mediaContentFromUpload,
 } from './mediaSource.js';
 
-// A nicer starting-text placeholder for a Work Type than the generic
-// "The <label>" fallback below -- optional, since a new Work Type
-// reads fine without an entry here (e.g. "The demonstration").
-// Definition is the one that actually needs an override: its
-// statement holds a term, not "the definition".
+// A nicer starting-text placeholder for a Work entry than the generic
+// "The <label>" fallback below.
 const WORK_TYPE_STARTER_PROMPTS = {
-  definition: 'The term',
-  formulation: 'This is fundamentally about',
+  claim: 'What you want to claim',
 };
 
-const WORK_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'work');
-const TIME_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'time');
-const MAPPING_TYPES = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'mapping');
+// `retired` keeps the ten former Work Types renderable without ever
+// offering them again -- see blocks/workLabels.js.
+const offered = (entry) => !entry.retired;
+const WORK_TYPES = Object.entries(blockRegistry).filter(([, e]) => e.family === 'work' && offered(e));
+const TIME_TYPES = Object.entries(blockRegistry).filter(([, e]) => e.family === 'time' && offered(e));
+const MAPPING_TYPES = Object.entries(blockRegistry).filter(([, e]) => e.family === 'mapping' && offered(e));
 
 function workTypeStarterPrompt(type) {
   return WORK_TYPE_STARTER_PROMPTS[type] || `The ${blockRegistry[type].label.toLowerCase()}`;
@@ -342,43 +341,13 @@ function NewBlockForm({ onAdd, categories = [], workspaceNames = [], leadTypes =
           </optgroup>
         </select>
       </label>
-      {/* The dropdown itself can only show a bare label per option --
-          native <option>s don't support anything richer -- so picking
-          between, say, "Deduction" and "Implication" meant already
-          knowing the Tools catalog by heart. This mirrors the same
-          description text ToolsPage.jsx shows for the same registry
-          entry, right at the point of choosing instead of only
-          elsewhere in the app. */}
+      {/* A native <option> can only show a bare label, so the chosen
+          Tool's own description from the registry goes here -- the same
+          text ToolsPage.jsx shows, at the point of choosing rather than
+          only elsewhere in the app. */}
       {blockRegistry[type]?.description && (
         <p className="new-block-type-description">{blockRegistry[type].description}</p>
       )}
-      {/* Reading one description at a time (above) still means
-          reselecting through all 11 Work Types to compare close calls
-          like Insight vs. Implication -- confirmed via direct question
-          that sharpening any one description wouldn't fix this (the
-          registry copy already names the relationship directly, e.g.
-          Implication's own "a softer sibling to Deduction"); the actual
-          gap is not being able to see every description at once while
-          still deciding. This panel is exactly that -- every Work
-          Type's label and description in one place, registry-driven so
-          a future Work Type needs no edit here either -- with clicking
-          a label selecting it in the dropdown above as a shortcut, not
-          a requirement. */}
-      <details className="work-type-compare">
-        <summary>Compare Work Types</summary>
-        <dl>
-          {WORK_TYPES.map(([key, entry]) => (
-            <div key={key} className="work-type-compare-row">
-              <dt>
-                <button type="button" className="work-type-compare-pick" onClick={() => setType(key)}>
-                  {entry.label}
-                </button>
-              </dt>
-              <dd>{entry.description}</dd>
-            </div>
-          ))}
-        </dl>
-      </details>
       <br />
       {type === 'reference' ? (
         <>

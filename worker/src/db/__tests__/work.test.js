@@ -11,8 +11,12 @@ import { resetDb } from '../../../test/helpers/resetDb.js';
 // content shapes, so there's never a legacy {rationale} row to migrate.
 
 describe('WORK_TYPES', () => {
-  it('lists all eleven current Work Types', () => {
+  // One offered Work Tool plus the ten retired Types, which stay listed
+  // so entries already written as one are still found by Synthesis's
+  // picker and search -- see frontend/src/blocks/workLabels.js.
+  it('lists Claim plus the ten retired Work Types', () => {
     expect(WORK_TYPES).toEqual([
+      'claim',
       'assessment',
       'question',
       'analysis',

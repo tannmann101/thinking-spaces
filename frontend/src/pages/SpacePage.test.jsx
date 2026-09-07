@@ -59,11 +59,7 @@ beforeEach(() => {
   api.getSpace.mockResolvedValue(makeSpace());
   api.getBlocksForSpace.mockResolvedValue([]);
   api.getWorkspacesForSpace.mockResolvedValue([]);
-  api.getProjectsForSpace.mockResolvedValue([]);
-  api.getProjects.mockResolvedValue([]);
   api.getSpaces.mockResolvedValue([]);
-  api.getGoals.mockResolvedValue([]);
-  api.setSpaceGoals.mockResolvedValue({});
   api.getBacklinksForSpace.mockResolvedValue([]);
   api.getTrailEntries.mockResolvedValue([]);
   api.updateSpace.mockResolvedValue({});
@@ -84,13 +80,12 @@ describe('SpacePage: loading and errors', () => {
 });
 
 describe('SpacePage: details panel', () => {
-  it('groups the theme/working-toward/due-date/tags/categories fields into one panel', async () => {
+  it('groups the theme/due-date/tags/categories fields into one panel', async () => {
     renderPage();
     await screen.findByText('My Space');
     const panel = document.querySelector('.space-details-panel');
     expect(panel).toBeInTheDocument();
     expect(panel.querySelector('.category-row')).toBeInTheDocument(); // SpaceThemePicker
-    expect(panel.querySelector('.working-toward')).toBeInTheDocument();
     expect(panel.querySelector('.due-date-row')).toBeInTheDocument();
     expect(panel.querySelector('.tag-row')).toBeInTheDocument();
   });
@@ -169,16 +164,6 @@ describe('SpacePage: adaptive density', () => {
     await waitFor(() => expect(document.querySelector('.space-organize-panel').open).toBe(true));
   });
 
-  // Projects moved out of this panel entirely -- a Project belongs to
-  // no Space now, so one having work here doesn't open the Workspaces
-  // panel.
-  it('leaves the Workspaces panel collapsed when the Space only feeds a Project', async () => {
-    api.getProjectsForSpace.mockResolvedValue([{ id: 'pr-1', name: 'Ship it' }]);
-    renderPage();
-    await screen.findByText('My Space');
-    await waitFor(() => expect(document.querySelector('.space-organize-panel').open).toBe(false));
-  });
-
   // Trail is never literally empty now -- every Space records its own
   // creation -- so the panel has to look past that or it would always
   // default open, quietly undoing its own adaptive density.
@@ -248,40 +233,6 @@ describe('SpacePage: identity fields', () => {
     api.getSpace.mockResolvedValue(makeSpace({ origin: 'external' }));
     renderPage();
     expect(await screen.findByText('External')).toBeInTheDocument();
-  });
-
-  // A Space works toward real Goals now, not a free-text line -- so
-  // "working toward" is a chip toggle over the Goals that exist.
-  it('marks the Space as working toward a Goal', async () => {
-    const user = userEvent.setup();
-    api.getGoals.mockResolvedValue([{ id: 'goal-1', name: 'Understand systems', spaces: [], projects: [] }]);
-    renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Understand systems' }));
-    await waitFor(() => expect(api.setSpaceGoals).toHaveBeenCalledWith('space-1', ['goal-1']));
-  });
-
-  it('unsets a Goal it was already working toward', async () => {
-    const user = userEvent.setup();
-    api.getSpace.mockResolvedValue(makeSpace({ goalIds: ['goal-1'] }));
-    api.getGoals.mockResolvedValue([{ id: 'goal-1', name: 'Understand systems', spaces: [], projects: [] }]);
-    renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Understand systems' }));
-    await waitFor(() => expect(api.setSpaceGoals).toHaveBeenCalledWith('space-1', []));
-  });
-
-  it('points at the Goals page when none exist yet, rather than showing an empty row', async () => {
-    renderPage();
-    await screen.findByText('My Space');
-    expect(screen.getByText('no Goals defined yet')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Name one' })).toHaveAttribute('href', '/goals');
-  });
-
-  // Derived from where its own entries live -- read-only here, since
-  // there is nothing to set: a Project is joined from the entry itself.
-  it('names the Projects this Space is feeding work to', async () => {
-    api.getProjectsForSpace.mockResolvedValue([{ id: 'p1', name: 'Ship the redesign' }]);
-    renderPage();
-    expect(await screen.findByRole('link', { name: 'Ship the redesign' })).toHaveAttribute('href', '/projects/p1');
   });
 
   it('sets a due date', async () => {
@@ -423,12 +374,9 @@ describe('SpacePage: block feed actions', () => {
       'A paragraph, optionally tagged as a quote, paraphrase, reflection, or inference.'
     );
 
-    // Scoped to this specific paragraph, not a bare getByText -- once
-    // a Work Type is selected, its description also appears a second
-    // time in the "+ Add Entry" form's own Compare Work Types panel.
-    await user.selectOptions(screen.getByLabelText('Entry type:'), 'assessment');
+    await user.selectOptions(screen.getByLabelText('Entry type:'), 'claim');
     expect(document.querySelector('.new-block-type-description').textContent).toBe(
-      'A judgment on something, with supporting points and a confidence marker.'
+      'Something you are asserting, with the points that support it and how settled it feels.'
     );
   });
 
@@ -501,45 +449,6 @@ describe('SpacePage: Workspaces', () => {
     await user.type(input, 'New Area');
     await user.click(within(input.closest('form')).getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(api.createWorkspace).toHaveBeenCalledWith('space-1', 'New Area'));
-  });
-});
-
-describe('SpacePage: Projects', () => {
-  // Creating a Project happens on the Projects page now, not here -- a
-  // Project belongs to no Space, so there is nothing for a Space page
-  // to create it "inside" of.
-  it('does not offer to create a Project from the Space page', async () => {
-    renderPage();
-    await screen.findByText('My Space');
-    expect(screen.queryByPlaceholderText('+ New Project')).not.toBeInTheDocument();
-  });
-
-  it('starts a Session in one click via the quick-start button', async () => {
-    const user = userEvent.setup();
-    api.addBlockToSpace.mockResolvedValue({});
-    renderPage();
-    await screen.findByText('My Space');
-    await user.click(screen.getByRole('button', { name: /Start a Session/ }));
-    await waitFor(() =>
-      expect(api.addBlockToSpace).toHaveBeenCalledWith(
-        'space-1',
-        expect.objectContaining({ type: 'session', content: expect.objectContaining({ startedAt: expect.any(String) }) })
-      )
-    );
-  });
-
-  it('sets which Project a Milestone belongs to via the inline picker', async () => {
-    const user = userEvent.setup();
-    // Every Project is offered, not just ones already fed by this
-    // Space -- assigning here is how a Space comes to feed one at all.
-    api.getProjects.mockResolvedValue([{ id: 'pr-1', name: 'Ship the redesign' }]);
-    api.getBlocksForSpace.mockResolvedValue([
-      { id: 'b1', type: 'milestone', content: { label: 'Ship it', targetDate: null, reached: false, reachedAt: null, note: '' }, properties: {}, updated_at: 'v1' },
-    ]);
-    renderPage();
-    await screen.findByText('Ship it');
-    await user.selectOptions(screen.getByLabelText('Project:'), 'pr-1');
-    await waitFor(() => expect(api.updateBlockProject).toHaveBeenCalledWith('b1', 'pr-1'));
   });
 });
 

@@ -334,9 +334,4 @@ describe('Dashboard: navigation', () => {
     expect(screen.getByRole('link', { name: '+ New Synthesis' })).toHaveAttribute('href', '/synthesis/new');
   });
 
-  it('shows the Insights banner linking to /insights', async () => {
-    renderDashboard();
-    await screen.findByText('No spaces yet. Create your first one to get started.');
-    expect(screen.getByRole('link', { name: /Aggregate trends across every Space/ })).toHaveAttribute('href', '/insights');
-  });
 });

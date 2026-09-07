@@ -152,13 +152,12 @@ describe('CreateSpace: submitting', () => {
     await screen.findByText('Start Blank');
 
     await user.type(screen.getByPlaceholderText('What is this Space about?'), 'My New Space');
-    await user.type(screen.getByPlaceholderText('(optional)'), 'Ship it');
     await user.type(screen.getByPlaceholderText('+ tag'), 'resource{Enter}');
     await user.click(screen.getByRole('button', { name: 'Create Space' }));
 
     await waitFor(() =>
       expect(api.createSpace).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'My New Space', goal: 'Ship it', tags: ['resource'], templateId: null })
+        expect.objectContaining({ title: 'My New Space', tags: ['resource'], templateId: null })
       )
     );
     expect(mockNavigate).toHaveBeenCalledWith('/spaces/new-space-id');

@@ -16,11 +16,10 @@ import {
   listSynthesesIndex,
 } from '../spaces.js';
 import { createWorkspace } from '../workspaces.js';
-import { createProject, getProjectById } from '../projects.js';
 import { addBlockToSpace, listBlocksForSpace } from '../blocks.js';
 import { createTemplate } from '../templates.js';
 import { TEST_SPACE_ID, INBOX_SPACE_ID } from '../constants.js';
-import { createBlock, updateBlockContent, updateBlockProject } from '../blocks.js';
+import { createBlock, updateBlockContent } from '../blocks.js';
 import { resetDb } from '../../../test/helpers/resetDb.js';
 
 describe('createSpace / getSpaceById', () => {
@@ -159,15 +158,12 @@ describe('updateSpace', () => {
   });
 
   it('updates only the given fields, leaving the rest untouched', async () => {
-    // createSpace itself has no `goal` parameter -- a goal is always
-    // set afterward through updateSpace, same as an ordinary Space's
-    // "Working toward" field is edited from the Space page.
     const space = await createSpace(env, { title: 'Original', tags: ['a'] });
-    await updateSpace(env, space.id, { goal: 'original goal' });
+    await updateSpace(env, space.id, { status: 'mature' });
     const updated = await updateSpace(env, space.id, { title: 'Renamed' });
     expect(updated.title).toBe('Renamed');
     expect(updated.tags).toEqual(['a']);
-    expect(updated.goal).toBe('original goal');
+    expect(updated.status).toBe('mature');
   });
 
   it('logs a status change but not a plain title/tag edit', async () => {
@@ -285,18 +281,6 @@ describe('deleteSpace', () => {
     expect((await env.DB.prepare('SELECT * FROM workspaces WHERE space_id = ?').bind(space.id).all()).results).toEqual([]);
   });
 
-  // A Project no longer belongs to a Space, so deleting a Space must
-  // leave the Project standing -- other Spaces may still feed it.
-  it('leaves a Project standing when a Space its work lived in is deleted', async () => {
-    const space = await createSpace(env, { title: 'Has work on a Project' });
-    const project = await createProject(env, { name: 'A Project' });
-    const block = await createBlock(env, { spaceId: space.id, type: 'milestone', content: {} });
-    await updateBlockProject(env, block.id, project.id);
-
-    await deleteSpace(env, space.id);
-    expect(await getSpaceById(env, space.id)).toBeNull();
-    expect(await getProjectById(env, project.id)).toBeTruthy();
-  });
 });
 
 describe('createSpaceWithSetup', () => {
@@ -332,11 +316,6 @@ describe('createSpaceWithSetup', () => {
     const [block] = await listBlocksForSpace(env, space.id);
     expect(block.type).toBe('reference');
     expect(block.content.target_space_id).toBe(resource.id);
-  });
-
-  it('sets the goal after creation via updateSpace', async () => {
-    const space = await createSpaceWithSetup(env, { title: 'Has a goal', goal: 'Ship it' });
-    expect((await getSpaceById(env, space.id)).goal).toBe('Ship it');
   });
 
   it('creates named Workspaces and resolves properties.workspaceNames into real workspace ids', async () => {

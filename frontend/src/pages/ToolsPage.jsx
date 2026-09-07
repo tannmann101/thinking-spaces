@@ -75,9 +75,7 @@ function ToolCard({ entry, kind, type }) {
         <p className="tool-works-with">Works with: {entry.worksWith.map(labelFor).join(', ')}</p>
       )}
       <div className="tool-demo">
-        {entry.demoProps ? (
-          <Demo {...entry.demoProps} />
-        ) : entry.demoBlock ? (
+        {entry.demoBlock ? (
           <DemoBlock entry={entry} />
         ) : (
           <p className="tool-no-demo">(no demo available)</p>
@@ -118,7 +116,7 @@ function ToolsPage() {
       <h3>Work</h3>
       <div className="tool-grid">
         {Object.entries(blockRegistry)
-          .filter(([, entry]) => entry.family === 'work')
+          .filter(([, entry]) => entry.family === 'work' && !entry.retired)
           .map(([key, entry]) => (
             <ToolCard key={key} type={key} entry={entry} kind="Entry" />
           ))}
@@ -127,7 +125,7 @@ function ToolsPage() {
       <h3>Time</h3>
       <div className="tool-grid">
         {Object.entries(blockRegistry)
-          .filter(([, entry]) => entry.family === 'time')
+          .filter(([, entry]) => entry.family === 'time' && !entry.retired)
           .map(([key, entry]) => (
             <ToolCard key={key} type={key} entry={entry} kind="Entry" />
           ))}
@@ -136,7 +134,7 @@ function ToolsPage() {
       <h3>Mapping</h3>
       <div className="tool-grid">
         {Object.entries(blockRegistry)
-          .filter(([, entry]) => entry.family === 'mapping')
+          .filter(([, entry]) => entry.family === 'mapping' && !entry.retired)
           .map(([key, entry]) => (
             <ToolCard key={key} type={key} entry={entry} kind="Entry" />
           ))}

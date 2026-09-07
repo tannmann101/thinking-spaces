@@ -16,10 +16,15 @@ describe('blockRegistry', () => {
     });
   });
 
-  it('gives every entry a demoBlock whose own type matches its registry key', () => {
-    Object.entries(blockRegistry).forEach(([key, entry]) => {
-      expect(entry.demoBlock.type, `${key}.demoBlock.type`).toBe(key);
-    });
+  // A retired Type is never listed in the catalog, so it has no demo to
+  // give -- it exists only to keep entries already written as one
+  // rendering. Everything you can still add needs one.
+  it('gives every offered entry a demoBlock whose own type matches its registry key', () => {
+    Object.entries(blockRegistry)
+      .filter(([, entry]) => !entry.retired)
+      .forEach(([key, entry]) => {
+        expect(entry.demoBlock.type, `${key}.demoBlock.type`).toBe(key);
+      });
   });
 
   it('only ever names a real Block or View key in worksWith', () => {
@@ -30,14 +35,25 @@ describe('blockRegistry', () => {
     });
   });
 
-  it('assigns family "work" to exactly the eleven current Work Types', () => {
-    const workKeys = Object.entries(blockRegistry)
-      .filter(([, entry]) => entry.family === 'work')
-      .map(([key]) => key)
-      .sort();
-    expect(workKeys).toEqual(
+  // Work is one Tool now. The ten names beside it are retired Types,
+  // kept renderable and kept out of every picker -- see
+  // blocks/workLabels.js for why there used to be eleven.
+  it('offers exactly one Work Tool, and keeps the ten retired Types hidden', () => {
+    const work = Object.entries(blockRegistry).filter(([, entry]) => entry.family === 'work');
+    expect(work.filter(([, entry]) => !entry.retired).map(([key]) => key)).toEqual(['claim']);
+    expect(work.filter(([, entry]) => entry.retired).map(([key]) => key).sort()).toEqual(
       ['analysis', 'assessment', 'deduction', 'definition', 'demonstration', 'formulation', 'hypothesis', 'implication', 'insight', 'objection', 'question'].sort()
     );
+  });
+
+  // A retired Type must still render, or an entry already written as one
+  // would read as "Unknown entry type" the day it was retired.
+  it('still renders every retired Work Type', () => {
+    Object.entries(blockRegistry)
+      .filter(([, entry]) => entry.retired)
+      .forEach(([key, entry]) => {
+        expect(entry.component, `${key}.component`).toBeTruthy();
+      });
   });
 
   it('assigns family "time" to Milestone and Session', () => {
@@ -86,17 +102,11 @@ describe('viewRegistry', () => {
     // A self-consistency guard: if a demoBlock is edited without
     // keeping appliesTo's own matching logic in mind, the Tools catalog
     // would demo a View that claims not to apply to the very data it's
-    // demoing. Graph is excluded -- its appliesTo always returns false
-    // by design (see the comment in views.js), and it takes demoProps,
-    // not a demoBlock.
+    // demoing.
     Object.entries(viewRegistry).forEach(([key, entry]) => {
       if (!entry.demoBlock) return;
       expect(entry.appliesTo(entry.demoBlock), `${key}.appliesTo(${key}.demoBlock)`).toBe(true);
     });
-  });
-
-  it('Graph deliberately never applies to any single block', () => {
-    expect(viewRegistry.graph.appliesTo({})).toBe(false);
   });
 
   it('Timeline does not apply to a List with no dated items', () => {

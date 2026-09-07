@@ -17,17 +17,15 @@ import ExportPanel from './ExportPanel.jsx';
 // every page drop its own separate "back to Dashboard" text link
 // without losing that path: one obvious way home, not two competing
 // ones.
+// Five destinations, not eleven. Resources and Syntheses were two more
+// ways into the same collection this list's first entry already holds
+// (both are just Spaces carrying a tag), so they are filters on the
+// Spaces page rather than places of their own.
 const LINKS = [
   { key: 'spaces', to: '/spaces', label: 'Spaces' },
-  { key: 'resources', to: '/resources', label: 'Resources' },
-  { key: 'syntheses', to: '/syntheses', label: 'Syntheses' },
-  { key: 'insights', to: '/insights', label: 'Insights' },
-  { key: 'tools', to: '/tools', label: 'Tools' },
   { key: 'workspaces', to: '/workspaces', label: 'Workspaces' },
-  { key: 'projects', to: '/projects', label: 'Projects' },
-  { key: 'goals', to: '/goals', label: 'Goals' },
-  { key: 'templates', to: '/templates', label: 'Manage Templates' },
-  { key: 'graph', to: '/graph', label: 'View the Map' },
+  { key: 'tools', to: '/tools', label: 'Tools' },
+  { key: 'templates', to: '/templates', label: 'Templates' },
   { key: 'log', to: '/log', label: 'Log' },
 ];
 

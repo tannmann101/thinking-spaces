@@ -249,7 +249,7 @@ describe('WorkspacePage: a kind shapes the page', () => {
       'Word Evolution',
       'Concept Map',
       'Reference',
-      'Definition',
+      'Claim',
     ]);
     // The ordinary family groups are still all there.
     expect(document.querySelector('optgroup[label="General"]')).toBeTruthy();

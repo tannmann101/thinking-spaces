@@ -88,6 +88,11 @@ const BLOCK_THEME_DEFAULTS = {
 
   // Work -- the warm red range, the app's own primary color, since Work
   // is literally what this app is for.
+  claim: { accent: 'maroon', shape: 'slab', density: 'normal', typeface: 'body' },
+  // The ten retired Work Types (see blocks/workLabels.js). Their
+  // defaults stay so an entry written as one still looks like
+  // itself rather than snapping to something else the day it was
+  // retired.
   assessment: { accent: 'maroon', shape: 'slab', density: 'normal', typeface: 'body' },
   question: { accent: 'maroon', shape: 'bracket', density: 'normal', typeface: 'body' },
   analysis: { accent: 'maroon', shape: 'rule', density: 'normal', typeface: 'body' },

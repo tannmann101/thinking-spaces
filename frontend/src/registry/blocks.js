@@ -55,18 +55,9 @@ import ReferenceWorkshop from '../blocks/ReferenceWorkshop.jsx';
 import MediaBlock from '../blocks/MediaBlock.jsx';
 import MediaWorkshop from '../blocks/MediaWorkshop.jsx';
 import ComparisonBlock from '../blocks/ComparisonBlock.jsx';
+import WorkBlock from '../blocks/WorkBlock.jsx';
+import { WORK_LABELS } from '../blocks/workLabels.js';
 import ComparisonWorkshop from '../blocks/ComparisonWorkshop.jsx';
-import AssessmentBlock from '../blocks/AssessmentBlock.jsx';
-import QuestionBlock from '../blocks/QuestionBlock.jsx';
-import AnalysisBlock from '../blocks/AnalysisBlock.jsx';
-import DeductionBlock from '../blocks/DeductionBlock.jsx';
-import DefinitionBlock from '../blocks/DefinitionBlock.jsx';
-import DemonstrationBlock from '../blocks/DemonstrationBlock.jsx';
-import InsightBlock from '../blocks/InsightBlock.jsx';
-import ImplicationBlock from '../blocks/ImplicationBlock.jsx';
-import HypothesisBlock from '../blocks/HypothesisBlock.jsx';
-import ObjectionBlock from '../blocks/ObjectionBlock.jsx';
-import FormulationBlock from '../blocks/FormulationBlock.jsx';
 import MilestoneBlock from '../blocks/MilestoneBlock.jsx';
 import SessionBlock from '../blocks/SessionBlock.jsx';
 import WordEvolutionBlock from '../blocks/WordEvolutionBlock.jsx';
@@ -154,7 +145,7 @@ export const blockRegistry = {
     icon: '→',
     component: ReferenceBlock,
     workshopComponent: ReferenceWorkshop,
-    worksWith: ['comparison', 'graph'],
+    worksWith: ['comparison'],
     // Points at the real Test Space so clicking the demo is harmless
     // (and even a little useful) rather than a dead link.
     demoBlock: {
@@ -202,253 +193,39 @@ export const blockRegistry = {
       properties: {},
     },
   },
-  // "Work": a new kind of Tool, one real, distinct Tool per kind of
-  // thinking-act (assess, question, analyze, deduce, define,
-  // demonstrate, realize, imply, and whatever follows) rather than a
-  // generic block with a label. Every kind shares one underlying shape
-  // ({statement, support, confidence} -- see WorkBlock.jsx) so Synthesis
-  // can pull from them uniformly, even though each one's two text
-  // fields are relabeled for its own kind (Definition is the one
-  // exception to "statement = the Tool's own name": its statement
-  // holds the term, not a definition-shaped sentence). `support` is a
-  // list of discrete points, each either its own short claim or a live
-  // link to another existing claim (another Work block, or a Skeleton
-  // lane item) -- see WorkBlock.jsx for how a support point resolves.
-  // See worker/src/db/work.js's WORK_TYPES, which must list every
-  // type registered here that Synthesis should be able to draw from.
-  assessment: {
-    label: 'Assessment',
-    description: 'A judgment on something, with supporting points and a confidence marker.',
+  // "Work": the thinking itself -- a claim you are making, with the
+  // points that support it and how settled it feels. One Tool, not
+  // eleven.
+  //
+  // It was eleven: Assessment, Question, Analysis, Deduction,
+  // Definition, Demonstration, Insight, Implication, Hypothesis,
+  // Objection, Formulation -- each a real registered Tool that, in the
+  // end, differed from its neighbours only in what it called its two
+  // text fields. The cost landed at exactly the wrong moment: you had
+  // to decide which kind of thinking this was before you could write
+  // the thought down, choosing between "a softer sibling to Deduction"
+  // and its siblings from a flat dropdown. A whole "Compare Work
+  // Types" panel was built to make that choice survivable, which is
+  // the clearest evidence it should not have had to be made.
+  //
+  // Now: one Claim, and `kind` is an optional free-text label you can
+  // set after the fact or never. The retired names live on in
+  // blocks/workLabels.js so entries already written as one keep
+  // rendering as they always did -- they just aren't offered any more.
+  // See worker/src/db/work.js's WORK_TYPES for the query-side list.
+  claim: {
+    label: 'Claim',
+    description: 'Something you are asserting, with the points that support it and how settled it feels.',
     family: 'work',
-    icon: '⚖',
-    component: AssessmentBlock,
-    worksWith: ['question', 'analysis', 'deduction', 'objection'],
+    icon: '\u25c8',
+    component: WorkBlock,
+    worksWith: ['text', 'list', 'reference'],
     demoBlock: {
-      type: 'assessment',
+      type: 'claim',
       content: {
         statement: 'This vendor is not worth the switching cost.',
+        kind: 'assessment',
         support: [{ id: 'demo-1', text: 'Migration effort outweighs the savings within any reasonable payback window.' }],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  question: {
-    label: 'Question',
-    description:
-      'An open question worth holding onto, with why it matters and a confidence marker for how central it feels.',
-    family: 'work',
-    icon: '?',
-    component: QuestionBlock,
-    worksWith: ['assessment', 'definition'],
-    demoBlock: {
-      type: 'question',
-      content: {
-        statement: 'Is the switching cost actually reversible?',
-        support: [{ id: 'demo-1', text: 'If it is, the risk calculus for this decision changes a lot.' }],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  analysis: {
-    label: 'Analysis',
-    description: 'A finding from breaking something down into its parts, with the breakdown and a confidence marker.',
-    family: 'work',
-    icon: '⊞',
-    component: AnalysisBlock,
-    worksWith: ['assessment', 'deduction', 'insight'],
-    demoBlock: {
-      type: 'analysis',
-      content: {
-        statement: 'The delay is driven by onboarding friction, not price.',
-        support: [
-          {
-            id: 'demo-1',
-            text: 'Usage data shows drop-off concentrated in the first setup step, well before anyone reaches the pricing page.',
-          },
-        ],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  deduction: {
-    label: 'Deduction',
-    description:
-      'A conclusion reached by explicit reasoning from other claims, with that reasoning and a confidence marker.',
-    family: 'work',
-    icon: '∴',
-    component: DeductionBlock,
-    worksWith: ['analysis', 'demonstration', 'implication', 'objection'],
-    demoBlock: {
-      type: 'deduction',
-      content: {
-        statement: 'Switching vendors this quarter is not worth it.',
-        support: [
-          {
-            id: 'demo-1',
-            text: 'Migration cost exceeds the savings within any window short enough to matter, and the contract already renewed.',
-          },
-        ],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  definition: {
-    label: 'Definition',
-    description: "A term and its meaning, with a confidence marker for how settled the definition feels.",
-    family: 'work',
-    icon: '≡',
-    component: DefinitionBlock,
-    worksWith: ['question'],
-    demoBlock: {
-      type: 'definition',
-      content: {
-        statement: 'Switching cost',
-        support: [
-          {
-            id: 'demo-1',
-            text: 'Everything given up or spent to move from one option to another — money, time, momentum, and what has to be relearned.',
-          },
-        ],
-        confidence: 'solid',
-      },
-      properties: {},
-    },
-  },
-  demonstration: {
-    label: 'Demonstration',
-    description: 'A concrete worked example showing a claim to be true, with the walkthrough and a confidence marker.',
-    family: 'work',
-    icon: '▶',
-    component: DemonstrationBlock,
-    worksWith: ['deduction', 'implication', 'hypothesis'],
-    demoBlock: {
-      type: 'demonstration',
-      content: {
-        statement: 'The two migration plans really do cost the same over three years.',
-        support: [
-          { id: 'demo-1', text: 'Plan A: $400/mo x 36 = $14,400.' },
-          { id: 'demo-2', text: 'Plan B: $9,000 upfront + $150/mo x 36 = $14,400.' },
-        ],
-        confidence: 'solid',
-      },
-      properties: {},
-    },
-  },
-  // Insight and Implication are deliberately the softer, more
-  // provisional pair alongside the sharper Assessment/Deduction --
-  // most of the rest of the original thinking-verb list (derive, plan,
-  // outline, explain, ...) either already maps onto an existing Tool
-  // or is a near-duplicate of one of the six built so far; these two
-  // were the ones that actually stood on their own.
-  insight: {
-    label: 'Insight',
-    description: 'An unplanned realization, with what led to it and a confidence marker.',
-    family: 'work',
-    icon: '✦',
-    component: InsightBlock,
-    worksWith: ['analysis', 'implication'],
-    demoBlock: {
-      type: 'insight',
-      content: {
-        statement: 'The complaints were never about the price at all.',
-        support: [
-          { id: 'demo-1', text: 'Re-reading the support thread, every escalation happened after a setup step, not a billing screen.' },
-        ],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  implication: {
-    label: 'Implication',
-    description:
-      'What seems to follow from something, short of proof — a softer sibling to Deduction — with what suggests it and a confidence marker.',
-    family: 'work',
-    icon: '⇒',
-    component: ImplicationBlock,
-    worksWith: ['deduction', 'insight'],
-    demoBlock: {
-      type: 'implication',
-      content: {
-        statement: 'The team may be understaffed for onboarding, not just support.',
-        support: [{ id: 'demo-1', text: 'Onboarding drop-off and slow support responses both spike on the same weeks.' }],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  // Hypothesis and Objection followed once the support-point/linking
-  // structure existed to make them worth adding: a Hypothesis is a
-  // claim proposed to test, not yet believed (distinct from
-  // Assessment's already-reached judgment), and an Objection is a
-  // targeted challenge to another existing claim -- which is exactly
-  // what a linked support point is for, so Objection needed no
-  // dedicated pointer field of its own to stay consistent with the
-  // shared shape every other Work Type uses.
-  hypothesis: {
-    label: 'Hypothesis',
-    description: 'A claim proposed to test, not yet believed, with what would test it and a confidence marker.',
-    family: 'work',
-    icon: '∼',
-    component: HypothesisBlock,
-    worksWith: ['assessment', 'demonstration'],
-    demoBlock: {
-      type: 'hypothesis',
-      content: {
-        statement: 'Reducing the setup form to three fields would cut onboarding drop-off.',
-        support: [{ id: 'demo-1', text: 'A/B test a three-field version against the current seven-field one for two weeks.' }],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  objection: {
-    label: 'Objection',
-    description:
-      'A specific challenge to another existing claim, with what it challenges (typically a linked claim) and a confidence marker.',
-    family: 'work',
-    icon: '✕',
-    component: ObjectionBlock,
-    worksWith: ['assessment', 'deduction'],
-    demoBlock: {
-      type: 'objection',
-      content: {
-        statement: 'The contract renewal date assumed in that deduction may already have passed.',
-        support: [{ id: 'demo-1', text: 'Worth confirming with billing before treating the deduction as settled.' }],
-        confidence: 'tentative',
-      },
-      properties: {},
-    },
-  },
-  // Problem Formulation, added at the person's request: the stage of
-  // thinking that comes before Assessment/Question/Analysis even make
-  // sense, because what the phenomenon actually IS hasn't been named
-  // yet. A Formulation is derived by reading something (an utterance, a
-  // behavior, a stated value, a phenomenon) through a specific
-  // interpretive lens rather than observed directly -- see the
-  // Skeleton & Tensions section on the Tools catalog page for how a
-  // Formulation's own Grounds can link to a claim surfaced by that
-  // lens. Lenses themselves (etymology, phenomenology, anthropology,
-  // history, epistemology, philosophy, ...) aren't a Block type -- they
-  // live as Resources (tag "lens"), so they're reusable across every
-  // phenomenon they get applied to rather than retyped fresh each time.
-  formulation: {
-    label: 'Formulation',
-    description:
-      'A working claim about what a phenomenon fundamentally is, derived through a specific interpretive lens, with a confidence marker for how settled the framing feels.',
-    family: 'work',
-    icon: '⊢',
-    component: FormulationBlock,
-    worksWith: ['question', 'analysis', 'deduction'],
-    demoBlock: {
-      type: 'formulation',
-      content: {
-        statement: 'This is fundamentally a status ritual, not a factual claim.',
-        support: [{ id: 'demo-1', text: 'Etymology: the word’s root already meant "to display," not "to inform."' }],
         confidence: 'tentative',
       },
       properties: {},
@@ -617,3 +394,24 @@ export const blockRegistry = {
     },
   },
 };
+
+// The ten retired Work Types (see blocks/workLabels.js). They are real
+// registry entries so an entry already written as one still renders
+// exactly as it did -- WorkBlock reads its own two labels from the
+// block's type -- and they carry `retired: true` so nothing that lets
+// you *choose* a Tool offers them: not the catalog, not the "+ Add
+// Entry" picker, not a Template. Generated from one list rather than
+// written out ten times, because a retired Type has nothing left to
+// say for itself beyond its name.
+for (const [type, labels] of Object.entries(WORK_LABELS)) {
+  if (type === 'claim') continue;
+  blockRegistry[type] = {
+    label: labels.statement,
+    description: `A retired Work Type. Existing entries still work; new ones are Claims.`,
+    family: 'work',
+    icon: '\u25c8',
+    component: WorkBlock,
+    worksWith: [],
+    retired: true,
+  };
+}

@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { updateBlockContent } from '../api.js';
+import { formatTimeRange } from '../lib/formatTime.js';
 
 function formatDuration(minutes) {
   if (minutes == null) return null;
@@ -127,8 +128,7 @@ function SessionBlock({ block, onSave, onBlocksChanged }) {
         )}
         {endedAt && (
           <span className="session-completed">
-            {formatDuration(durationMinutes)} — {new Date(startedAt).toLocaleString()} to{' '}
-            {new Date(endedAt).toLocaleString()}
+            {formatDuration(durationMinutes)} — {formatTimeRange(startedAt, endedAt)}
           </span>
         )}
       </p>

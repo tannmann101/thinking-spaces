@@ -41,10 +41,12 @@ import { TEST_SPACE_ID } from './constants.js';
 // -- see normalizeWorkContent (normalize.js) for how an older
 // {rationale} blob upgrades into this shape.
 //
-// Adding a new kind of Work later means adding its block type here and
-// registering it on the frontend; nothing else needs to change --
-// listWorkItems and the Synthesis picker both pick it up automatically.
+// There is one Work Tool now, `claim`. The ten names under it are
+// retired Types kept solely so entries already written as one are
+// still found by Synthesis's picker, Insights and search -- exactly
+// as they were before. See frontend/src/blocks/workLabels.js.
 export const WORK_TYPES = [
+  'claim',
   'assessment',
   'question',
   'analysis',

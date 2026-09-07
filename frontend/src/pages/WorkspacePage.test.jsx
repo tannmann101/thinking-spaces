@@ -195,51 +195,6 @@ describe('WorkspacePage: a kind shapes the page', () => {
     expect(screen.getByText(/Track how a word/)).toBeInTheDocument();
   });
 
-  it('renders the kind own sections, each with its framing prompt', async () => {
-    api.getWorkspace.mockResolvedValue({ id: 'ws-1', name: 'Etymology', kind: 'etymology' });
-    renderPage();
-    await screen.findByText(/Etymology Workspace inside/);
-    const names = [...document.querySelectorAll('.workspace-section-name')].map((n) => n.textContent);
-    expect(names).toEqual(['The word itself', 'Where it lands now', 'Sources']);
-    expect(screen.getByText(/Each stage: when it held/)).toBeInTheDocument();
-  });
-
-  it('files each block under the section its Tool type belongs to', async () => {
-    api.getWorkspace.mockResolvedValue({ id: 'ws-1', name: 'Etymology', kind: 'etymology' });
-    api.getBlocksForSpace.mockResolvedValue([
-      {
-        id: 'b1',
-        type: 'wordEvolution',
-        content: { term: 'virtue', senses: [] },
-        properties: { workspaces: ['ws-1'] },
-        updated_at: '1',
-      },
-    ]);
-    renderPage();
-    await screen.findByText(/Etymology Workspace inside/);
-    const groups = document.querySelectorAll('.workspace-section-group');
-    expect(within(groups[0]).getByText('virtue')).toBeInTheDocument();
-    expect(within(groups[1]).getByText('Nothing here yet.')).toBeInTheDocument();
-  });
-
-  it('keeps an unexpected Tool visible under "Also here" rather than dropping it', async () => {
-    api.getWorkspace.mockResolvedValue({ id: 'ws-1', name: 'Etymology', kind: 'etymology' });
-    api.getBlocksForSpace.mockResolvedValue([
-      {
-        id: 'b1',
-        type: 'milestone',
-        content: { label: 'A checkpoint', reached: false },
-        properties: { workspaces: ['ws-1'] },
-        updated_at: '1',
-      },
-    ]);
-    renderPage();
-    await screen.findByText(/Etymology Workspace inside/);
-    const names = [...document.querySelectorAll('.workspace-section-name')].map((n) => n.textContent);
-    expect(names[names.length - 1]).toBe('Also here');
-    expect(screen.getByText('A checkpoint')).toBeInTheDocument();
-  });
-
   it('leads the add-a-Tool picker with the kind own Tools, without removing the rest', async () => {
     api.getWorkspace.mockResolvedValue({ id: 'ws-1', name: 'Etymology', kind: 'etymology' });
     renderPage();

@@ -5,7 +5,7 @@ import {
   createSpace,
   deleteSpace,
   updateSpace,
-  moveBlockInSpace,
+  reorderBlocksInSpace,
   setMutationListener,
   getLinkPreview,
   uploadFile,
@@ -127,7 +127,7 @@ describe('api.js mutation listener (drives Toast.jsx)', () => {
     mockFetchOnce(jsonResponse([{ id: 'a' }]));
     const listener = vi.fn();
     setMutationListener(listener);
-    await moveBlockInSpace('space-1', 'block-1', 1);
+    await reorderBlocksInSpace('space-1', ['block-1']);
     expect(listener).not.toHaveBeenCalled();
   });
 

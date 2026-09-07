@@ -21,7 +21,7 @@
 // whether a given Space is a citable thing you sourced, or one the
 // app itself produced through Work/Synthesis.
 //
-// Resource Templates (see worker/src/db/resourceTemplates.js)
+// Resource Templates (see registry/resourceTemplates.js)
 // replace the three descriptive facets below with a type-tailored set
 // of their own, once a chosen type tag matches one -- "What is this,
 // plainly" means something different for a Book than for a Riddle. The
@@ -42,8 +42,9 @@
 // relations are orthogonal to how the content actually got in here.
 
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { createSpace, getSpaces, getResourceTemplateByType, getLinkPreview, uploadFile } from '../api.js';
+import { useNavigate } from 'react-router-dom';
+import { createSpace, getSpaces, getLinkPreview, uploadFile } from '../api.js';
+import { resourceTemplateForTags } from '../registry/resourceTemplates.js';
 import Sidebar from '../components/Sidebar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { mediaContentFromLink, mediaContentFromUpload } from '../blocks/mediaSource.js';
@@ -82,7 +83,9 @@ function CreateResource() {
   const [title, setTitle] = useState('');
   const [typeTags, setTypeTags] = useState([]);
   const [typeInput, setTypeInput] = useState('');
-  const [resourceTemplate, setResourceTemplate] = useState(null);
+  // Which type's own questions to ask, if any. A plain lookup in a
+  // registry file now, not a fetch -- see registry/resourceTemplates.js.
+  const resourceTemplate = resourceTemplateForTags(typeTags);
   const [facetValues, setFacetValues] = useState({});
   const [allSpaces, setAllSpaces] = useState(null);
   const [selectedRelations, setSelectedRelations] = useState({}); // spaceId -> note string
@@ -108,28 +111,6 @@ function CreateResource() {
     getSpaces().then(setAllSpaces).catch(() => setAllSpaces([]));
   }, []);
 
-  // The first chosen type tag (in the order added) that matches a real
-  // Resource Template wins -- checked in order, not in parallel, so a
-  // slower-resolving earlier tag can't be overtaken by a faster later
-  // one. Falls back to no template (the generic facets) if none match,
-  // or if the lookup itself fails.
-  useEffect(() => {
-    let cancelled = false;
-    async function findTemplate() {
-      for (const type of typeTags) {
-        const match = await getResourceTemplateByType(type).catch(() => null);
-        if (match) {
-          if (!cancelled) setResourceTemplate(match);
-          return;
-        }
-      }
-      if (!cancelled) setResourceTemplate(null);
-    }
-    findTemplate();
-    return () => {
-      cancelled = true;
-    };
-  }, [typeTags]);
 
   // A genuinely different active template means the old facet answers
   // don't apply anymore -- reset rather than carry stale text under a
@@ -312,7 +293,7 @@ function CreateResource() {
         <h2>Type</h2>
         <p>
           Optional — helps sub-type this Resource alongside every other one. Some types have their
-          own tailored set of questions below (see <Link to="/resource-templates">Resource Templates</Link>).
+          own tailored set of questions below.
         </p>
         <p className="tag-row">
           {typeTags.map((type) => (

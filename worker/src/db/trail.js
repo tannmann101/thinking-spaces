@@ -88,13 +88,41 @@ export async function listSpaceHistory(env, spaceId) {
   };
   const sentence = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
 
+  // A Space's own construction is left out here: "Created this Space"
+  // followed by "Added a writing entry" for each starter is the record
+  // of building the page, not of thinking in it, and on a templated
+  // Space it is the *entire* history until you write something. The Log
+  // still has all of it -- that view is about what happened across every
+  // Space, where a Space appearing genuinely is an event.
+  //
+  // Scoped to exactly what the creation request itself wrote: the
+  // `space_created` row, plus any entry logged in the same second as it.
+  // A Template's starters are inserted synchronously right after the
+  // Space, so they share its datetime('now') to the second (the same
+  // property getReviewDraft had to widen its own comparison for). An
+  // entry you add a few seconds later is real work and stays.
+  //
+  // The one imprecision, stated rather than hidden: a creation request
+  // that happens to straddle a second boundary leaves one starter in the
+  // Trail. That is a stray line, not a broken history, and the
+  // alternative -- a wider time window -- would swallow a first real
+  // entry written straight after creating the Space, which is worse.
   const { results } = await env.DB.prepare(
     `SELECT id, kind, summary, block_id, event_count, created_at
        FROM activity_log
       WHERE space_id = ?
+        AND kind != 'space_created'
+        AND NOT (
+          kind = 'block_added'
+          AND created_at = (
+            SELECT created_at FROM activity_log
+             WHERE space_id = ? AND kind = 'space_created'
+             LIMIT 1
+          )
+        )
       ORDER BY created_at ASC`
   )
-    .bind(spaceId)
+    .bind(spaceId, spaceId)
     .all();
   const activity = results.map((row) => ({
     ...row,

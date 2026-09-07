@@ -7,8 +7,6 @@ import SpacePage from './pages/SpacePage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
 import TemplateEditor from './pages/TemplateEditor.jsx';
-import ResourceTemplatesPage from './pages/ResourceTemplatesPage.jsx';
-import ResourceTemplateEditor from './pages/ResourceTemplateEditor.jsx';
 import ToolsPage from './pages/ToolsPage.jsx';
 import WorkspacesPage from './pages/WorkspacesPage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
@@ -32,9 +30,6 @@ function App() {
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/templates/new" element={<TemplateEditor />} />
           <Route path="/templates/:id/edit" element={<TemplateEditor />} />
-          <Route path="/resource-templates" element={<ResourceTemplatesPage />} />
-          <Route path="/resource-templates/new" element={<ResourceTemplateEditor />} />
-          <Route path="/resource-templates/:id/edit" element={<ResourceTemplateEditor />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/spaces" element={<SpacesPage />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />

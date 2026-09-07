@@ -22,6 +22,8 @@ const KIND_LABELS = {
   space_deleted: 'Space',
   space_status_changed: 'Status',
   block_added: 'Tool',
+  block_moved_in: 'Moved',
+  block_moved_out: 'Moved',
   block_removed: 'Tool',
   block_edited: 'Edit',
   block_changed: 'Change',

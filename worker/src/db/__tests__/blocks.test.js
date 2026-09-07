@@ -11,7 +11,7 @@ import {
   createBlock,
   addBlockToSpace,
   deleteBlock,
-  moveBlockInSpace,
+  reorderBlocksInSpace,
   moveBlockToSpace,
   updateBlockContent,
   updateBlockCategories,
@@ -232,25 +232,39 @@ describe('blocks.js', () => {
     });
   });
 
-  describe('moveBlockInSpace', () => {
-    it('swaps two blocks\' positions', async () => {
-      const first = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'first' } });
-      const second = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'second' } });
-      await moveBlockInSpace(env, space.id, second.id, -1);
-      const ordered = await listBlocksForSpace(env, space.id);
-      expect(ordered.map((b) => b.id)).toEqual([second.id, first.id]);
-      // Confirm the actual position values swapped, not just re-sorted.
-      expect((await getBlockById(env, first.id)).position).toBe(1);
-      expect((await getBlockById(env, second.id)).position).toBe(0);
+  describe('reorderBlocksInSpace', () => {
+    it('assigns positions from the order it is given', async () => {
+      const a = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'a' } });
+      const b = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'b' } });
+      const c = await addBlockToSpace(env, space.id, { type: 'text', content: { text: 'c' } });
+
+      // A drag of any distance, which a run of adjacent swaps couldn't
+      // express in one go.
+      await reorderBlocksInSpace(env, space.id, [c.id, a.id, b.id]);
+      expect((await listBlocksForSpace(env, space.id)).map((x) => x.id)).toEqual([c.id, a.id, b.id]);
+      expect((await getBlockById(env, c.id)).position).toBe(0);
+      expect((await getBlockById(env, b.id)).position).toBe(2);
     });
 
-    it('does nothing when moving the first block up or the last block down', async () => {
-      const first = await addBlockToSpace(env, space.id, { type: 'text', content: {} });
-      const second = await addBlockToSpace(env, space.id, { type: 'text', content: {} });
-      await moveBlockInSpace(env, space.id, first.id, -1);
-      await moveBlockInSpace(env, space.id, second.id, 1);
-      expect((await getBlockById(env, first.id)).position).toBe(0);
-      expect((await getBlockById(env, second.id)).position).toBe(1);
+    it('keeps an entry the caller left out, at the end', async () => {
+      // A page that hasn't seen a just-added entry sends a stale list;
+      // that must reorder what it knows about, not bury the rest.
+      const a = await addBlockToSpace(env, space.id, { type: 'text', content: {} });
+      const b = await addBlockToSpace(env, space.id, { type: 'text', content: {} });
+      const unseen = await addBlockToSpace(env, space.id, { type: 'text', content: {} });
+
+      await reorderBlocksInSpace(env, space.id, [b.id, a.id]);
+      expect((await listBlocksForSpace(env, space.id)).map((x) => x.id)).toEqual([b.id, a.id, unseen.id]);
+    });
+
+    it('ignores ids that do not belong to this Space', async () => {
+      const other = await createSpace(env, { title: 'Elsewhere' });
+      const mine = await addBlockToSpace(env, space.id, { type: 'text', content: {} });
+      const theirs = await addBlockToSpace(env, other.id, { type: 'text', content: {} });
+
+      await reorderBlocksInSpace(env, space.id, [theirs.id, mine.id]);
+      expect((await listBlocksForSpace(env, space.id)).map((x) => x.id)).toEqual([mine.id]);
+      expect((await getBlockById(env, theirs.id)).space_id).toBe(other.id);
     });
   });
 

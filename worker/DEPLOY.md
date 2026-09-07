@@ -213,9 +213,9 @@ If `git pull` refuses because of local changes to `package.json` /
 `git -C .. stash push -m "npm artifacts" worker/package.json worker/package-lock.json`,
 then pull.
 
-**1. Back up first.** Everything below is additive except step 4, which
-rebuilds a table. This is the person's own accumulated thinking, so take
-a copy before touching it:
+**1. Back up first.** Everything below is additive -- nothing drops or
+rebuilds anything. This is the person's own accumulated thinking, so
+take a copy before touching it anyway:
 
 ```
 npx wrangler d1 export thinking-spaces --remote --output=backup-before-migration.sql
@@ -248,41 +248,24 @@ npx wrangler d1 execute thinking-spaces --remote --file=schema.sql
 npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE activity_log ADD COLUMN block_id TEXT;"
 npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE activity_log ADD COLUMN event_count INTEGER NOT NULL DEFAULT 1;"
 npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE spaces ADD COLUMN theme TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE spaces ADD COLUMN goal_ids TEXT NOT NULL DEFAULT '[]';"
 npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE workspaces ADD COLUMN kind TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --command "ALTER TABLE projects ADD COLUMN goal_id TEXT;"
-npx wrangler d1 execute thinking-spaces --remote --file=resource-templates-seed.sql
 ```
 
-**4. Rebuild the projects table -- only if step 2 showed a `space_id`
-column on it.** A Project no longer belongs to a Space, and that column
-was NOT NULL with a foreign key into `spaces`, which blocks inserting a
-standalone Project at all. SQLite cannot drop a column carrying a
-foreign key, so this is the standard make-copy-swap. It is **not**
-idempotent -- if `PRAGMA table_info(projects)` showed no `space_id`, the
-rebuild has already happened and running it again would fail:
-
-```
-npx wrangler d1 execute thinking-spaces --remote --file=projects-spaceless-rebuild.sql
-```
-
-**5. Fix the retired status values.** See the next section for why this
+**4. Fix the retired status values.** See the next section for why this
 one has no automatic counterpart here:
 
 ```
 npx wrangler d1 execute thinking-spaces --remote --command "UPDATE spaces SET status = 'active' WHERE status IN ('nascent', 'developing');"
 ```
 
-**6. Deploy the Worker, immediately.** This has to come *after* the
-schema, since the new Worker code reads columns that don't exist until
-step 3 -- and it has to follow step 4 promptly, since the rebuild
-removes a column the currently-deployed Worker still reads:
+**5. Deploy the Worker.** This has to come *after* the schema, since
+the new Worker code reads columns that don't exist until step 3:
 
 ```
 npx wrangler deploy
 ```
 
-**7. Check it.** Open `https://thinking.thegardners.xyz`, sign in
+**6. Check it.** Open `https://thinking.thegardners.xyz`, sign in
 through the Access PIN, and confirm: your real Spaces still load, the
 Goals and Projects entries in the sidebar open working pages, search
 returns results, and a Space page's Trail shows recorded activity rather

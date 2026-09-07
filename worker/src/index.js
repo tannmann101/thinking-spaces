@@ -40,7 +40,7 @@ import {
   updateBlockTheme,
   moveBlockToSpace,
   deleteBlock,
-  moveBlockInSpace,
+  reorderBlocksInSpace,
 } from './db/blocks.js';
 import {
   listWorkspacesForSpace,
@@ -51,14 +51,6 @@ import {
   deleteWorkspace,
 } from './db/workspaces.js';
 import { listTemplates, getTemplateById, createTemplate, updateTemplate, deleteTemplate } from './db/templates.js';
-import {
-  listResourceTemplates,
-  getResourceTemplateById,
-  getResourceTemplateByType,
-  createResourceTemplate,
-  updateResourceTemplate,
-  deleteResourceTemplate,
-} from './db/resourceTemplates.js';
 import { SKELETON_LANES, saveTextBlockWithPromotion, fileLineInLane, createTensionPair, getSkeletonSnapshot, listAllSkeletonClaims } from './db/skeleton.js';
 import { listSpaceHistory, addManualTrailEntry, updateTrailEntry } from './db/trail.js';
 import { getReviewDraft, createReview } from './db/review.js';
@@ -218,11 +210,13 @@ async function handleAddBlock(request, env, spaceId) {
   return json(await addBlockToSpace(env, spaceId, { type, content, properties }), 201);
 }
 
-async function handleMoveBlock(request, env, spaceId, blockId) {
+// The feed is dragged rather than nudged a step at a time, so this
+// takes the whole resulting order instead of one id and a direction.
+async function handleReorderBlocks(request, env, spaceId) {
   const body = (await readJson(request)) || {};
-  const { direction } = body;
-  if (direction !== -1 && direction !== 1) return errorResponse('direction must be -1 or 1');
-  await moveBlockInSpace(env, spaceId, blockId, direction);
+  const { order } = body;
+  if (!Array.isArray(order)) return errorResponse('order must be an array of entry ids');
+  await reorderBlocksInSpace(env, spaceId, order);
   return json(await listBlocksForSpace(env, spaceId));
 }
 
@@ -374,29 +368,6 @@ async function handlePatchTemplate(request, env, id) {
   const { name, blockArrangement } = body;
   if (!name || !name.trim()) return errorResponse('name is required');
   return json(await updateTemplate(env, id, { name: name.trim(), blockArrangement: blockArrangement || [] }));
-}
-
-// ---------- Resource Templates ----------
-
-async function handleCreateResourceTemplate(request, env) {
-  const body = (await readJson(request)) || {};
-  const { type, label, facets } = body;
-  if (!type || !type.trim() || !label || !label.trim()) return errorResponse('type and label are required');
-  return json(
-    await createResourceTemplate(env, { type: type.trim().toLowerCase(), label: label.trim(), facets: facets || [] }),
-    201
-  );
-}
-
-async function handlePatchResourceTemplate(request, env, id) {
-  const existing = await getResourceTemplateById(env, id);
-  if (!existing) return errorResponse('Resource Template not found', 404);
-  const body = (await readJson(request)) || {};
-  const { type, label, facets } = body;
-  if (!type || !type.trim() || !label || !label.trim()) return errorResponse('type and label are required');
-  return json(
-    await updateResourceTemplate(env, id, { type: type.trim().toLowerCase(), label: label.trim(), facets: facets || [] })
-  );
 }
 
 // ---------- Skeleton ----------
@@ -571,8 +542,8 @@ export default {
       if (m && method === 'GET') return json(await listBlocksForSpace(env, m[1]));
       if (m && method === 'POST') return await handleAddBlock(request, env, m[1]);
 
-      m = path.match(/^\/api\/spaces\/([\w-]+)\/blocks\/([\w-]+)\/move$/);
-      if (m && method === 'POST') return await handleMoveBlock(request, env, m[1], m[2]);
+      m = path.match(/^\/api\/spaces\/([\w-]+)\/blocks\/reorder$/);
+      if (m && method === 'POST') return await handleReorderBlocks(request, env, m[1]);
 
       m = path.match(/^\/api\/blocks\/([\w-]+)$/);
       if (m && method === 'GET') {
@@ -659,26 +630,6 @@ export default {
       if (m && method === 'PATCH') return await handlePatchTemplate(request, env, m[1]);
       if (m && method === 'DELETE') {
         await deleteTemplate(env, m[1]);
-        return json(null, 204);
-      }
-
-      // Resource Templates
-      if (path === '/api/resource-templates' && method === 'GET') {
-        const typeParam = url.searchParams.get('type');
-        if (typeParam) return json((await getResourceTemplateByType(env, typeParam)) || null);
-        return json(await listResourceTemplates(env));
-      }
-      if (path === '/api/resource-templates' && method === 'POST') return await handleCreateResourceTemplate(request, env);
-
-      m = path.match(/^\/api\/resource-templates\/([\w-]+)$/);
-      if (m && method === 'GET') {
-        const template = await getResourceTemplateById(env, m[1]);
-        if (!template) return errorResponse('Resource Template not found', 404);
-        return json(template);
-      }
-      if (m && method === 'PATCH') return await handlePatchResourceTemplate(request, env, m[1]);
-      if (m && method === 'DELETE') {
-        await deleteResourceTemplate(env, m[1]);
         return json(null, 204);
       }
 

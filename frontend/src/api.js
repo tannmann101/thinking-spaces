@@ -46,7 +46,7 @@ async function request(path, options) {
   // an honest, non-misleading thing to say about any successful edit.
   // POST only announces when the backend actually has something to
   // report: unlike PATCH, not every POST is a "creation" worth
-  // announcing (moveBlockInSpace reorders, getLinkPreview only
+  // announcing (reorderBlocksInSpace reorders, getLinkPreview only
   // previews), so there's no safe generic fallback for it the way
   // "Saved" is for an edit.
   if (method === 'PATCH') onMutation?.(body?.changeSummary || 'Saved');
@@ -182,27 +182,6 @@ export const updateTemplate = (id, { name, blockArrangement }) =>
   });
 export const deleteTemplate = (id) => request(`/templates/${id}`, { method: 'DELETE' });
 
-// Resource Template management -- a deliberately separate mechanism
-// from ordinary Templates above (see worker/schema.sql). Each
-// replaces CreateResource.jsx's generic descriptive facets with a
-// type-tailored set of its own.
-export const getResourceTemplates = () => request('/resource-templates');
-// null when no Resource Template matches this type -- CreateResource.jsx
-// falls back to its own generic facets in that case.
-export const getResourceTemplateByType = (type) => request(`/resource-templates?type=${encodeURIComponent(type)}`);
-export const getResourceTemplate = (id) => request(`/resource-templates/${id}`);
-export const createResourceTemplate = ({ type, label, facets }) =>
-  request('/resource-templates', {
-    method: 'POST',
-    body: JSON.stringify({ type, label, facets }),
-  });
-export const updateResourceTemplate = (id, { type, label, facets }) =>
-  request(`/resource-templates/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ type, label, facets }),
-  });
-export const deleteResourceTemplate = (id) => request(`/resource-templates/${id}`, { method: 'DELETE' });
-
 // Adding/removing/reordering blocks on an already-live Space.
 export const addBlockToSpace = (spaceId, { type, content, properties }) =>
   request(`/spaces/${spaceId}/blocks`, {
@@ -244,10 +223,11 @@ export const updateBlockTheme = (blockId, theme) =>
     method: 'PATCH',
     body: JSON.stringify({ theme }),
   });
-export const moveBlockInSpace = (spaceId, blockId, direction) =>
-  request(`/spaces/${spaceId}/blocks/${blockId}/move`, {
+// The whole resulting order, not one step -- the feed is dragged.
+export const reorderBlocksInSpace = (spaceId, order) =>
+  request(`/spaces/${spaceId}/blocks/reorder`, {
     method: 'POST',
-    body: JSON.stringify({ direction }),
+    body: JSON.stringify({ order }),
   });
 
 // Workspaces: a deliberately assembled, named environment inside one

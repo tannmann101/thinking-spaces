@@ -54,11 +54,30 @@ jobs:
             echo "::error::Cannot determine what this push changed, so cannot rule out a schema change. Apply any migration by hand, then deploy from the Actions tab."
             exit 1
           fi
-          if git diff --name-only HEAD^ HEAD | grep -q '^worker/schema\.sql$'; then
-            echo "::error::worker/schema.sql changed in this push. Apply the migration to the deployed database first (see worker/DEPLOY.md), then run this workflow manually from the Actions tab."
-            exit 1
+          if ! git diff --name-only HEAD^ HEAD | grep -q '^worker/schema\.sql$'; then
+            echo "No schema change in this push -- safe to deploy code."
+            exit 0
           fi
-          echo "No schema change in this push -- safe to deploy code."
+
+          # The file changed -- but a comment is not a migration. This once
+          # blocked a real deploy over four lines of explanation, which is
+          # the exact drift the guard exists to prevent, so it compares the
+          # statements rather than the bytes.
+          #
+          # Deliberately conservative: only whole-line comments and blank
+          # lines are stripped, so a trailing comment on a DDL line still
+          # trips the guard. A needless block costs one manual re-run; a
+          # needless pass ships code against a database that lacks the
+          # column it reads.
+          statements() {
+            git show "$1:worker/schema.sql" 2>/dev/null | sed -e 's/^[[:space:]]*--.*$//' -e '/^[[:space:]]*$/d'
+          }
+          if diff <(statements HEAD^) <(statements HEAD) > /dev/null; then
+            echo "worker/schema.sql changed, but only its comments -- safe to deploy code."
+            exit 0
+          fi
+          echo "::error::worker/schema.sql changed in this push. Apply the migration to the deployed database first (see worker/DEPLOY.md), then run this workflow manually from the Actions tab."
+          exit 1
 
       - uses: actions/setup-node@v5
         with:

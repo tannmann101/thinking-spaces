@@ -17,6 +17,8 @@ on:
     branches: [main]
     paths:
       - 'worker/**'
+      # Editing DEPLOY.md is not a reason to redeploy the Worker.
+      - '!worker/**.md'
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 

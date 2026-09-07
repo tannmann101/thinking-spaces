@@ -86,9 +86,29 @@
      body's own default size deliberately, so ordinary reading text
      inside a card and the page's own base text size stay the same
      unless a component has a real reason to differ. */
-  /* --- Motion (the first two; the rest arrives with the motion pass) */
-  --dur-fast: 120ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  /* --- Motion ---------------------------------------------------------
+     There were 8 transitions in this whole file, all on one duration
+     family and the browser's default `ease`, and no keyframes at all --
+     so panels, dialogs and overlays simply appeared, which is the thing
+     that most reads as unfinished however good the static design is.
+
+     Durations and curves follow Fluent's own ramp, since that is the bar
+     this was measured against. The rule of thumb: the smaller and more
+     frequent the change, the faster it should be -- a hover tint at
+     --dur-faster, a panel arriving at --dur-normal, nothing routine past
+     --dur-slow.
+
+     Curves carry direction. Something entering decelerates (it arrives
+     and settles); something leaving accelerates (it commits and goes);
+     anything that starts and ends on screen uses the symmetric standard
+     curve. */
+  --dur-faster: 100ms;
+  --dur-fast: 150ms;
+  --dur-normal: 200ms;
+  --dur-slow: 300ms;
+  --ease-standard: cubic-bezier(0.33, 0, 0.67, 1);
+  --ease-decelerate: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.9, 0.1, 1, 0.2);
 
   /* --- Control sizing ------------------------------------------------
      WCAG 2.2 sets 24px as the minimum target size at AA. An audit of a
@@ -289,11 +309,23 @@ select,
 [class*='-tab'],
 [class*='-toggle'],
 .editable {
-  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition: border-color var(--dur-faster) var(--ease-standard),
+    background-color var(--dur-faster) var(--ease-standard),
+    color var(--dur-faster) var(--ease-standard),
+    opacity var(--dur-faster) var(--ease-standard);
 }
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     transition: none !important;
+    /* Not 0s: a zero-length animation never fires its events, and
+       anything that waits on animationend would hang. This runs it so
+       fast it cannot be perceived, which is the documented way to honour
+       the preference without changing behaviour. */
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -1306,7 +1338,7 @@ label {
   position: relative;
   border-left: 3px solid var(--border-soft);
   padding-left: var(--space-m);
-  transition: background-color 1.5s ease;
+  transition: background-color var(--dur-slow) var(--ease-standard);
 }
 /* A one-shot flash for a block reached via a Dashboard/Log/Insights
    deep link (?highlight=<blockId> -- see SpacePage.jsx) -- the caller
@@ -3653,12 +3685,40 @@ label {
   opacity: 0;
   transform: translateY(6px);
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity var(--dur-normal) var(--ease-decelerate),
+    transform var(--dur-normal) var(--ease-decelerate);
   z-index: 90;
 }
 .toast-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* --- Entrances --------------------------------------------------------
+   Overlays, dialogs and panels used to appear instantly, fully formed.
+   The eye reads that as a jump cut rather than as something arriving,
+   and it is the single loudest "unfinished" tell left after the static
+   design is right.
+
+   Two keyframes cover everything here. The scrim fades. The surface it
+   carries fades and rises a few pixels on a decelerating curve, so it
+   settles rather than snaps -- 8px, because motion at this scale should
+   be felt more than seen. Both are short enough to never sit between you
+   and the thing you asked for. */
+@keyframes surface-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes surface-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---------- Confirm dialog (replaces window.confirm/window.prompt) ---------- */
@@ -3667,6 +3727,7 @@ label {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  animation: surface-scrim-in var(--dur-fast) var(--ease-standard);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3685,6 +3746,7 @@ label {
   max-width: 420px;
   width: 100%;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: surface-rise-in var(--dur-normal) var(--ease-decelerate);
 }
 .confirm-message {
   margin: 0 0 var(--space-m);
@@ -3731,6 +3793,7 @@ label {
   justify-content: center;
   padding: var(--space-2xl);
   z-index: 100;
+  animation: surface-scrim-in var(--dur-fast) var(--ease-standard);
 }
 .legend-panel {
   background: var(--surface-2);
@@ -3742,6 +3805,9 @@ label {
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  /* The Export panel reuses these two classes (see ExportPanel.jsx), so
+     both overlays arrive the same way from one rule. */
+  animation: surface-rise-in var(--dur-normal) var(--ease-decelerate);
 }
 .legend-header {
   display: flex;

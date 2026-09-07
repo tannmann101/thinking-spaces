@@ -16,6 +16,35 @@
   --surface: #161213;
   --surface-2: #201a1b;
   --surface-3: #2a2224;
+
+  /* --- Elevation -------------------------------------------------------
+     The surface ramp above was already well formed -- its steps measure
+     1.064, 1.084 and 1.104 against each other, near even and gently
+     widening, which is what a dark elevation ramp wants. What it never
+     had was *meaning*: --surface alone painted a Dashboard section, the
+     Space cards sitting inside that section, a text input, and the Space
+     page's own details panel. A container and its contents were the same
+     plane, which is why everything read as one flat sheet however well
+     spaced it was.
+
+     These name the levels by role instead. Nesting climbs the ramp, so
+     depth is read from lightness rather than from shadow -- shadow barely
+     registers on a near black ground, which is why the only three in this
+     file sit on the one genuinely floating surface, and that stays true.
+
+       ground   the page itself
+       section  a region that holds things -- barely lifted, so it groups
+                without competing with what it contains
+       card     a discrete object you can act on
+       field    an input, or something set into a card
+       overlay  genuinely floating; the one place a shadow is earned
+
+     Borders pair with levels: --border-soft delineates a section,
+     --border draws a card or a field. */
+  --level-section: #110e0f;
+  --level-card: var(--surface);
+  --level-field: var(--surface-2);
+  --level-overlay: var(--surface-2);
   --border: #322829;
   --border-soft: #241d1e;
   --ink: #e9e1df;
@@ -848,7 +877,7 @@ button.editable:disabled:hover {
    Syntheses borrows the gold Provenance already uses for "produced by
    the app itself"; the rest stay neutral. */
 .digest {
-  background: var(--surface);
+  background: var(--level-section);
   border: 1px solid var(--border-soft);
   border-left: 3px solid var(--border-soft);
   border-radius: var(--radius-md);
@@ -1170,7 +1199,11 @@ textarea,
 select {
   font-family: inherit;
   font-size: inherit;
-  background: var(--surface);
+  /* A field is set *into* what holds it, so it takes the level above a
+     card rather than matching it -- a form and the input inside it were
+     previously the same colour, which is why fields read as painted-on
+     rather than as somewhere to type. */
+  background: var(--level-field);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--ink);
@@ -1269,7 +1302,7 @@ label {
    class too (space-details-panel/space-organize-panel/space-trail-panel)
    purely so tests can still target one specifically. */
 .space-collapsible-panel {
-  background: var(--surface);
+  background: var(--level-section);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
   padding: var(--space-xs) var(--space-l);
@@ -1336,8 +1369,18 @@ label {
 
 .block-row {
   position: relative;
+  /* An entry is the thing this whole page exists to hold, and it was the
+     only element on it with no surface at all -- transparent, marked
+     only by a left edge, while the form for *adding* one sat on a filled
+     card. Reading depth put the content below its own chrome.
+
+     Given the card level it now sits on the section behind it. The left
+     edge stays: it carries the Tool family colour and any theme accent,
+     which is information, not decoration. */
+  background: var(--level-card);
   border-left: 3px solid var(--border-soft);
-  padding-left: var(--space-m);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: var(--space-m) var(--space-l);
   transition: background-color var(--dur-slow) var(--ease-standard);
 }
 /* A one-shot flash for a block reached via a Dashboard/Log/Insights

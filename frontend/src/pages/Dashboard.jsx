@@ -14,6 +14,7 @@ import { resolveSpaceTheme, themeAttributes } from '../theme/itemTheme.js';
 import { useConfirmDialog } from '../components/ConfirmDialog.jsx';
 import PageActions from '../components/PageActions.jsx';
 import Sidebar from '../components/Sidebar.jsx';
+import RelativeTime from '../components/RelativeTime.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 // How many recently-touched Spaces the Dashboard shows before handing
@@ -25,12 +26,6 @@ const DASHBOARD_SPACE_LIMIT = 6;
 // the most recent few as a reminder that they exist, and hand off rather
 // than repeating the whole list in two places.
 const DIGEST_LIMIT = 4;
-
-function formatDate(isoLikeString) {
-  // SQLite's datetime('now') gives "YYYY-MM-DD HH:MM:SS" (UTC, no "T"/"Z"),
-  // which Date() won't parse correctly unless we normalize it first.
-  return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
-}
 
 // Every digest below renders as a native <details>, not a plain
 // <section> -- with up to five of these able to stack above the Space
@@ -271,7 +266,7 @@ function ResurfaceSuggestion({ space }) {
       </summary>
       <p>
         <Link to={`/spaces/${space.id}`}>{space.title}</Link> ({space.status}, last touched{' '}
-        {formatDate(space.updated_at)})
+        <RelativeTime value={space.updated_at} />)
       </p>
     </details>
   );
@@ -469,7 +464,9 @@ function Dashboard() {
                         {space.status}
                       </span>
                       <span className="sep">·</span>
-                      <span>updated {formatDate(space.updated_at)}</span>
+                      <span>
+                        updated <RelativeTime value={space.updated_at} />
+                      </span>
                       {space.due_date && (
                         <>
                           <span className="sep">·</span>

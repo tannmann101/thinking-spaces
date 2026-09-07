@@ -2654,6 +2654,9 @@ label {
   color: var(--accent);
 }
 .trail-activity-date {
+  /* Spacing belongs to the rule, not to a literal space in the JSX --
+     this sits at the end of a sentence-shaped row. */
+  margin-left: var(--space-xs);
   font-family: var(--mono);
   font-size: var(--fs-2xs);
   color: var(--ink-faint);

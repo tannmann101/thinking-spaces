@@ -24,11 +24,9 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import RelativeTime from '../components/RelativeTime.jsx';
+import { formatAbsolute, formatRelative } from '../lib/formatTime.js';
 import { addTrailNote, updateTrailNote, getCurrentSkeleton, getReviewDraft, createReview } from '../api.js';
-
-function formatDate(isoLikeString) {
-  return new Date(isoLikeString.replace(' ', 'T') + 'Z').toLocaleString();
-}
 
 // Renders one Skeleton reading (a snapshot or the live "Now" state) --
 // both are the exact same {lanes, articulation} shape, since Now comes
@@ -66,7 +64,9 @@ function RewindCompare({ entry, currentSkeleton }) {
         <SkeletonReading snapshot={currentSkeleton} />
       </div>
       <div className="rewind-column">
-        <h5>As of {formatDate(entry.created_at)}</h5>
+        <h5>
+          As of <RelativeTime value={entry.created_at} />
+        </h5>
         <SkeletonReading snapshot={entry.skeleton_snapshot} />
       </div>
     </div>
@@ -173,7 +173,7 @@ function ActivityRow({ entry, spaceId }) {
         entry.summary
       )}
       {entry.event_count > 1 && <span className="trail-activity-count"> &times;{entry.event_count}</span>}
-      <span className="trail-activity-date"> {formatDate(entry.created_at)}</span>
+      <RelativeTime className="trail-activity-date" value={entry.created_at} />
     </li>
   );
 }
@@ -195,9 +195,9 @@ function TrailEntryRow({ entry, spaceId, onEntryChanged }) {
       <span
         className="editable-toggle"
         onClick={() => setExpanded(!expanded)}
-        title="Click to expand"
+        title={`${formatAbsolute(entry.created_at)} — click to expand`}
       >
-        {ENTRY_KIND_LABELS[entry.kind] || 'Auto'} — {formatDate(entry.created_at)}
+        {ENTRY_KIND_LABELS[entry.kind] || 'Auto'} — {formatRelative(entry.created_at)}
       </span>
       {expanded && (
         <div>

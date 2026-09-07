@@ -44,7 +44,7 @@ function WorkMixSection({ workMix }) {
     <section className="insight-section">
       <h2>Work Type &amp; confidence mix</h2>
       <p className="insight-section-sub">
-        {workMix.total} Work items across every Space -- what kind of thinking is actually
+        {workMix.total} Work items across every Space — what kind of thinking is actually
         happening, and how settled it feels.
       </p>
       {workMix.reading && <p className="insight-reading">{workMix.reading}</p>}
@@ -91,7 +91,7 @@ function ThemesSection({ themes }) {
               {themes.recurringCategories.map((cat) => (
                 <li key={cat.name}>
                   <span className="tag-chip">{cat.name}</span> in {cat.spaceCount} Spaces
-                  <span className="insight-detail"> -- {cat.spaceTitles.join(', ')}</span>
+                  <span className="insight-detail"> — {cat.spaceTitles.join(', ')}</span>
                 </li>
               ))}
             </ul>
@@ -142,7 +142,7 @@ function ActivitySection({ activity }) {
               {activity.staleSpaces.map((space) => (
                 <li key={space.id}>
                   <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                  <span className="insight-detail"> -- {space.daysSinceUpdate} days</span>
+                  <span className="insight-detail"> — {space.daysSinceUpdate} days</span>
                 </li>
               ))}
             </ul>
@@ -203,7 +203,7 @@ function TimeSection({ time }) {
     <section className="insight-section">
       <h2>Time</h2>
       <p className="insight-section-sub">
-        Due dates, Milestones, Sessions, and Review, threaded together -- what's coming up, what's
+        Due dates, Milestones, Sessions, and Review, threaded together — what's coming up, what's
         overdue, and how much has actually been logged.
       </p>
       {time.reading && <p className="insight-reading">{time.reading}</p>}
@@ -216,7 +216,7 @@ function TimeSection({ time }) {
               {time.dueDates.overdue.map((space) => (
                 <li key={space.id}>
                   <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                  <span className="insight-detail"> -- overdue since {space.due_date}</span>
+                  <span className="insight-detail"> — overdue since {space.due_date}</span>
                 </li>
               ))}
             </ul>
@@ -226,7 +226,7 @@ function TimeSection({ time }) {
               {time.dueDates.upcoming.map((space) => (
                 <li key={space.id}>
                   <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                  <span className="insight-detail"> -- due {space.due_date}</span>
+                  <span className="insight-detail"> — due {space.due_date}</span>
                 </li>
               ))}
             </ul>
@@ -248,7 +248,7 @@ function TimeSection({ time }) {
               {time.milestones.overdueMilestones.map((milestone, index) => (
                 <li key={index}>
                   <Link to={`/spaces/${milestone.spaceId}?highlight=${milestone.blockId}`}>{milestone.spaceTitle}</Link>: {milestone.label}
-                  <span className="insight-detail"> -- target {milestone.targetDate}</span>
+                  <span className="insight-detail"> — target {milestone.targetDate}</span>
                 </li>
               ))}
             </ul>
@@ -280,7 +280,7 @@ function TimeSection({ time }) {
               {time.review.neverReviewed.map((space) => (
                 <li key={space.id}>
                   <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                  <span className="insight-detail"> -- never reviewed</span>
+                  <span className="insight-detail"> — never reviewed</span>
                 </li>
               ))}
             </ul>
@@ -290,7 +290,7 @@ function TimeSection({ time }) {
               {time.review.staleReviews.map((space) => (
                 <li key={space.id}>
                   <Link to={`/spaces/${space.id}`}>{space.title}</Link>
-                  <span className="insight-detail"> -- {space.days_since} days since last review</span>
+                  <span className="insight-detail"> — {space.days_since} days since last review</span>
                 </li>
               ))}
             </ul>
@@ -321,7 +321,7 @@ function InsightsPage() {
           that each answer "what's going on" never said how they relate
           to each other anywhere but CLAUDE.md's own Roadmap prose. */}
       <p>
-        Aggregate trends across every Space -- Work Types, themes, activity, provenance. For a
+        Aggregate trends across every Space — Work Types, themes, activity, provenance. For a
         quick day-to-day glance, see the Dashboard; for the complete event-by-event record, see
         the Log.
       </p>

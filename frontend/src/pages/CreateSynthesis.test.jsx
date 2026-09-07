@@ -65,7 +65,7 @@ describe('CreateSynthesis: kind', () => {
 describe('CreateSynthesis: source material picker', () => {
   it('shows an empty-state message when there are no Work items yet', async () => {
     renderPage();
-    expect(await screen.findByText('No Work items exist yet -- create an Assessment, Question, or another Work Type in a Space first.')).toBeInTheDocument();
+    expect(await screen.findByText('No Work items exist yet — create an Assessment, Question, or another Work Type in a Space first.')).toBeInTheDocument();
   });
 
   it('groups Work items by their source Space', async () => {

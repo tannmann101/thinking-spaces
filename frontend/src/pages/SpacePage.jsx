@@ -1180,7 +1180,7 @@ function SpacePage() {
             >
               <summary>Trail</summary>
               <p className="trail-intro">
-                This Space's own narrative, in order -- for the complete record across every
+                This Space's own narrative, in order — for the complete record across every
                 Space, see the Log; for trends, see Insights.
               </p>
               <TrailSpine spaceId={id} entries={trail} onEntryAdded={refetchTrail} />

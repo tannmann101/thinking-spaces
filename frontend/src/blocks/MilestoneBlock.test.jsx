@@ -64,7 +64,7 @@ describe('MilestoneBlock: overdue', () => {
 describe('MilestoneBlock: label and note', () => {
   it('shows a placeholder for an untitled Milestone', () => {
     render(<MilestoneBlock block={makeBlock({ label: '', targetDate: null, reached: false, reachedAt: null, note: '' })} />);
-    expect(screen.getByText('(untitled milestone -- click to name it)')).toBeInTheDocument();
+    expect(screen.getByText('(untitled milestone — click to name it)')).toBeInTheDocument();
   });
 
   it('edits and saves the label', async () => {

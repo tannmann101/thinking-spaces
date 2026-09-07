@@ -21,14 +21,14 @@ const FILES = [
     path: '/api/export/json',
     label: 'Download JSON',
     extension: 'json',
-    note: 'The real backup -- every Space, entry, Workspace, Project, Trail entry and Template, complete.',
+    note: 'The real backup — every Space, entry, Workspace, Project, Trail entry and Template, complete.',
   },
   {
     key: 'markdown',
     path: '/api/export/markdown',
     label: 'Download Markdown',
     extension: 'md',
-    note: 'The readable archive -- one document, every Space in order, legible in any editor. Lossy by design; not something to restore from.',
+    note: 'The readable archive — one document, every Space in order, legible in any editor. Lossy by design; not something to restore from.',
   },
 ];
 

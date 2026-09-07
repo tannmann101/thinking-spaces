@@ -389,7 +389,7 @@ function Dashboard() {
           and points at its two nearest neighbors, in a closed loop
           rather than every page just describing itself in isolation. */}
       <p>
-        Where you land -- create Spaces, see what needs attention, and browse everything you've
+        Where you land — create Spaces, see what needs attention, and browse everything you've
         built. For trends across all of it, see Insights; for the complete history, see the Log.
       </p>
 
@@ -412,7 +412,7 @@ function Dashboard() {
       <Link to="/insights" className="insights-banner">
         <span className="insights-banner-title">Insights</span>
         <span className="insights-banner-sub">
-          Aggregate trends across every Space -- Work Types, themes, activity, provenance.
+          Aggregate trends across every Space — Work Types, themes, activity, provenance.
         </span>
       </Link>
 

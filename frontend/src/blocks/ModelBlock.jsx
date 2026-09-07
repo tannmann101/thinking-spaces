@@ -77,7 +77,7 @@ function ModelBlock({ block, onSave, onBlocksChanged }) {
         <EditableText
           value={subject}
           editable={editable}
-          placeholder="(what is being modeled -- click to name it)"
+          placeholder="(what is being modeled — click to name it)"
           className="model-subject"
           onSave={(value) => persist({ subject: value })}
         />
@@ -86,7 +86,7 @@ function ModelBlock({ block, onSave, onBlocksChanged }) {
       <p className="model-label">Components</p>
       {components.length === 0 && (
         <p className="empty-note">
-          Nothing in the model yet. Add the parts it's built from first -- relations between them come next.
+          Nothing in the model yet. Add the parts it's built from first — relations between them come next.
         </p>
       )}
       {components.length > 0 && (
@@ -103,7 +103,7 @@ function ModelBlock({ block, onSave, onBlocksChanged }) {
               <EditableText
                 value={component.role}
                 editable={editable}
-                placeholder="(what it does here -- click to add)"
+                placeholder="(what it does here — click to add)"
                 className="model-component-role"
                 onSave={(value) => persist({ components: updateRow(components, component.id, { role: value }) })}
               />
@@ -166,7 +166,7 @@ function ModelBlock({ block, onSave, onBlocksChanged }) {
                 <EditableText
                   value={relation.note}
                   editable={editable}
-                  placeholder="(why -- click to add)"
+                  placeholder="(why — click to add)"
                   className="model-relation-note"
                   multiline
                   onSave={(value) => persist({ relations: updateRow(relations, relation.id, { note: value }) })}

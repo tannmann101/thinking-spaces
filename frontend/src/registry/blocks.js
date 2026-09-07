@@ -310,7 +310,7 @@ export const blockRegistry = {
         support: [
           {
             id: 'demo-1',
-            text: 'Everything given up or spent to move from one option to another -- money, time, momentum, and what has to be relearned.',
+            text: 'Everything given up or spent to move from one option to another — money, time, momentum, and what has to be relearned.',
           },
         ],
         confidence: 'solid',
@@ -366,7 +366,7 @@ export const blockRegistry = {
   implication: {
     label: 'Implication',
     description:
-      'What seems to follow from something, short of proof -- a softer sibling to Deduction -- with what suggests it and a confidence marker.',
+      'What seems to follow from something, short of proof — a softer sibling to Deduction — with what suggests it and a confidence marker.',
     family: 'work',
     icon: '⇒',
     component: ImplicationBlock,
@@ -489,7 +489,7 @@ export const blockRegistry = {
   // correctly even after the tab was closed and reopened.
   session: {
     label: 'Session',
-    description: 'A timed sitting of work -- start it, stop it, and the elapsed time is logged.',
+    description: 'A timed sitting of work — start it, stop it, and the elapsed time is logged.',
     family: 'time',
     icon: '◷',
     component: SessionBlock,
@@ -515,7 +515,7 @@ export const blockRegistry = {
   // content shape. Each carries its own starter branch there instead.
   wordEvolution: {
     label: 'Word Evolution',
-    description: "How a term's sense shifted over time -- each stage with when it held, what it meant then, and what moved it.",
+    description: "How a term's sense shifted over time — each stage with when it held, what it meant then, and what moved it.",
     family: 'mapping',
     icon: '⟿',
     component: WordEvolutionBlock,
@@ -528,7 +528,7 @@ export const blockRegistry = {
           {
             id: 'demo-sense-1',
             period: 'Latin (virtus)',
-            sense: 'Manliness, valour -- the excellence proper to a soldier.',
+            sense: 'Manliness, valour — the excellence proper to a soldier.',
             note: 'Rooted in vir, "man".',
           },
           {
@@ -541,7 +541,7 @@ export const blockRegistry = {
             id: 'demo-sense-3',
             period: 'Modern',
             sense: 'Any admirable quality, often merely conventional goodness.',
-            note: 'Weakened -- "virtue signalling" now reads as a charge.',
+            note: 'Weakened — "virtue signalling" now reads as a charge.',
           },
         ],
       },
@@ -573,7 +573,7 @@ export const blockRegistry = {
             label: 'Freedom (unlimited option)',
             sense: 'I can pick anything at all.',
             alignment: 'divergent',
-            note: 'Points at the size of a menu, not at the agent -- this is where the argument usually goes wrong.',
+            note: 'Points at the size of a menu, not at the agent — this is where the argument usually goes wrong.',
           },
         ],
       },
@@ -582,7 +582,7 @@ export const blockRegistry = {
   },
   model: {
     label: 'Model',
-    description: 'The parts something is built from and how they relate -- a worldview, a philosophy, or any concept laid out as structure.',
+    description: 'The parts something is built from and how they relate — a worldview, a philosophy, or any concept laid out as structure.',
     family: 'mapping',
     icon: '⬡',
     component: ModelBlock,
@@ -602,7 +602,7 @@ export const blockRegistry = {
             from: 'demo-c1',
             to: 'demo-c2',
             kind: 'is assumed to produce',
-            note: 'The load-bearing assumption -- if it fails, desert fails with it.',
+            note: 'The load-bearing assumption — if it fails, desert fails with it.',
           },
           {
             id: 'demo-r2',

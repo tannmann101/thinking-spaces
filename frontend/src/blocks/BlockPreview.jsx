@@ -26,7 +26,7 @@ function BlockPreview({ block }) {
       </div>
     );
   }
-  return <p>[{block.type}] (not editable in this UI -- preserved as-is)</p>;
+  return <p>[{block.type}] (not editable in this UI — preserved as-is)</p>;
 }
 
 export default BlockPreview;

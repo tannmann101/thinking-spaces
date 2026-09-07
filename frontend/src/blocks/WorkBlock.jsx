@@ -218,7 +218,7 @@ function SupportLinker({ ownSpaceId, spaceBlocks, excludeBlockId, onLink, onCanc
     <div className="work-block-linker">
       {allCandidates.length === 0 && !stillLoadingCrossSpace && (
         <p className="list-workshop-empty">
-          Nothing to link to yet -- a claim is another Work item&rsquo;s own statement (an Assessment, a
+          Nothing to link to yet — a claim is another Work item&rsquo;s own statement (an Assessment, a
           Hypothesis, ...) or an item filed into a Skeleton section (Premises, Evidence, Open Questions), in
           this Space or any other. Add one of those first, then come back here.
         </p>
@@ -436,7 +436,7 @@ function WorkBlock({ block, onSave, onBlocksChanged, statementLabel, supportLabe
               type="button"
               className="btn-ghost-small"
               onClick={() => setLinking(true)}
-              title="Point at another claim -- a Work item's own statement, or an item filed into a Skeleton section, in this Space or any other -- instead of retyping it here. Editing the original later updates this link automatically."
+              title="Point at another claim — a Work item's own statement, or an item filed into a Skeleton section, in this Space or any other — instead of retyping it here. Editing the original later updates this link automatically."
             >
               🔗 Link a claim
             </button>

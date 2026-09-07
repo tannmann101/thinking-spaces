@@ -23,7 +23,7 @@ function TemplatesPage() {
   async function handleDelete(id) {
     if (
       !(await confirm(
-        'Delete this Template? Spaces already created from it keep their entries -- deleting a Template never touches them.'
+        'Delete this Template? Spaces already created from it keep their entries — deleting a Template never touches them.'
       ))
     ) {
       return;
@@ -45,7 +45,7 @@ function TemplatesPage() {
         </PageActions>
       </div>
       <p>
-        <Link to="/resource-templates">Manage Resource Templates</Link> -- a separate set of
+        <Link to="/resource-templates">Manage Resource Templates</Link> — a separate set of
         starting facets used specifically by <Link to="/resources/new">New Resource</Link>, one per
         type of thing (Book, Poem, Debate, ...).
       </p>

@@ -31,7 +31,7 @@ function ThemePicker({ item, kind, onSave }) {
         type="button"
         className="theme-picker-toggle"
         onClick={() => setOpen(true)}
-        title="Change how this looks -- color, shape, density, and type"
+        title="Change how this looks — color, shape, density, and type"
       >
         ◐ Theme
       </button>

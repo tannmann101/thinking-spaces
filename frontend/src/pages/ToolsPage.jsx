@@ -97,13 +97,13 @@ function ToolsPage() {
       <p>
         Every Tool a Space can use. Entries hold content; Views compute a lens over it
         automatically wherever their data fits (that's why a View doesn't get "added" the way an
-        Entry does). Nothing is created from this page -- it's just what already exists.
+        Entry does). Nothing is created from this page — it's just what already exists.
       </p>
 
       <h2>Entries</h2>
       <p className="tool-family-intro">
-        General-purpose Entries first, then Work -- the ten Tools sharing one underlying shape
-        (statement, support, confidence) for a distinct kind of thinking-act -- then Time, for a
+        General-purpose Entries first, then Work — the ten Tools sharing one underlying shape
+        (statement, support, confidence) for a distinct kind of thinking-act — then Time, for a
         Space's own operational timing rather than its content.
       </p>
       <h3>General</h3>
@@ -175,11 +175,11 @@ function ToolsPage() {
       </p>
       <p>
         A line reaches a section one of two ways. Typing <code>=</code>, <code>?</code>, or{' '}
-        <code>!</code> at the start of a line in the Writing Workshop <em>promotes</em> it -- the
+        <code>!</code> at the start of a line in the Writing Workshop <em>promotes</em> it — the
         line moves out of the Writing Surface into Premises, Open Questions, or Tensions
         respectively (Evidence has no shorthand trigger of its own). A line's own
         &ldquo;File&rdquo; button instead <em>copies</em> it into Premises, Evidence, or Open
-        Questions, leaving the original text exactly where it was -- a deliberately different,
+        Questions, leaving the original text exactly where it was — a deliberately different,
         non-destructive path for capturing something without pulling it out of the prose it
         came from.
       </p>

@@ -65,7 +65,7 @@ const TOUCHES = 'Touches / Touched By';
 const DEFAULT_FACETS = [
   {
     name: 'What It Is',
-    prompt: 'What is this Resource, plainly -- its nature, where it comes from, the basics.',
+    prompt: 'What is this Resource, plainly — its nature, where it comes from, the basics.',
   },
   {
     name: 'What It Affords',
@@ -311,7 +311,7 @@ function CreateResource() {
 
         <h2>Type</h2>
         <p>
-          Optional -- helps sub-type this Resource alongside every other one. Some types have their
+          Optional — helps sub-type this Resource alongside every other one. Some types have their
           own tailored set of questions below (see <Link to="/resource-templates">Resource Templates</Link>).
         </p>
         <p className="tag-row">
@@ -392,7 +392,7 @@ function CreateResource() {
                   value={facetValues[facet.name] || ''}
                   rows={3}
                   className="field-full"
-                  placeholder="(optional -- can be filled in later)"
+                  placeholder="(optional — can be filled in later)"
                   onChange={(event) => setFacetValues((current) => ({ ...current, [facet.name]: event.target.value }))}
                 />
               </div>
@@ -415,7 +415,7 @@ function CreateResource() {
             />
             {linkPreviewLoading && <p className="mono-caption">Fetching a preview...</p>}
             {linkPreviewError && (
-              <p className="mono-caption">Could not fetch a preview ({linkPreviewError}) -- the link will still be saved as-is.</p>
+              <p className="mono-caption">Could not fetch a preview ({linkPreviewError}) — the link will still be saved as-is.</p>
             )}
             {linkPreview && (
               <div className="media-link-card">

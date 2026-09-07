@@ -29,7 +29,7 @@ function ResourceTemplatesPage() {
   async function handleDelete(id, label) {
     if (
       !(await confirm(
-        `Delete the "${label}" Resource Template? A Resource already created with it keeps its own entries -- deleting a Template never touches them. New Resources of this type will use the generic questions instead.`
+        `Delete the "${label}" Resource Template? A Resource already created with it keeps its own entries — deleting a Template never touches them. New Resources of this type will use the generic questions instead.`
       ))
     ) {
       return;
@@ -55,7 +55,7 @@ function ResourceTemplatesPage() {
       </div>
       <p>
         Each replaces the generic questions on <Link to="/resources/new">New Resource</Link> with a
-        set tailored to that one type -- matched by the type tag chosen there (e.g. "book").
+        set tailored to that one type — matched by the type tag chosen there (e.g. "book").
       </p>
 
       {error && <p>Could not load Resource Templates: {error}</p>}

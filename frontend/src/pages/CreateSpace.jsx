@@ -149,7 +149,7 @@ function CreateSpace() {
               onClick={() => setTemplateId(null)}
             >
               <h3>Start Blank</h3>
-              <p>No starting Tools -- build this Space up from nothing.</p>
+              <p>No starting Tools — build this Space up from nothing.</p>
             </button>
             {templates.map((template) => (
               <button
@@ -181,7 +181,7 @@ function CreateSpace() {
 
         <h2>Workspaces</h2>
         <p>
-          Optionally name a Workspace or two up front -- a dedicated environment to assemble some of
+          Optionally name a Workspace or two up front — a dedicated environment to assemble some of
           this Space's Tools into from the start, instead of only ever adding one after creation.
         </p>
         {workspaceNames.length > 0 && (
@@ -248,7 +248,7 @@ function CreateSpace() {
         <h2>Resources</h2>
         {resources === null && <p>Loading...</p>}
         {resources && resources.length === 0 && (
-          <p>No Resources yet -- tag a Space "resource" to have it show up here.</p>
+          <p>No Resources yet — tag a Space "resource" to have it show up here.</p>
         )}
         {resources && resources.length > 0 && (
           <>

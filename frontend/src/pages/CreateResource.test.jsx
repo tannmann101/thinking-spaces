@@ -305,7 +305,7 @@ describe('CreateResource: submitting', () => {
     await user.click(screen.getByRole('button', { name: '+ book' }));
     // Three textareas (What It Is / Affords / Offers) share this
     // placeholder -- the first is "What It Is".
-    await user.type(screen.getAllByPlaceholderText('(optional -- can be filled in later)')[0], 'A physical book');
+    await user.type(screen.getAllByPlaceholderText('(optional — can be filled in later)')[0], 'A physical book');
 
     const checkbox = await screen.findByRole('checkbox');
     await user.click(checkbox);

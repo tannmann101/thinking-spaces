@@ -96,7 +96,7 @@ function MilestoneBlock({ block, onSave, onBlocksChanged }) {
               setEditingLabel(true);
             }}
           >
-            {label || '(untitled milestone -- click to name it)'}
+            {label || '(untitled milestone — click to name it)'}
           </span>
         )}
       </p>

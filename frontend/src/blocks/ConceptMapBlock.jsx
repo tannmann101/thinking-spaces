@@ -65,14 +65,14 @@ function ConceptMapBlock({ block, onSave, onBlocksChanged }) {
         <EditableText
           value={referent}
           editable={editable}
-          placeholder="(what is actually being referred to -- click to name it)"
+          placeholder="(what is actually being referred to — click to name it)"
           className="concept-map-referent-name"
           onSave={(value) => persist({ referent: value })}
         />
         <EditableText
           value={gloss}
           editable={editable}
-          placeholder="(its proper rendering, as best you can state it -- click to add)"
+          placeholder="(its proper rendering, as best you can state it — click to add)"
           className="concept-map-gloss"
           multiline
           onSave={(value) => persist({ gloss: value })}
@@ -81,7 +81,7 @@ function ConceptMapBlock({ block, onSave, onBlocksChanged }) {
 
       {renderings.length === 0 && (
         <p className="empty-note">
-          No renderings recorded yet. Add each way this gets referred to -- your own included -- then mark how
+          No renderings recorded yet. Add each way this gets referred to — your own included — then mark how
           far each one actually sits from the referent above.
         </p>
       )}
@@ -119,14 +119,14 @@ function ConceptMapBlock({ block, onSave, onBlocksChanged }) {
                 <EditableText
                   value={entry.sense}
                   editable={editable}
-                  placeholder="(what it's taken to mean -- click to add)"
+                  placeholder="(what it's taken to mean — click to add)"
                   className="concept-map-rendering-sense"
                   onSave={(value) => persist({ renderings: updateRow(renderings, entry.id, { sense: value }) })}
                 />
                 <EditableText
                   value={entry.note}
                   editable={editable}
-                  placeholder="(where the slippage happens -- click to add)"
+                  placeholder="(where the slippage happens — click to add)"
                   className="concept-map-rendering-note"
                   multiline
                   onSave={(value) => persist({ renderings: updateRow(renderings, entry.id, { note: value }) })}

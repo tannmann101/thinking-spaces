@@ -59,7 +59,7 @@ export const workspaceKindRegistry = {
     sections: [
       {
         name: 'What is in front of you',
-        prompt: 'State the material plainly before reasoning about it -- notes, quotes, observations.',
+        prompt: 'State the material plainly before reasoning about it — notes, quotes, observations.',
         types: ['text', 'list', 'media', 'reference'],
       },
       {
@@ -85,7 +85,7 @@ export const workspaceKindRegistry = {
     label: 'Etymology',
     icon: '⟿',
     description:
-      "Track how a word's sense moved over time, and what carried it -- the history behind a term you keep using.",
+      "Track how a word's sense moved over time, and what carried it — the history behind a term you keep using.",
     theme: { accent: 'indigo', shape: 'rule', density: 'normal', typeface: 'body' },
     leadTools: ['wordEvolution', 'conceptMap', 'reference', 'definition'],
     sections: [
@@ -113,7 +113,7 @@ export const workspaceKindRegistry = {
     label: 'Worldview Assessment',
     icon: '◉',
     description:
-      'Work out what somebody must be holding for their view to make sense -- across metaphysics, ethics and epistemology.',
+      'Work out what somebody must be holding for their view to make sense — across metaphysics, ethics and epistemology.',
     theme: { accent: 'plum', shape: 'inset', density: 'roomy', typeface: 'body' },
     leadTools: ['formulation', 'model', 'assessment', 'question'],
     sections: [
@@ -136,9 +136,9 @@ export const workspaceKindRegistry = {
     ],
     starterBlocks: [
       writing(''),
-      work('formulation', 'Metaphysics -- what they take reality to be'),
-      work('formulation', 'Ethics -- what they take the good to be'),
-      work('formulation', 'Epistemology -- what they take knowing to be'),
+      work('formulation', 'Metaphysics — what they take reality to be'),
+      work('formulation', 'Ethics — what they take the good to be'),
+      work('formulation', 'Epistemology — what they take knowing to be'),
     ],
   },
 
@@ -159,7 +159,7 @@ export const workspaceKindRegistry = {
       },
       {
         name: 'Where it gives way',
-        prompt: 'The specific joint that fails -- not the person, and not the conclusion you dislike.',
+        prompt: 'The specific joint that fails — not the person, and not the conclusion you dislike.',
         types: ['objection', 'deduction', 'analysis', 'question', 'hypothesis'],
       },
       {
@@ -192,7 +192,7 @@ export const workspaceKindRegistry = {
       {
         name: 'Lenses applied',
         prompt:
-          'Which reading disciplines you are bringing -- etymology, phenomenology, history, and the rest. Link each to its own Resource.',
+          'Which reading disciplines you are bringing — etymology, phenomenology, history, and the rest. Link each to its own Resource.',
         types: ['reference', 'list'],
       },
       {
@@ -225,7 +225,7 @@ export const workspaceKindRegistry = {
     label: 'Modeling',
     icon: '⬡',
     description:
-      'Lay a worldview, a philosophy or a concept out as structure -- the parts it is built from and how they hold each other up.',
+      'Lay a worldview, a philosophy or a concept out as structure — the parts it is built from and how they hold each other up.',
     theme: { accent: 'indigo', shape: 'bracket', density: 'normal', typeface: 'body' },
     leadTools: ['model', 'conceptMap', 'formulation', 'hypothesis'],
     sections: [
@@ -294,7 +294,7 @@ export const workspaceKindRegistry = {
       {
         name: 'The referent and its renderings',
         prompt:
-          'What is actually being referred to, and every way it gets named -- each marked by how far it sits from the thing itself.',
+          'What is actually being referred to, and every way it gets named — each marked by how far it sits from the thing itself.',
         types: ['conceptMap'],
       },
       {

@@ -76,7 +76,7 @@ describe('WorkspacePage: renaming', () => {
 describe('WorkspacePage: assembled blocks', () => {
   it('shows an empty-state message when nothing is assembled yet', async () => {
     renderPage();
-    expect(await screen.findByText('Nothing assembled here yet -- add a Tool below, or pull in one already on the Space.')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing assembled here yet — add a Tool below, or pull in one already on the Space.')).toBeInTheDocument();
   });
 
   it('renders assembled blocks, and lets one be removed from the Workspace', async () => {

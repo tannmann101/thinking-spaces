@@ -119,10 +119,23 @@ which skips the check.
 Two repository secrets, under **Settings -> Secrets and variables ->
 Actions**:
 
-- `CLOUDFLARE_API_TOKEN` -- a token with **Workers Scripts: Edit** on
-  this account. Same kind you made for the September migration; this one
-  needs no D1 or DNS permission, since the workflow only ever deploys
-  code.
+- `CLOUDFLARE_API_TOKEN` -- easiest correct answer is Cloudflare's own
+  **"Edit Cloudflare Workers"** token template, with Account Resources
+  set to this account and Zone Resources set to `thegardners.xyz`.
+
+  If you build the token by hand instead, **account-level Workers
+  Scripts: Edit is not enough on its own.** `wrangler.toml` declares a
+  route (`thinking.thegardners.xyz/api/*`), so every deploy also writes
+  to that zone's Workers Routes. A token without it uploads the Worker
+  and *then* fails on the route, which reads as a failed deploy even
+  though the code went up. You need, at minimum:
+
+  - Account -> Workers Scripts -> **Edit**
+  - Zone -> Workers Routes -> **Edit** (on `thegardners.xyz`)
+  - Zone -> Zone -> **Read** (so `zone_name` resolves to a zone id)
+
+  No D1 and no DNS permission: the workflow only ever deploys code, and
+  a schema change is applied by hand anyway.
 - `CLOUDFLARE_ACCOUNT_ID` -- the ID shown in the Cloudflare dashboard
   URL, and in the sidebar of any of your Workers' pages.
 

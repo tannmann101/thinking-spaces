@@ -20,9 +20,27 @@
   --border-soft: #241d1e;
   --ink: #e9e1df;
   --ink-dim: #a3898c;
-  --ink-faint: #6f5c5e;
+  /* Tertiary text. Was #6f5c5e, which sat at 3.17:1 on the page ground
+     -- below the 4.5:1 WCAG AA floor, and it carried 99 of this file's
+     text-colour declarations, so most of the app's small print failed.
+     Raised in lightness only: same hue (353.7deg) and saturation, so the
+     warm grey is the one that was chosen, just legible. 4.64:1.
+
+     Quiet is now done by weight, size and restraint rather than by
+     making text hard to see -- see the hover-revealed controls below. */
+  --ink-faint: #8c7577;
+
+  /* The handful of places --ink-faint was drawing a line rather than
+     setting type. Decoration has no contrast floor to meet, so it keeps
+     the original darker value instead of being dragged brighter with
+     the text. */
+  --rule-faint: #6f5c5e;
   --maroon: #8a2c3b;
-  --maroon-bright: #c14a5d;
+  /* Links and active states. Was #c14a5d at 4.15:1 -- just under the AA
+     floor, and it was the last thing failing after --ink-faint was
+     fixed. Lightness nudged 2.7%, hue and saturation untouched: the same
+     oxblood, now legible. 4.55:1. */
+  --maroon-bright: #c55466;
   --maroon-deep: #3a141a;
   --maroon-wash: rgba(138, 44, 59, 0.12);
   --accent: #c9973b; /* the app's long-standing gold, still used wherever a
@@ -35,10 +53,16 @@
      roughly the same weight against the dark ground, so no item shouts
      louder than another purely by hue -- distinction comes from the pairing
      of hue and shape, not from one color being brighter. */
-  --theme-accent-neutral: #6f5c5e;
-  --theme-accent-maroon: #c14a5d;
+  /* Three of these eleven sat below the 4.5:1 AA floor on the page
+     ground -- neutral at 3.17, maroon and clay at 4.15 -- so a Tool or
+     Space themed with one had unreadable accent text. Each was raised in
+     lightness only, holding hue and saturation, so the palette is the
+     same eleven colours, just legible. The other eight already passed
+     and are untouched. */
+  --theme-accent-neutral: #8b7476;
+  --theme-accent-maroon: #c55466;
   --theme-accent-rust: #c2683f;
-  --theme-accent-clay: #b4574a;
+  --theme-accent-clay: #b86053;
   --theme-accent-gold: #c9973b;
   --theme-accent-amber: #cbab55;
   --theme-accent-teal: #4f9a93;
@@ -62,6 +86,24 @@
      body's own default size deliberately, so ordinary reading text
      inside a card and the page's own base text size stay the same
      unless a component has a real reason to differ. */
+  /* --- Motion (the first two; the rest arrives with the motion pass) */
+  --dur-fast: 120ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* --- Control sizing ------------------------------------------------
+     WCAG 2.2 sets 24px as the minimum target size at AA. An audit of a
+     real Space page found 49 of 64 interactive elements under it, many
+     at 13-17px, because small controls were built from 2px of vertical
+     padding and whatever the font happened to occupy.
+
+     These are minimums, not paddings: the box grows to meet the floor
+     without the visual padding having to inflate to get there, so dense
+     chrome stays dense while still being hittable -- on a phone above
+     all. Links inside a sentence are deliberately exempt, which is the
+     exception the guideline itself makes for inline text. */
+  --control-min: 24px;
+  --control-min-md: 32px;
+
   /* --- Spacing scale -------------------------------------------------
      Every margin, padding and gap in this file comes from here. Before
      this there were 23 distinct pixel values across 459 declarations --
@@ -287,7 +329,7 @@ select:focus-visible,
    state confirms it before you click. */
 .editable {
   cursor: text;
-  border-bottom: 1px dashed var(--ink-faint);
+  border-bottom: 1px dashed var(--rule-faint);
 }
 .editable:hover {
   border-bottom-color: var(--maroon-bright);
@@ -311,7 +353,7 @@ button.category-chip {
 }
 button.editable {
   cursor: text;
-  border-bottom: 1px dashed var(--ink-faint);
+  border-bottom: 1px dashed var(--rule-faint);
 }
 button.editable:disabled {
   cursor: default;
@@ -328,7 +370,7 @@ button.editable:disabled:hover {
   font-family: var(--mono);
   font-size: 0.85em;
   color: var(--ink-faint);
-  border-bottom: 1px dashed var(--ink-faint);
+  border-bottom: 1px dashed var(--rule-faint);
 }
 .editable-toggle:hover {
   border-bottom-color: var(--maroon-bright);
@@ -862,7 +904,7 @@ button.editable:disabled:hover {
 .week-item {
   font-size: var(--fs-2xs);
   line-height: 1.3;
-  border-left: 2px solid var(--ink-faint);
+  border-left: 2px solid var(--rule-faint);
   padding-left: var(--space-xs-plus);
 }
 .week-item-upcoming {
@@ -1010,6 +1052,45 @@ button.editable:disabled:hover {
 
 /* A smaller, quieter button for per-row/per-item actions (move,
    remove) that shouldn't compete visually with primary actions. */
+/* Every small control meets the 24px target floor. inline-flex rather
+   than extra padding so the label stays optically centred as the box
+   grows to the minimum. */
+.btn-ghost-small,
+.theme-picker-toggle,
+.block-move-select,
+.legend-trigger,
+.quick-capture-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-min);
+}
+
+/* The sidebar's secondary links are left-aligned text, not buttons with
+   a centred label -- they stretch to the rail's width as flex items, so
+   centring them pushed the text into the middle of the column. */
+.legend-trigger {
+  justify-content: flex-start;
+}
+
+/* Form controls are targets too -- a 17px text input is as hard to hit
+   as a 17px button. Inline click-to-edit fields (.editable) and links
+   inside a sentence are deliberately left alone: those are the inline
+   exception the guideline itself carves out, and forcing 24px on a span
+   sitting in a paragraph would break the line it lives in. */
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  min-height: var(--control-min);
+}
+
+/* A real button is a real target. */
+.btn,
+.btn-primary,
+.btn-danger {
+  min-height: var(--control-min-md);
+}
+
 .btn-ghost-small {
   font-family: var(--mono);
   font-size: var(--fs-xs);
@@ -1390,6 +1471,50 @@ label {
   width: 1.2em;
   text-align: center;
   margin-right: var(--space-2xs);
+}
+
+/* --- Chrome recedes ---------------------------------------------------
+   An audit of a real Space page found one line of content carrying seven
+   always-visible controls of equal weight: two category chips, Report,
+   Theme, Move up, Move down, Move to..., Remove entry. The controls
+   outweighed the writing about three to one, which is most of why the
+   app read as a utility rather than a tool you think in.
+
+   The split that matters is facts versus verbs. A Category, Workspace or
+   Project chip says what this entry *is* part of -- that is content, and
+   it stays at full strength. Report / Theme / Move / Remove are things
+   you *do*, and they dim until you approach the entry.
+
+   Dimmed, not hidden, and deliberately so:
+   - CLAUDE.md's Dev Mode decision is that everything stays editable in
+     place, always, with nothing behind a switch. Controls that vanish
+     entirely edge toward the thing that decision rejected.
+   - There is no hover on a touch screen, so a hidden control would be
+     unreachable on the phone build rather than merely quiet.
+   - Opacity leaves the row exactly the height it was, so nothing jumps
+     under the pointer as you move down a feed.
+   Approaching with a mouse, or tabbing in from the keyboard, brings them
+   fully back. */
+.block-report-row,
+.block-controls {
+  opacity: 0.45;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.block-row:hover .block-report-row,
+.block-row:hover .block-controls,
+.block-row:focus-within .block-report-row,
+.block-row:focus-within .block-controls {
+  opacity: 1;
+}
+
+/* A coarse pointer never hovers, so there is nothing to reveal: show the
+   controls outright rather than leaving them permanently dimmed. */
+@media (hover: none) {
+  .block-report-row,
+  .block-controls {
+    opacity: 1;
+  }
 }
 
 .block-controls {
